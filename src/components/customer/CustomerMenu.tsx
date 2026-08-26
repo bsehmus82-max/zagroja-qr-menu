@@ -59,7 +59,22 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWifiOpen, setIsWifiOpen] = useState(false);
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCartState] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('customer_cart');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+
+  const setCart = (updater: CartItem[] | ((prev: CartItem[]) => CartItem[])) => {
+    setCartState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        localStorage.setItem('customer_cart', JSON.stringify(next));
+      } catch { /* ignore */ }
+      return next;
+    });
+  };
 
   // Update document title dynamically
   useEffect(() => {

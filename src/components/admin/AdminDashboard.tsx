@@ -44,7 +44,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   }, []);
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('live_orders');
+  const [activeTab, setActiveTabState] = useState<AdminTab>(() => {
+    try {
+      const hash = window.location.hash.replace('#', '') as AdminTab;
+      if (['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings'].includes(hash)) {
+        return hash;
+      }
+      const saved = localStorage.getItem('admin_active_tab') as AdminTab;
+      if (saved && ['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings'].includes(saved)) {
+        return saved;
+      }
+    } catch { /* ignore */ }
+    return 'live_orders';
+  });
+
+  const setActiveTab = (tab: AdminTab) => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('admin_active_tab', tab);
+      window.location.hash = tab;
+    } catch { /* ignore */ }
+  };
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Store state

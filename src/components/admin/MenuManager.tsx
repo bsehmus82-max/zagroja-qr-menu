@@ -33,7 +33,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   products,
   currency,
 }) => {
-  const [selectedCatId, setSelectedCatId] = useState<string>('all');
+  const [selectedCatId, setSelectedCatIdState] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('admin_menu_selected_category');
+      return saved || 'all';
+    } catch { return 'all'; }
+  });
+
+  const setSelectedCatId = (catId: string) => {
+    setSelectedCatIdState(catId);
+    try {
+      localStorage.setItem('admin_menu_selected_category', catId);
+    } catch { /* ignore */ }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
