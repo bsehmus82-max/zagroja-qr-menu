@@ -13,6 +13,7 @@ import { MenuManager } from './MenuManager';
 import { TableManager } from './TableManager';
 import { EndOfDayReport } from './EndOfDayReport';
 import { RestaurantSettings } from './RestaurantSettings';
+import { ManualPosScreen } from './ManualPosScreen';
 import { 
   ChefHat, 
   UtensilsCrossed, 
@@ -20,21 +21,18 @@ import {
   BarChart3, 
   Settings, 
   ExternalLink, 
-  BellRing, 
   Menu as MenuIcon, 
-  X, 
-  Sparkles,
-  Layers
+  X,
+  ShoppingCart,
+  LogOut
 } from 'lucide-react';
-
-import { ManualOrderModal } from './ManualOrderModal';
 
 interface AdminDashboardProps {
   onOpenCustomerMenu: (tableNumber?: number) => void;
   onLogout?: () => void;
 }
 
-type AdminTab = 'live_orders' | 'menu' | 'tables' | 'eod' | 'settings';
+export type AdminTab = 'live_orders' | 'pos' | 'menu' | 'tables' | 'eod' | 'settings';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenCustomerMenu,
@@ -42,8 +40,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('live_orders');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
-  const [manualOrderTableNumber, setManualOrderTableNumber] = useState<number>(1);
 
   // Store state
   const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
@@ -67,11 +63,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => unsubscribe();
   }, []);
 
-  const handleOpenManualOrder = (tableNumber?: number) => {
-    if (tableNumber) setManualOrderTableNumber(tableNumber);
-    setIsManualOrderOpen(true);
-  };
-
   const activeOrdersCount = orders.filter(
     (o) => o.status === 'pending' || o.status === 'preparing'
   ).length;
@@ -85,6 +76,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       icon: ChefHat,
       badge: activeOrdersCount + activeCallsCount > 0 ? `${activeOrdersCount + activeCallsCount}` : null,
       badgeColor: activeCallsCount > 0 ? 'bg-rose-500' : 'bg-amber-500',
+    },
+    {
+      id: 'pos' as AdminTab,
+      label: 'Manuel Masa Satışı & POS',
+      icon: ShoppingCart,
+      badge: 'YENİ',
+      badgeColor: 'bg-emerald-600',
     },
     {
       id: 'menu' as AdminTab,
@@ -146,19 +144,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           </div>
 
-          {/* Quick Manual Order Action Button in Sidebar */}
-          <div className="p-3">
-            <button
-              onClick={() => handleOpenManualOrder()}
-              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:brightness-105 active:scale-95 text-white font-bold py-2.5 px-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 transition-all"
-            >
-              <UtensilsCrossed className="w-4 h-4" />
-              <span>+ Hızlı Masa Satışı Gir</span>
-            </button>
-          </div>
-
           {/* Navigation Links */}
-          <nav className="p-3 pt-0 space-y-1.5">
+          <nav className="p-3 space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -202,7 +189,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-xs font-bold py-2.5 px-3 rounded-2xl flex items-center justify-center gap-2 transition-all shadow-xs"
           >
             <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
-            <span>Müşteri Menüsünü Aç</span>
+            <span>Müşteri Menüsünü Önizle</span>
           </button>
           
           {onLogout && (
@@ -210,6 +197,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onClick={onLogout}
               className="w-full text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 text-xs font-semibold py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-colors"
             >
+              <LogOut className="w-3.5 h-3.5" />
               <span>Oturumu Kapat</span>
             </button>
           )}
@@ -234,7 +222,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
             <div>
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Restoran ID: {restaurant.slug}
+                Restoran: {restaurant.name}
               </span>
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
                 {navItems.find((n) => n.id === activeTab)?.label}
@@ -242,22 +230,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => handleOpenManualOrder()}
-              className="flex items-center gap-1.5 text-xs font-extrabold text-white bg-slate-900 hover:bg-black px-3.5 py-2 rounded-xl transition-all shadow-xs active:scale-95"
-            >
-              <UtensilsCrossed className="w-4 h-4 text-orange-400" />
-              <span className="hidden sm:inline">+ Masaya Sipariş / Ciro Gir</span>
-              <span className="sm:hidden">+ Sipariş Gir</span>
-            </button>
-
+          <div className="flex items-center gap-2">
             <button
               onClick={() => onOpenCustomerMenu(1)}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl transition-colors border border-orange-200/60"
+              className="flex items-center gap-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl transition-colors border border-orange-200/60"
             >
               <QrCode className="w-4 h-4" />
-              <span>QR Menü Simülatörü</span>
+              <span className="hidden sm:inline">Müşteri QR Menüsüne Geç</span>
+              <span className="sm:hidden">Menü</span>
             </button>
           </div>
         </header>
@@ -269,7 +249,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               orders={orders}
               serviceCalls={serviceCalls}
               currency={restaurant.currency}
-              onOpenManualOrder={() => handleOpenManualOrder()}
+              onOpenManualOrder={() => setActiveTab('pos')}
+            />
+          )}
+
+          {activeTab === 'pos' && (
+            <ManualPosScreen
+              tables={tables}
+              categories={categories}
+              products={products}
+              currency={restaurant.currency}
             />
           )}
 
@@ -286,7 +275,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               tables={tables}
               restaurant={restaurant}
               onOpenCustomerMenuForTable={(tableNum) => onOpenCustomerMenu(tableNum)}
-              onOpenManualOrderForTable={(tableNum) => handleOpenManualOrder(tableNum)}
+              onOpenManualOrderForTable={() => setActiveTab('pos')}
             />
           )}
 
@@ -295,18 +284,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {activeTab === 'settings' && <RestaurantSettings restaurant={restaurant} />}
         </div>
       </main>
-
-      {/* Manual Order / Quick POS Modal */}
-      <ManualOrderModal
-        isOpen={isManualOrderOpen}
-        onClose={() => setIsManualOrderOpen(false)}
-        tables={tables}
-        categories={categories}
-        products={products}
-        currency={restaurant.currency}
-        defaultTableNumber={manualOrderTableNumber}
-      />
     </div>
   );
 };
-

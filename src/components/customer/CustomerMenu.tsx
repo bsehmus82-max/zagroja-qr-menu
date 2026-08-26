@@ -175,13 +175,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           {/* Top Bar Floating Badges */}
           <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
             {/* Masa Değiştir / Seçici Rozeti */}
-            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-white text-xs font-semibold">
+            <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white text-xs font-semibold shadow-lg">
               <QrCode className="w-3.5 h-3.5 text-orange-400" />
               <span>Masa {currentTableNumber}</span>
               <select
                 value={currentTableNumber}
                 onChange={(e) => setCurrentTableNumber(Number(e.target.value))}
-                className="bg-transparent text-white font-bold cursor-pointer outline-none border-none ml-1 text-xs opacity-75 hover:opacity-100"
+                className="bg-transparent text-white font-bold cursor-pointer outline-none border-none ml-1 text-xs opacity-80 hover:opacity-100"
                 title="Masa Değiştir"
               >
                 {tables.map((t) => (
@@ -191,18 +191,6 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
                 ))}
               </select>
             </div>
-
-            {/* Admin Switcher Button (Demo kolaylığı) */}
-            {onNavigateToAdmin && (
-              <button
-                onClick={onNavigateToAdmin}
-                className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-all"
-                title="Yönetim Paneline Geç"
-              >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Admin Panel</span>
-              </button>
-            )}
           </div>
 
           {/* Restaurant Profile Card in Cover */}
@@ -309,7 +297,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
         </div>
 
         {/* Restaurant Footer Info */}
-        <div className="p-4 text-center border-t border-slate-200 bg-white/50 text-slate-400 text-[11px] space-y-1">
+        <div className="p-4 text-center border-t border-slate-200 bg-white/50 text-slate-400 text-[11px] space-y-1.5">
           <div className="flex items-center justify-center gap-1.5 font-medium text-slate-600">
             <MapPin className="w-3 h-3 text-orange-500" />
             <span>{restaurant.address}</span>
@@ -320,8 +308,19 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           </div>
           <div className="flex items-center justify-center gap-1 pt-1 text-[10px] text-slate-400">
             <ShieldCheck className="w-3 h-3 text-emerald-600" />
-            <span>ID Tabanlı Güvenli QR Menü & Sipariş Altyapısı</span>
+            <span>Zagroja QR Menü Sistemi</span>
           </div>
+
+          {onNavigateToAdmin && (
+            <div className="pt-2">
+              <button
+                onClick={onNavigateToAdmin}
+                className="text-[10px] font-semibold text-slate-500 hover:text-orange-600 transition-colors underline"
+              >
+                🔒 Restoran & Yönetici Girişi
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Sticky Floating Cart Bar (Appears when items are in cart) */}
