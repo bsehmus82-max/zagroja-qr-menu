@@ -66,7 +66,7 @@ export function App() {
     window.location.href = '/';
   };
 
-  if (isSuperAdmin || pathInfo.isSuperAdminPath) {
+  if (pathInfo.isSuperAdminPath) {
     return <SuperAdmin onLogout={() => {
       localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
       window.location.href = '/';
