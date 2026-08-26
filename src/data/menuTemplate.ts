@@ -61,9 +61,43 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     ]
   },
   {
+    name: 'Soğuk & Sıcak Mezeler',
+    icon: 'Soup',
+    sort_order: 3,
+    template_products: [
+      {
+        name: 'Zeytinyağlı Humus & Pastırma',
+        description: 'Tahin, sızma zeytinyağı, kimyon, nohut püresi ve fırınlanmış sıcak çemenli pastırma ile.',
+        price: 220,
+        image_url: 'https://images.unsplash.com/photo-1577906096429-f73c2c312435?w=600&auto=format&fit=crop&q=80',
+        calories: 380,
+        preparation_time_minutes: 8,
+        sort_order: 1,
+      },
+      {
+        name: 'Süzme Yoğurtlu Atom & Haydari Tabağı',
+        description: 'Tereyağında kızartılmış acı Arnavut biberli süzme yoğurt ve naneli cevizli taze haydari.',
+        price: 180,
+        image_url: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=600&auto=format&fit=crop&q=80',
+        calories: 290,
+        preparation_time_minutes: 6,
+        sort_order: 2,
+      },
+      {
+        name: 'Güveçte Tereyağlı Kaşarlı Mantar',
+        description: 'Taze kültür mantarı, sarımsak, tereyağı ve fırınlanmış uzayan kaşar peyniri.',
+        price: 210,
+        image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
+        calories: 340,
+        preparation_time_minutes: 12,
+        sort_order: 3,
+      }
+    ]
+  },
+  {
     name: 'Ana Yemekler & Izgaralar',
     icon: 'Utensils',
-    sort_order: 3,
+    sort_order: 4,
     template_products: [
       {
         name: 'Izgara Kasap Köfte Tabağı',
@@ -82,13 +116,22 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 590,
         preparation_time_minutes: 16,
         sort_order: 2,
+      },
+      {
+        name: 'Kuzu Şiş Dürüm & Garnitür Tabağı',
+        description: 'Özel marine edilmiş yumuşak kuzu but parçaları, lavaş, közlenmiş patlıcan ezmesi ve patates.',
+        price: 440,
+        image_url: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&auto=format&fit=crop&q=80',
+        calories: 810,
+        preparation_time_minutes: 20,
+        sort_order: 3,
       }
     ]
   },
   {
     name: 'Burgerler & Dürümler',
     icon: 'Flame',
-    sort_order: 4,
+    sort_order: 5,
     template_products: [
       {
         name: 'Klasik Cheeseburger',
@@ -113,7 +156,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
   {
     name: 'Makarna & Pizzalar',
     icon: 'Pizza',
-    sort_order: 5,
+    sort_order: 6,
     template_products: [
       {
         name: 'Penne Arabbiata',
@@ -138,7 +181,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
   {
     name: 'Taze Salatalar',
     icon: 'Salad',
-    sort_order: 6,
+    sort_order: 7,
     template_products: [
       {
         name: 'Izgara Tavuklu Sezar Salata',
@@ -163,7 +206,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
   {
     name: 'Tatlılar & Pastalar',
     icon: 'Cake',
-    sort_order: 7,
+    sort_order: 8,
     template_products: [
       {
         name: 'San Sebastian Cheesecake',
@@ -186,9 +229,102 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     ]
   },
   {
-    name: 'Sıcak İçecekler',
+    name: 'Nargile Çeşitleri',
+    icon: 'Wind',
+    sort_order: 9,
+    template_products: [
+      {
+        name: 'Özel Karışım Gurme Nargile (Love 66 & Lady Killer)',
+        description: 'Kavun, çarkıfelek meyvesi, karpuz, nane ve buz aromalı premium tütün, buzlu marpuç ile servis edilir.',
+        price: 380,
+        image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 10,
+        sort_order: 1,
+      },
+      {
+        name: 'Klasik Çift Elma & Nane Nargile',
+        description: 'Geleneksel Al Fakher anasonlu çift elma ve ferahlatıcı nane lezzeti.',
+        price: 340,
+        image_url: 'https://images.unsplash.com/photo-1510076857177-7470076d4198?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 8,
+        sort_order: 2,
+      },
+      {
+        name: 'Buzlu Marpuç & Başlık Yenileme',
+        description: 'Nargilenizi soğutmak için dondurulmuş buzlu marpuç ilavesi.',
+        price: 90,
+        image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 3,
+        sort_order: 3,
+      }
+    ]
+  },
+  {
+    name: 'Alkolsüz Kokteyller & Mocktails',
+    icon: 'Citrus',
+    sort_order: 10,
+    template_products: [
+      {
+        name: 'Virgin Mojito (Lime & Taze Nane)',
+        description: 'Misket limonu, ezilmiş taze nane yaprakları, esmer şeker, soda ve bol kırık buz.',
+        price: 165,
+        image_url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80',
+        calories: 120,
+        preparation_time_minutes: 5,
+        sort_order: 1,
+      },
+      {
+        name: 'Blue Lagoon & Orman Meyveli Mocktail',
+        description: 'Mavi turunç şurubu, böğürtlen püresi, limon suyu ve sprite ile tropikal ferahlık.',
+        price: 175,
+        image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
+        calories: 145,
+        preparation_time_minutes: 5,
+        sort_order: 2,
+      }
+    ]
+  },
+  {
+    name: 'Alkollü İçecekler & Kokteyller',
+    icon: 'Beer',
+    sort_order: 11,
+    template_products: [
+      {
+        name: 'Fıçı Bira (50cl Soğuk Bardak)',
+        description: 'Buz gibi fıçı bira, tuzlu fıstık eşliğinde.',
+        price: 180,
+        image_url: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&auto=format&fit=crop&q=80',
+        calories: 210,
+        preparation_time_minutes: 2,
+        sort_order: 1,
+      },
+      {
+        name: 'Aperol Spritz / Gin Tonic',
+        description: 'Prosecco, Aperol, portakal dilimi ve soda ile İtalyan klasiği kokteyl.',
+        price: 320,
+        image_url: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=600&auto=format&fit=crop&q=80',
+        calories: 190,
+        preparation_time_minutes: 5,
+        sort_order: 2,
+      },
+      {
+        name: 'Kırmızı / Beyaz Kadeh Şarap (Özel Seçim)',
+        description: 'Kupaj yerli rezerve kadeh şarap, kuru meyve ve peynir tabağı eşlikçisi ile.',
+        price: 240,
+        image_url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&auto=format&fit=crop&q=80',
+        calories: 130,
+        preparation_time_minutes: 3,
+        sort_order: 3,
+      }
+    ]
+  },
+  {
+    name: 'Sıcak Kahveler & Çaylar',
     icon: 'Coffee',
-    sort_order: 8,
+    sort_order: 12,
     template_products: [
       {
         name: 'Geleneksel Demleme Çay',
@@ -209,8 +345,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 2,
       },
       {
-        name: 'Caffe Latte',
-        description: 'Taze çekilmiş espresso ve buharda ısıtılmış kadifemsi süt.',
+        name: 'Caffe Latte & Cappuccino',
+        description: 'Taze çekilmiş espresso ve buharda ısıtılmış kadifemsi süt kreması.',
         price: 110,
         image_url: 'https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?w=600&auto=format&fit=crop&q=80',
         calories: 140,
@@ -222,7 +358,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
   {
     name: 'Soğuk İçecekler & Meşrubatlar',
     icon: 'GlassWater',
-    sort_order: 9,
+    sort_order: 13,
     template_products: [
       {
         name: 'Ev Yapımı Nane-Limonata',
@@ -262,4 +398,5 @@ export const defaultTables = (max: number = 10) => {
     section: i < 4 ? 'Salon' : i < 8 ? 'Bahçe' : 'Teras'
   }));
 };
+
 

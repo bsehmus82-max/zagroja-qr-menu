@@ -12,7 +12,14 @@ import {
   Utensils,
   Pizza,
   Salad,
-  Wine
+  Wine,
+  Beer,
+  Flame,
+  Wind,
+  Soup,
+  Martini,
+  Citrus,
+  IceCream
 } from 'lucide-react';
 
 interface CategoryNavProps {
@@ -41,12 +48,37 @@ export const getCategoryIcon = (iconName: string, className = "w-4 h-4") => {
     case 'cake':
     case 'dessert':
       return <Cake className={className} />;
+    case 'icecream':
+      return <IceCream className={className} />;
     case 'pizza':
       return <Pizza className={className} />;
     case 'salad':
       return <Salad className={className} />;
     case 'wine':
       return <Wine className={className} />;
+    case 'beer':
+    case 'alcohol':
+      return <Beer className={className} />;
+    case 'martini':
+    case 'cocktail':
+      return <Martini className={className} />;
+    case 'flame':
+    case 'burger':
+      return <Flame className={className} />;
+    case 'wind':
+    case 'nargile':
+    case 'hookah':
+    case 'shisha':
+      return <Wind className={className} />;
+    case 'soup':
+    case 'meze':
+      return <Soup className={className} />;
+    case 'citrus':
+    case 'mocktail':
+      return <Citrus className={className} />;
+    case 'sparkles':
+    case 'special':
+      return <Sparkles className={className} />;
     default:
       return <Utensils className={className} />;
   }
