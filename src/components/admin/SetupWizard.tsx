@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Restaurant } from '../../types';
 import { store } from '../../lib/store';
-import { Building2, Image as ImageIcon, MapPin, CheckCircle2 } from 'lucide-react';
+import { uploadImage } from '../../lib/supabase';
+import { Building2, Image as ImageIcon, MapPin, CheckCircle2, UploadCloud } from 'lucide-react';
 
 export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant, onComplete: () => void }) => {
   const [step, setStep] = useState(1);
@@ -13,6 +14,19 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
     phone: restaurant.phone || '',
     address: restaurant.address || '',
   });
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    alert('Resim yükleniyor, lütfen bekleyin...');
+    const url = await uploadImage(file);
+    if (url) {
+      setForm({...form, logo_url: url});
+      alert('Resim başarıyla yüklendi!');
+    } else {
+      alert('Yükleme başarısız oldu. Lütfen tekrar deneyin.');
+    }
+  };
 
   const handleComplete = async () => {
     setLoading(true);
@@ -76,20 +90,31 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
                 <ImageIcon className="w-5 h-5 text-purple-500" /> 2. Görseller
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL *</label>
-                <input
-                  type="url"
-                  required
-                  value={form.logo_url}
-                  onChange={e => setForm({...form, logo_url: e.target.value})}
-                  placeholder="https://...logo.png"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
-                />
+                <label className="block text-sm font-medium text-slate-700 mb-1">İşletme Logosu *</label>
+                <div className="flex flex-col gap-4 mt-2">
+                  {form.logo_url && (
+                    <img 
+                      src={form.logo_url} 
+                      alt="Logo" 
+                      className="w-24 h-24 rounded-2xl object-cover border border-slate-200"
+                    />
+                  )}
+                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-purple-500 rounded-xl cursor-pointer transition-colors text-slate-600 font-medium">
+                    <UploadCloud className="w-5 h-5 text-purple-500" />
+                    Logo Seç ve Yükle
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="hidden" 
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={() => setStep(1)} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold">Geri</button>
                 <button 
-                  onClick={() => form.logo_url.trim() ? setStep(3) : alert('Lütfen logo URL girin.')}
+                  onClick={() => form.logo_url.trim() ? setStep(3) : alert('Lütfen logo yükleyin.')}
                   className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold"
                 >
                   Devam Et
