@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Lock, User, ArrowRight, KeyRound } from 'lucide-react';
+import { Lock, User, ArrowRight } from 'lucide-react';
+import { store } from '../../lib/store';
 
 interface AdminLoginProps {
   onSuccess: () => void;
@@ -7,8 +8,8 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin1234');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,14 +19,21 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
     setIsLoading(true);
 
     setTimeout(() => {
-      const validUsers = ['admin', 'yonetici', 'bistro'];
-      const validPass = ['admin1234', 'admin', '123456'];
+      const rest = store.getRestaurantByUsername(username.trim());
+      
+      if (rest && rest.owner_password === password.trim()) {
+        if (!rest.is_active) {
+          setError('Hesabınız sistem yöneticisi tarafından askıya alınmıştır.');
+          setIsLoading(false);
+          return;
+        }
 
-      if (
-        validUsers.includes(username.trim().toLowerCase()) &&
-        validPass.includes(password.trim())
-      ) {
-        localStorage.setItem('app_admin_session', 'active_' + Date.now());
+        // Başarılı giriş
+        localStorage.setItem('app_admin_session', JSON.stringify({ 
+          id: rest.id, 
+          username: rest.owner_username 
+        }));
+        
         setIsLoading(false);
         onSuccess();
       } else {
@@ -33,11 +41,6 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
         setError('Hatalı kullanıcı adı veya şifre girdiniz.');
       }
     }, 400);
-  };
-
-  const handleAutoFill = () => {
-    setUsername('admin');
-    setPassword('admin1234');
   };
 
   return (
@@ -52,73 +55,50 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-orange-500/30 text-white font-bold">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-white">Yönetici Girişi</h2>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-white">İşletme Girişi</h2>
           <p className="text-xs text-slate-400 mt-1">
-            Restoran Sipariş & Menü Yönetim Paneli
+            Zagroja SaaS Dijital Menü Platformu
           </p>
         </div>
 
-        {/* Credentials Helper Pill */}
-        <div
-          onClick={handleAutoFill}
-          className="mb-5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl p-3 text-left cursor-pointer transition-all flex items-center justify-between"
-          title="Tıklayarak otomatik doldur"
-        >
-          <div className="flex items-center gap-2 text-xs">
-            <KeyRound className="w-4 h-4 text-orange-400 flex-shrink-0" />
-            <div>
-              <div className="text-slate-300 font-semibold">
-                Kullanıcı: <span className="text-white font-mono font-bold">admin</span>
-              </div>
-              <div className="text-slate-400 text-[11px]">
-                Şifre: <span className="text-orange-400 font-mono font-bold">admin1234</span>
-              </div>
-            </div>
-          </div>
-          <span className="text-[10px] text-orange-400 font-bold bg-orange-500/10 px-2 py-1 rounded-lg">
-            Doldur
-          </span>
-        </div>
-
-        {/* Error Alert */}
         {error && (
-          <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold p-3 rounded-xl text-center">
+          <div className="mb-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-500 text-sm font-medium animate-pulse">
             {error}
           </div>
         )}
 
-        {/* Form */}
+        {/* Login Form */}
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Kullanıcı Adı
-            </label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Kullanıcı Adı</label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="w-5 h-5 text-slate-500" />
+              </div>
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
-                className="w-full bg-slate-800 text-white text-xs pl-10 pr-3.5 py-3 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all placeholder:text-slate-500"
+                placeholder="Örn: cafe_aria"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Şifre
-            </label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider ml-1">Şifre</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="w-5 h-5 text-slate-500" />
+              </div>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all placeholder:text-slate-500"
                 placeholder="••••••••"
-                className="w-full bg-slate-800 text-white text-xs pl-10 pr-3.5 py-3 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500 font-mono"
               />
             </div>
           </div>
@@ -126,22 +106,23 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-orange-500/25 hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 mt-2"
+            className="w-full mt-2 py-3.5 px-4 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-white font-bold rounded-xl shadow-lg shadow-orange-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed group"
           >
-            <span>{isLoading ? 'Giriş Yapılıyor...' : 'Panele Giriş Yap'}</span>
-            <ArrowRight className="w-4 h-4" />
+            {isLoading ? 'Giriş Yapılıyor...' : 'Yönetim Paneline Gir'}
+            {!isLoading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
           </button>
-        </form>
 
-        {/* Back to Menu link */}
-        <div className="mt-5 text-center pt-4 border-t border-slate-800">
-          <button
-            onClick={onCancel}
-            className="text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            ← Menüye Geri Dön
-          </button>
-        </div>
+          {/* Footer Action */}
+          <div className="mt-4 pt-4 border-t border-slate-800 text-center">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              ← Ana Sayfaya Dön
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

@@ -24,7 +24,8 @@ export function App() {
 
   const pathInfo = getPathInfo();
 
-  const [isAdminView, setIsAdminView] = useState<boolean>(pathInfo.isAdminPath);
+  // URL'de bir restoran slug yoksa (yani direkt ana sayfaya girildiyse), varsayılan olarak giriş ekranını göster.
+  const [isAdminView, setIsAdminView] = useState<boolean>(pathInfo.isAdminPath || !pathInfo.restaurantSlug);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return Boolean(localStorage.getItem('app_admin_session'));
   });
