@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RestaurantTable, Category, Product, OrderItem } from '../../types';
 import { store, playNotificationSound } from '../../lib/store';
+import { showToast } from '../../lib/toast';
 import { 
   Plus, 
   Minus, 
@@ -92,7 +93,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItemsList.length === 0) {
-      alert('Lütfen masaya en az bir ürün seçin.');
+      showToast('Lütfen masaya en az bir ürün seçin.', 'warning');
       return;
     }
 

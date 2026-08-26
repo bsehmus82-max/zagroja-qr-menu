@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Restaurant } from '../../types';
 import { store } from '../../lib/store';
 import { uploadImage } from '../../lib/supabase';
+import { showToast } from '../../lib/toast';
 import { Building2, Image as ImageIcon, MapPin, CheckCircle2, UploadCloud, Loader2 } from 'lucide-react';
 
 export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant, onComplete: () => void }) => {
@@ -76,7 +77,7 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
                 <p className="text-xs text-slate-500 mt-2">Müşterileriniz QR kodu okuttuğunda bu ismi görecekler.</p>
               </div>
               <button 
-                onClick={() => form.name.trim() ? setStep(2) : alert('Lütfen işletme adını girin.')}
+                onClick={() => form.name.trim() ? setStep(2) : showToast('Lütfen işletme adını girin.', 'warning')}
                 className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold mt-6"
               >
                 Devam Et
@@ -124,7 +125,7 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
               <div className="flex gap-3 mt-6">
                 <button onClick={() => setStep(1)} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold">Geri</button>
                 <button 
-                  onClick={() => form.logo_url.trim() ? setStep(3) : alert('Lütfen logo yükleyin.')}
+                  onClick={() => form.logo_url.trim() ? setStep(3) : showToast('Lütfen logo yükleyin.', 'warning')}
                   className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold"
                 >
                   Devam Et

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { RestaurantTable, Restaurant } from '../../types';
 import { store } from '../../lib/store';
 import { QRCodeSVG } from 'qrcode.react';
+import { showToast } from '../../lib/toast';
 import { 
   Plus, 
   RefreshCw, 
@@ -53,7 +54,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
   const handleSaveTable = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canAddMore) {
-      alert(`Maksimum masa sınırına (${maxTables}) ulaştınız.`);
+      showToast(`Maksimum masa sayısına (${maxTables}) ulaştınız.`, 'warning');
       return;
     }
     store.addTable({

@@ -3,6 +3,7 @@ import {
   Order, OrderItem, ServiceCall, EndOfDayReportData, TableSummary
 } from '../types';
 import { supabase } from './supabase';
+import { showToast } from './toast';
 import { defaultMenuTemplate, defaultTables } from '../data/menuTemplate';
 
 // ============================================================
@@ -412,7 +413,7 @@ class RestaurantStore {
     const { error } = await supabase.from('restaurant_tables').insert([newTable]);
     
     if (error) {
-      alert('Masa eklenemedi: ' + error.message);
+      showToast('Masa eklenemedi: ' + error.message, 'error');
       throw error;
     }
 

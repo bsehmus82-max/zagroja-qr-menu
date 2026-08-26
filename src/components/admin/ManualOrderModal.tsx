@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { RestaurantTable, Category, Product, OrderItem } from '../../types';
 import { store, playNotificationSound } from '../../lib/store';
+import { showToast } from '../../lib/toast';
 import { 
   X, 
   Plus, 
@@ -100,7 +101,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItemsList.length === 0) {
-      alert('Lütfen masaya en az bir ürün ekleyin.');
+      showToast('Lütfen masaya en az bir ürün ekleyin.', 'warning');
       return;
     }
 

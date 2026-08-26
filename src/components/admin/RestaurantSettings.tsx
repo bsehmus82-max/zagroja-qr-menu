@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Restaurant } from '../../types';
 import { store } from '../../lib/store';
 import { uploadImage } from '../../lib/supabase';
+import { showToast } from '../../lib/toast';
 import { 
   Building2, Wifi, Save, Globe, Phone, MapPin, 
   Image, Check, RefreshCw, Palette, Shield, UploadCloud, Loader2, CheckCircle2, AlertCircle
@@ -26,9 +27,11 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
     if (result.url) {
       handleChange(field, result.url);
       setUploadState({ field, status: 'success' });
+      showToast('Görsel başarıyla yüklendi! Kaydetmeyi unutmayın.', 'success');
       setTimeout(() => setUploadState({ field: null, status: 'idle' }), 3000);
     } else {
       setUploadState({ field, status: 'error', message: result.error });
+      showToast(`Yükleme hatası: ${result.error}`, 'error');
       setTimeout(() => setUploadState({ field: null, status: 'idle' }), 4000);
     }
   };
@@ -39,6 +42,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
     await store.updateRestaurant(restaurant.id, form);
     setSavedSuccess(true);
     setSaving(false);
+    showToast('Ayarlar kaydedildi.', 'success');
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
@@ -49,7 +53,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
   const handleResetDay = () => {
     if (confirm('Tüm siparişler ve servis çağrıları temizlenecek. Günü sıfırlamak istediğinize emin misiniz?')) {
       store.resetDay();
-      alert('Gün başarıyla sıfırlandı.');
+      showToast('Gün başarıyla sıfırlandı.', 'success');
     }
   };
 
