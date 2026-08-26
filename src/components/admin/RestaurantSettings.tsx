@@ -4,7 +4,7 @@ import { store } from '../../lib/store';
 import { uploadImage } from '../../lib/supabase';
 import { 
   Building2, Wifi, Save, Globe, Phone, MapPin, 
-  Image, Check, RefreshCw, Palette, Shield, UploadCloud
+  Image, Check, RefreshCw, Palette, Shield, UploadCloud, Loader2, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
 interface RestaurantSettingsProps {
@@ -15,18 +15,21 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
   const [form, setForm] = useState<Restaurant>({ ...restaurant });
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadState, setUploadState] = useState<{ field: string | null; status: 'idle' | 'uploading' | 'success' | 'error'; message?: string }>({ field: null, status: 'idle' });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'logo_url' | 'cover_url') => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    alert('Resim yükleniyor, lütfen bekleyin...');
-    const url = await uploadImage(file);
-    if (url) {
-      handleChange(field, url);
-      alert('Resim başarıyla yüklendi, kaydetmeyi unutmayın!');
+    setUploadState({ field, status: 'uploading' });
+    const result = await uploadImage(file);
+    if (result.url) {
+      handleChange(field, result.url);
+      setUploadState({ field, status: 'success' });
+      setTimeout(() => setUploadState({ field: null, status: 'idle' }), 3000);
     } else {
-      alert('Yükleme başarısız oldu. Lütfen tekrar deneyin.');
+      setUploadState({ field, status: 'error', message: result.error });
+      setTimeout(() => setUploadState({ field: null, status: 'idle' }), 4000);
     }
   };
 

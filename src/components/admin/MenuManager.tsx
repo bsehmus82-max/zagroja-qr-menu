@@ -443,13 +443,9 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
-                        alert('Görsel yükleniyor, lütfen bekleyin...');
-                        const url = await uploadImage(file);
-                        if (url) {
-                          setProdForm({ ...prodForm, image_url: url });
-                          alert('Görsel başarıyla yüklendi!');
-                        } else {
-                          alert('Yükleme başarısız oldu.');
+                        const result = await uploadImage(file);
+                        if (result.url) {
+                          setProdForm({ ...prodForm, image_url: result.url });
                         }
                       }}
                     />

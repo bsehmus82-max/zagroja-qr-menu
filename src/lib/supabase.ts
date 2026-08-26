@@ -7,9 +7,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 export const isSupabaseConfigured = () => true;
 
-export const uploadImage = async (file: File): Promise<string | null> => {
+export const uploadImage = async (file: File): Promise<{ url: string | null; error?: string }> => {
   try {
-    // Accept any image format - no restriction on type
     const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
     const safeExt = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico', 'avif'].includes(fileExt)
       ? fileExt
@@ -28,15 +27,13 @@ export const uploadImage = async (file: File): Promise<string | null> => {
 
     if (uploadError) {
       console.error('Upload Error:', uploadError);
-      alert(`Yükleme hatası: ${uploadError.message}`);
-      return null;
+      return { url: null, error: uploadError.message };
     }
 
     const { data } = supabase.storage.from('menu_images').getPublicUrl(filePath);
-    return data.publicUrl;
+    return { url: data.publicUrl };
   } catch (error: any) {
     console.error('Error in uploadImage:', error);
-    alert(`Beklenmeyen hata: ${error?.message || 'Bilinmeyen hata'}`);
-    return null;
+    return { url: null, error: error?.message || 'Bilinmeyen hata' };
   }
 };

@@ -20,12 +20,12 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const url = await uploadImage(file);
+    const result = await uploadImage(file);
     setUploading(false);
-    if (url) {
-      setForm(prev => ({...prev, logo_url: url}));
+    if (result.url) {
+      setForm(prev => ({...prev, logo_url: result.url!}));
     }
-    // uploadImage now shows alert on error internally
+    // error is already logged by uploadImage
   };
 
   const handleComplete = async () => {
