@@ -6,6 +6,17 @@ import { supabase } from './supabase';
 import { showToast } from './toast';
 import { defaultMenuTemplate, defaultTables } from '../data/menuTemplate';
 
+export function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // ============================================================
 // SUPER ADMIN KREDENSİYELLERİ — SADECE BURASI BİLİR
 // ============================================================
@@ -214,8 +225,38 @@ class RestaurantStore {
 
   async loadAllRestaurantsFromCloud(): Promise<Restaurant[]> {
     try {
-      const { data, error } = await supabase.from('restaurants').select('*').order('created_at', { ascending: false });
-      if (data && !error) {
+      // 1. Check if any locally stored restaurants have invalid IDs and sync them
+      const localRests = this.getAllRestaurants();
+      for (const loc of localRests) {
+        if (!loc.id || loc.id.startsWith('rest_') || loc.id.length !== 36) {
+          loc.id = generateUUID();
+          try {
+            await supabase.from('restaurants').upsert([{
+              id: loc.id,
+              slug: loc.slug,
+              name: loc.name,
+              owner_username: loc.owner_username,
+              owner_password: loc.owner_password,
+              subscription_type: loc.subscription_type || 'unlimited',
+              subscription_expires_at: loc.subscription_expires_at,
+              is_active: loc.is_active ?? true,
+              setup_completed: loc.setup_completed ?? false,
+              max_tables: loc.max_tables || 25,
+              created_at: loc.created_at || new Date().toISOString()
+            }]);
+          } catch (e) {
+            console.warn('Migration insert error:', e);
+          }
+        }
+      }
+
+      // 2. Fetch fresh list from Supabase
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data && !error && data.length > 0) {
         this.saveAllRestaurants(data as Restaurant[]);
         this.notify();
         return data as Restaurant[];
@@ -319,7 +360,7 @@ class RestaurantStore {
     subscription_days?: number;
     max_tables?: number;
   }): Promise<Restaurant> {
-    const id = `rest_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const id = generateUUID();
     const expiresAt = data.subscription_type === 'timed' && data.subscription_days
       ? new Date(Date.now() + data.subscription_days * 24 * 60 * 60 * 1000).toISOString()
       : null;
@@ -350,12 +391,11 @@ class RestaurantStore {
     };
 
     const all = this.getAllRestaurants();
-    all.push(restaurant);
-    this.saveAllRestaurants(all);
+    this.saveAllRestaurants([...all.filter(r => r.id !== restaurant.id), restaurant]);
 
-    // Supabase sync
+    // Supabase cloud sync
     try {
-      await supabase.from('restaurants').insert([{
+      const { error } = await supabase.from('restaurants').upsert([{
         id: restaurant.id,
         slug: restaurant.slug,
         name: restaurant.name,
@@ -367,8 +407,12 @@ class RestaurantStore {
         setup_completed: false,
         payment_pending: false,
         created_at: restaurant.created_at,
+        max_tables: restaurant.max_tables,
       }]);
-    } catch (e) { console.warn('Supabase createRestaurant:', e); }
+      if (error) console.error('Supabase createRestaurant error:', error);
+    } catch (e) {
+      console.warn('Supabase createRestaurant exception:', e);
+    }
 
     return restaurant;
   }
@@ -425,7 +469,7 @@ class RestaurantStore {
     const products: Product[] = [];
 
     defaultMenuTemplate.forEach((cat) => {
-      const catId = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 5)}_${cat.sort_order}`;
+      const catId = generateUUID();
       categories.push({
         id: catId,
         restaurant_id: restaurantId,
@@ -436,7 +480,7 @@ class RestaurantStore {
       });
 
       cat.template_products.forEach((prod, pIdx) => {
-        const prodId = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 5)}_${pIdx}`;
+        const prodId = generateUUID();
         products.push({
           id: prodId,
           category_id: catId,
@@ -448,7 +492,7 @@ class RestaurantStore {
           calories: prod.calories,
           preparation_time_minutes: prod.preparation_time_minutes,
           is_available: true,
-          sort_order: prod.sort_order,
+          sort_order: prod.sort_order || pIdx,
         });
       });
     });
@@ -487,8 +531,8 @@ class RestaurantStore {
   private async initializeDefaultTables(restaurantId: string) {
     const rest = this.getRestaurantById(restaurantId);
     const max = rest?.max_tables || 10;
-    const tables: RestaurantTable[] = defaultTables(max).map((t, idx) => ({
-      id: `tbl_${Date.now()}_${idx}`,
+    const tables: RestaurantTable[] = defaultTables(max).map((t) => ({
+      id: generateUUID(),
       restaurant_id: restaurantId,
       table_number: t.table_number,
       table_name: t.table_name,
@@ -534,7 +578,7 @@ class RestaurantStore {
   async addTable(table: Pick<RestaurantTable, 'table_number' | 'table_name' | 'section'>) {
     const tables = this.getTables();
     const newTable: RestaurantTable = {
-      id: `tbl_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: generateUUID(),
       restaurant_id: this.currentRestaurantId || '',
       table_number: table.table_number,
       table_name: table.table_name,
@@ -577,7 +621,7 @@ class RestaurantStore {
   async addCategory(name: string, icon: string = 'Utensils') {
     const cats = this.getCategories();
     const newCat: Category = {
-      id: `cat_${Date.now()}`,
+      id: generateUUID(),
       restaurant_id: this.currentRestaurantId || '',
       name, icon,
       sort_order: cats.length + 1,
@@ -604,7 +648,7 @@ class RestaurantStore {
 
   // ===== PRODUCT MANAGEMENT =====
   async addProduct(product: Omit<Product, 'id'>) {
-    const newProd: Product = { ...product, id: `prod_${Date.now()}` };
+    const newProd: Product = { ...product, id: generateUUID() };
     this.set('products', [newProd, ...this.getProducts()]);
     this.notify();
     try { await supabase.from('products').insert([newProd]); } catch { /* ignore */ }
@@ -632,7 +676,7 @@ class RestaurantStore {
   ): Promise<Order> {
     const total = items.reduce((s, i) => s + i.total_price, 0);
     const newOrder: Order = {
-      id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
+      id: generateUUID(),
       restaurant_id: this.currentRestaurantId || '',
       table_number: tableNumber,
       status: 'pending',
@@ -654,6 +698,7 @@ class RestaurantStore {
       }]).select().single();
       if (ins) {
         await supabase.from('order_items').insert(items.map(i => ({
+          id: generateUUID(),
           order_id: ins.id, product_name: i.product_name,
           unit_price: i.unit_price, quantity: i.quantity,
           total_price: i.total_price, item_notes: i.item_notes || '',
@@ -677,7 +722,7 @@ class RestaurantStore {
   // ===== SERVICE CALLS =====
   async createServiceCall(tableNumber: number, type: 'waiter' | 'bill', paymentType?: 'cash' | 'credit_card'): Promise<ServiceCall> {
     const newCall: ServiceCall = {
-      id: `call_${Date.now()}`,
+      id: generateUUID(),
       restaurant_id: this.currentRestaurantId || '',
       table_number: tableNumber,
       type, payment_type: paymentType,
