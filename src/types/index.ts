@@ -36,6 +36,8 @@ export interface Restaurant {
   // Backward compat & optional extras
   wifi_ssid?: string;
   tax_rate?: number;
+  max_tables?: number;
+  active_sessions?: string[];
 }
 
 

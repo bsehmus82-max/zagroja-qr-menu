@@ -108,7 +108,7 @@ export function App() {
 
   if (!currentRest || !currentRest.setup_completed) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-sm w-full">
           <h1 className="text-xl font-bold text-slate-800 mb-2">QR Menü</h1>
           <p className="text-slate-500">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
@@ -118,7 +118,7 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans">
+    <div className="min-h-screen bg-slate-100 font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
       <CustomerMenu initialTableNumber={validTable} />
     </div>
   );

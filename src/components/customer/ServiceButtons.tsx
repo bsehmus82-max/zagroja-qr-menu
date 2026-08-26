@@ -6,6 +6,7 @@ interface ServiceButtonsProps {
   onCallWaiter: () => void;
   onRequestBill: (paymentType: 'cash' | 'credit_card') => void;
   onOpenWifi: () => void;
+  hasWifi?: boolean;
 }
 
 export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
@@ -13,6 +14,7 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
   onCallWaiter,
   onRequestBill,
   onOpenWifi,
+  hasWifi = true,
 }) => {
   const [showBillModal, setShowBillModal] = useState(false);
   const [waiterCalled, setWaiterCalled] = useState(false);
@@ -33,7 +35,7 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
 
   return (
     <>
-      <div className="grid grid-cols-3 gap-2 px-3 py-2 bg-slate-900 text-white rounded-2xl shadow-lg border border-slate-800 my-2">
+      <div className={`grid ${hasWifi ? 'grid-cols-3' : 'grid-cols-2'} gap-2 px-3 py-2 bg-slate-900 text-white rounded-2xl shadow-lg border border-slate-800 my-2`}>
         {/* Garson Çağır */}
         <button
           onClick={handleWaiterClick}
@@ -75,13 +77,15 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
         </button>
 
         {/* Wi-Fi Bilgisi */}
-        <button
-          onClick={onOpenWifi}
-          className="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center hover:bg-slate-800 active:scale-95 text-slate-200 transition-all"
-        >
-          <Wifi className="w-5 h-5 text-sky-400 mb-1" />
-          <span className="text-[11px] font-semibold">Wi-Fi Bilgisi</span>
-        </button>
+        {hasWifi && (
+          <button
+            onClick={onOpenWifi}
+            className="flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center hover:bg-slate-800 active:scale-95 text-slate-200 transition-all"
+          >
+            <Wifi className="w-5 h-5 text-sky-400 mb-1" />
+            <span className="text-[11px] font-semibold">Wi-Fi Bilgisi</span>
+          </button>
+        )}
       </div>
 
       {/* Bill Choice Modal */}
