@@ -250,16 +250,8 @@ export const TableManager: React.FC<TableManagerProps> = ({
                   id={`qr-svg-${table.id}`}
                   value={qrUrl}
                   size={140}
-                  level="H"
+                  level="M"
                   includeMargin={true}
-                  imageSettings={{
-                    src: restaurant.logo_url,
-                    x: undefined,
-                    y: undefined,
-                    height: 28,
-                    width: 28,
-                    excavate: true,
-                  }}
                 />
               </div>
 
@@ -415,25 +407,22 @@ export const TableManager: React.FC<TableManagerProps> = ({
             </button>
 
             {/* Acrylic Table Stand Layout */}
-            <div className="border-4 border-slate-900 rounded-3xl p-6 bg-gradient-to-b from-slate-50 to-white shadow-lg space-y-4">
-              <div className="flex items-center justify-center gap-2">
-                <img
-                  src={restaurant.logo_url}
-                  alt={restaurant.name}
-                  className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-2xs"
-                />
-                <span className="font-extrabold text-slate-900 text-sm">{restaurant.name}</span>
+            <div className="border-4 border-slate-900 rounded-3xl p-6 bg-white shadow-lg space-y-4">
+              <div className="border-b-2 border-slate-900 pb-3">
+                <h3 className="font-black text-2xl uppercase tracking-widest text-slate-900 font-serif">
+                  {restaurant.name || 'DİJİTAL MENÜ'}
+                </h3>
               </div>
 
-              <div className="py-2">
-                <span className="inline-block bg-slate-900 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  {selectedTableForPrint.table_name} ({selectedTableForPrint.section})
+              <div className="py-1">
+                <span className="inline-block bg-slate-900 text-white text-sm font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
+                  {selectedTableForPrint.table_name}
                 </span>
-                <h4 className="text-xl font-extrabold text-slate-900 mt-2">
+                <h4 className="text-base font-bold text-slate-700 mt-2">
                   TEMASSIZ QR MENÜ
                 </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Kameranızla okutun, sipariş verin, garson çağırın!
+                <p className="text-xs text-slate-500">
+                  Telefonunuzun kamerasıyla okutarak menüyü inceleyin
                 </p>
               </div>
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Category, Product } from '../../types';
 import { store } from '../../lib/store';
+import { showToast } from '../../lib/toast';
 import { 
   Plus, 
   Search, 
@@ -14,7 +15,9 @@ import {
   FolderPlus,
   DollarSign,
   Image as ImageIcon,
-  UploadCloud
+  UploadCloud,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { getCategoryIcon } from '../customer/CategoryNav';
 import { uploadImage } from '../../lib/supabase';
@@ -35,6 +38,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
 
   // New Category Form State
   const [newCatName, setNewCatName] = useState('');
@@ -155,6 +159,15 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     }
   };
 
+  const handleLoadDefaultTemplate = async () => {
+    if (confirm('Tüm standart kategoriler (Nargile, Alkol, Meze, Kahvaltı, Izgaralar vb.) ve hazır lezzetler yüklenecektir. Onaylıyor musunuz?')) {
+      setLoadingTemplate(true);
+      await store.loadFullDefaultMenu();
+      setLoadingTemplate(false);
+      showToast('Tüm standart kategoriler başarıyla yüklendi!', 'success');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Quick Action */}
@@ -166,7 +179,21 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleLoadDefaultTemplate}
+            disabled={loadingTemplate}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors flex items-center gap-1.5"
+            title="Tüm hazır kategorileri ve örnek ürünleri tek tıkla yükler"
+          >
+            {loadingTemplate ? (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+            ) : (
+              <RefreshCw className="w-4 h-4 text-amber-600" />
+            )}
+            <span>Standart Kategorileri Yükle</span>
+          </button>
+
           <button
             onClick={() => setIsAddingCategory(true)}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors flex items-center gap-1.5"
@@ -575,15 +602,22 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none bg-white font-medium"
                 >
                   <option value="Utensils">Varsayılan (Çatal Bıçak)</option>
-                  <option value="Coffee">Kahve & Sıcak İçecek</option>
-                  <option value="GlassWater">Soğuk İçecek</option>
-                  <option value="UtensilsCrossed">Ana Yemek</option>
-                  <option value="Sandwich">Atıştırmalık & Sandviç</option>
-                  <option value="Egg">Kahvaltılık</option>
-                  <option value="Cake">Tatlı & Pasta</option>
-                  <option value="Pizza">Pizza</option>
-                  <option value="Salad">Salata</option>
-                  <option value="Wine">Şarap & Kokteyl</option>
+                  <option value="Wind">Nargile & Özel Tütünler 💨</option>
+                  <option value="Beer">Bira & Alkollü İçecekler 🍺</option>
+                  <option value="Martini">Kokteyller & Bar 🍸</option>
+                  <option value="Citrus">Alkolsüz Mocktails & Limonata 🍋</option>
+                  <option value="Soup">Soğuk & Sıcak Mezeler 🍲</option>
+                  <option value="Flame">Izgara & Gurme Burger 🔥</option>
+                  <option value="UtensilsCrossed">Ana Yemekler 🍽️</option>
+                  <option value="Egg">Kahvaltılık & Başlangıç 🍳</option>
+                  <option value="Sandwich">Dürüm & Sandviç 🥪</option>
+                  <option value="Pizza">Pizza & Pide 🍕</option>
+                  <option value="Salad">Taze Salata & Kase 🥗</option>
+                  <option value="Cake">Tatlı & Pasta 🍰</option>
+                  <option value="IceCream">Dondurma & Soğuk Tatlı 🍨</option>
+                  <option value="Coffee">Kahve & Sıcak İçecek ☕</option>
+                  <option value="GlassWater">Soğuk İçecek & Meşrubat 🥤</option>
+                  <option value="Sparkles">Günün Spesiyalleri ⭐</option>
                 </select>
               </div>
 

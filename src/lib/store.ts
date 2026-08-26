@@ -388,6 +388,17 @@ class RestaurantStore {
     } catch (e) { console.warn('Supabase initMenu:', e); }
   }
 
+  async loadFullDefaultMenu(restaurantId?: string) {
+    const id = restaurantId || this.currentRestaurantId;
+    if (!id) return;
+    try {
+      await supabase.from('products').delete().eq('restaurant_id', id);
+      await supabase.from('categories').delete().eq('restaurant_id', id);
+    } catch (e) { console.warn('Clear old categories error:', e); }
+    await this.initializeDefaultMenu(id);
+    this.notify();
+  }
+
   private async initializeDefaultTables(restaurantId: string) {
     const rest = this.getRestaurantById(restaurantId);
     const max = rest?.max_tables || 10;
