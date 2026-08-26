@@ -19,12 +19,14 @@ interface TableManagerProps {
   tables: RestaurantTable[];
   restaurant: Restaurant;
   onOpenCustomerMenuForTable: (tableNumber: number) => void;
+  onOpenManualOrderForTable?: (tableNumber: number) => void;
 }
 
 export const TableManager: React.FC<TableManagerProps> = ({
   tables,
   restaurant,
   onOpenCustomerMenuForTable,
+  onOpenManualOrderForTable,
 }) => {
   const [isAddingTable, setIsAddingTable] = useState(false);
   const [selectedTableForPrint, setSelectedTableForPrint] = useState<RestaurantTable | null>(null);
@@ -172,36 +174,49 @@ export const TableManager: React.FC<TableManagerProps> = ({
               </p>
 
               {/* Actions Footer */}
-              <div className="w-full grid grid-cols-3 gap-1.5 pt-2 border-t border-slate-100">
-                {/* Menüyü Müşteri Olarak Aç */}
-                <button
-                  onClick={() => onOpenCustomerMenuForTable(table.table_number)}
-                  className="p-2 rounded-xl text-[11px] font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 flex flex-col items-center justify-center transition-colors"
-                  title="Müşteri Görünümü"
-                >
-                  <ExternalLink className="w-3.5 h-3.5 mb-0.5" />
-                  <span>Menüyü Aç</span>
-                </button>
+              <div className="w-full space-y-2 pt-2 border-t border-slate-100">
+                {/* Manuel Sipariş Ekle Butonu */}
+                {onOpenManualOrderForTable && (
+                  <button
+                    onClick={() => onOpenManualOrderForTable(table.table_number)}
+                    className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Masaya Sipariş / Satış Gir</span>
+                  </button>
+                )}
 
-                {/* SVG İndir */}
-                <button
-                  onClick={() => handleDownloadSVG(table)}
-                  className="p-2 rounded-xl text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 flex flex-col items-center justify-center transition-colors"
-                  title="SVG Olarak İndir"
-                >
-                  <Download className="w-3.5 h-3.5 mb-0.5" />
-                  <span>İndir</span>
-                </button>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {/* Menüyü Müşteri Olarak Aç */}
+                  <button
+                    onClick={() => onOpenCustomerMenuForTable(table.table_number)}
+                    className="p-2 rounded-xl text-[11px] font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 flex flex-col items-center justify-center transition-colors"
+                    title="Müşteri Görünümü"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mb-0.5" />
+                    <span>Menüyü Aç</span>
+                  </button>
 
-                {/* Masa Standını Yazdır */}
-                <button
-                  onClick={() => setSelectedTableForPrint(table)}
-                  className="p-2 rounded-xl text-[11px] font-semibold bg-slate-900 text-white hover:bg-black flex flex-col items-center justify-center transition-colors"
-                  title="Masa Standı Olarak Yazdır"
-                >
-                  <Printer className="w-3.5 h-3.5 mb-0.5" />
-                  <span>Yazdır</span>
-                </button>
+                  {/* SVG İndir */}
+                  <button
+                    onClick={() => handleDownloadSVG(table)}
+                    className="p-2 rounded-xl text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 flex flex-col items-center justify-center transition-colors"
+                    title="SVG Olarak İndir"
+                  >
+                    <Download className="w-3.5 h-3.5 mb-0.5" />
+                    <span>İndir</span>
+                  </button>
+
+                  {/* Masa Standını Yazdır */}
+                  <button
+                    onClick={() => setSelectedTableForPrint(table)}
+                    className="p-2 rounded-xl text-[11px] font-semibold bg-slate-900 text-white hover:bg-black flex flex-col items-center justify-center transition-colors"
+                    title="Masa Standı Olarak Yazdır"
+                  >
+                    <Printer className="w-3.5 h-3.5 mb-0.5" />
+                    <span>Yazdır</span>
+                  </button>
+                </div>
               </div>
             </div>
           );

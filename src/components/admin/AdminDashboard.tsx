@@ -27,6 +27,8 @@ import {
   Layers
 } from 'lucide-react';
 
+import { ManualOrderModal } from './ManualOrderModal';
+
 interface AdminDashboardProps {
   onOpenCustomerMenu: (tableNumber?: number) => void;
   onLogout?: () => void;
@@ -40,6 +42,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('live_orders');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isManualOrderOpen, setIsManualOrderOpen] = useState(false);
+  const [manualOrderTableNumber, setManualOrderTableNumber] = useState<number>(1);
 
   // Store state
   const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
@@ -62,6 +66,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const unsubscribe = store.subscribe(update);
     return () => unsubscribe();
   }, []);
+
+  const handleOpenManualOrder = (tableNumber?: number) => {
+    if (tableNumber) setManualOrderTableNumber(tableNumber);
+    setIsManualOrderOpen(true);
+  };
 
   const activeOrdersCount = orders.filter(
     (o) => o.status === 'pending' || o.status === 'preparing'
@@ -137,8 +146,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           </div>
 
+          {/* Quick Manual Order Action Button in Sidebar */}
+          <div className="p-3">
+            <button
+              onClick={() => handleOpenManualOrder()}
+              className="w-full bg-gradient-to-r from-orange-500 to-amber-500 hover:brightness-105 active:scale-95 text-white font-bold py-2.5 px-3 rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 transition-all"
+            >
+              <UtensilsCrossed className="w-4 h-4" />
+              <span>+ Hızlı Masa Satışı Gir</span>
+            </button>
+          </div>
+
           {/* Navigation Links */}
-          <nav className="p-3 space-y-1.5">
+          <nav className="p-3 pt-0 space-y-1.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -222,7 +242,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => handleOpenManualOrder()}
+              className="flex items-center gap-1.5 text-xs font-extrabold text-white bg-slate-900 hover:bg-black px-3.5 py-2 rounded-xl transition-all shadow-xs active:scale-95"
+            >
+              <UtensilsCrossed className="w-4 h-4 text-orange-400" />
+              <span className="hidden sm:inline">+ Masaya Sipariş / Ciro Gir</span>
+              <span className="sm:hidden">+ Sipariş Gir</span>
+            </button>
+
             <button
               onClick={() => onOpenCustomerMenu(1)}
               className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 px-3.5 py-2 rounded-xl transition-colors border border-orange-200/60"
@@ -240,6 +269,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               orders={orders}
               serviceCalls={serviceCalls}
               currency={restaurant.currency}
+              onOpenManualOrder={() => handleOpenManualOrder()}
             />
           )}
 
@@ -256,6 +286,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               tables={tables}
               restaurant={restaurant}
               onOpenCustomerMenuForTable={(tableNum) => onOpenCustomerMenu(tableNum)}
+              onOpenManualOrderForTable={(tableNum) => handleOpenManualOrder(tableNum)}
             />
           )}
 
@@ -264,6 +295,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {activeTab === 'settings' && <RestaurantSettings restaurant={restaurant} />}
         </div>
       </main>
+
+      {/* Manual Order / Quick POS Modal */}
+      <ManualOrderModal
+        isOpen={isManualOrderOpen}
+        onClose={() => setIsManualOrderOpen(false)}
+        tables={tables}
+        categories={categories}
+        products={products}
+        currency={restaurant.currency}
+        defaultTableNumber={manualOrderTableNumber}
+      />
     </div>
   );
 };
+

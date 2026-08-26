@@ -21,12 +21,14 @@ interface LiveOrdersProps {
   orders: Order[];
   serviceCalls: ServiceCall[];
   currency: string;
+  onOpenManualOrder?: () => void;
 }
 
 export const LiveOrders: React.FC<LiveOrdersProps> = ({
   orders,
   serviceCalls,
   currency,
+  onOpenManualOrder,
 }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'preparing' | 'calls'>('all');
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -69,7 +71,18 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          {/* Manuel Masa Siparişi Butonu */}
+          {onOpenManualOrder && (
+            <button
+              onClick={onOpenManualOrder}
+              className="px-4 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-orange-500 to-amber-600 hover:brightness-105 text-white shadow-md shadow-orange-500/20 transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <Receipt className="w-4 h-4" />
+              <span>+ Masaya Sipariş / Ciro Ekle</span>
+            </button>
+          )}
+
           {/* Sound alert toggle */}
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -80,16 +93,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({
             }`}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-emerald-600" /> : <VolumeX className="w-4 h-4" />}
-            <span>{soundEnabled ? 'Sesli Uyarı Açık' : 'Ses Kapalı'}</span>
-          </button>
-
-          {/* Test Sound Button */}
-          <button
-            onClick={() => playNotificationSound('order')}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-orange-50 text-orange-700 hover:bg-orange-100 transition-colors"
-            title="Sipariş sesini test et"
-          >
-            Test Çal
+            <span>{soundEnabled ? 'Ses Açık' : 'Ses Kapalı'}</span>
           </button>
         </div>
       </div>
