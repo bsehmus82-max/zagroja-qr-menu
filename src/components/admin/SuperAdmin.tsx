@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { SUPER_ADMIN_PASSWORD, SUPER_ADMIN_SESSION_KEY, store } from '../../lib/store';
-import { Shield, Plus, Building2, Key, Calendar, Trash2 } from 'lucide-react';
+import { Shield, Plus, Building2, Key, Calendar, Trash2, Edit, Link as LinkIcon } from 'lucide-react';
+import { Restaurant } from '../../types';
 
 export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
   const [password, setPassword] = useState('');
@@ -11,13 +12,14 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
   const [restaurants, setRestaurants] = useState(store.getAllRestaurants());
   
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState<string | null>(null);
+  
   const [form, setForm] = useState({
-    name: '',
-    slug: '',
-    username: '',
-    password: '',
-    type: 'unlimited' as 'unlimited' | 'timed',
-    days: 30,
+    name: '', slug: '', username: '', password: '', 
+    type: 'unlimited' as 'unlimited' | 'timed', days: 30, max_tables: 25
+  });
+  const [editForm, setEditForm] = useState({
+    max_tables: 25, type: 'unlimited' as 'unlimited' | 'timed', days: 0
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -26,7 +28,7 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
       localStorage.setItem(SUPER_ADMIN_SESSION_KEY, 'true');
       setIsAuthenticated(true);
     } else {
-      alert('Hatalı şifre');
+      alert('Hatalı Şifre');
     }
   };
 
@@ -39,10 +41,30 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
       owner_password: form.password,
       subscription_type: form.type,
       subscription_days: form.days,
+      max_tables: form.max_tables
     });
     setRestaurants(store.getAllRestaurants());
     setShowAdd(false);
-    setForm({ name: '', slug: '', username: '', password: '', type: 'unlimited', days: 30 });
+    setForm({ name: '', slug: '', username: '', password: '', type: 'unlimited', days: 30, max_tables: 25 });
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent, rest: Restaurant) => {
+    e.preventDefault();
+    let newExpiresAt = rest.subscription_expires_at;
+    if (editForm.type === 'timed' && editForm.days > 0) {
+      const baseDate = rest.subscription_expires_at && new Date(rest.subscription_expires_at).getTime() > Date.now() 
+        ? new Date(rest.subscription_expires_at) 
+        : new Date();
+      newExpiresAt = new Date(baseDate.getTime() + editForm.days * 24 * 60 * 60 * 1000).toISOString();
+    }
+    
+    await store.updateRestaurant(rest.id, {
+      max_tables: editForm.max_tables,
+      subscription_type: editForm.type,
+      ...(editForm.type === 'timed' && editForm.days > 0 ? { subscription_expires_at: newExpiresAt } : {})
+    });
+    setRestaurants(store.getAllRestaurants());
+    setShowEdit(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -50,6 +72,12 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
       await store.deleteRestaurant(id);
       setRestaurants(store.getAllRestaurants());
     }
+  };
+
+  const copyResetLink = (slug: string) => {
+    const url = `${window.location.origin}/?r=${slug}&reset=true`;
+    navigator.clipboard.writeText(url);
+    alert('Şifre sıfırlama bağlantısı kopyalandı! İşletmeye gönderebilirsiniz:\n' + url);
   };
 
   if (!isAuthenticated) {
@@ -103,6 +131,15 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
             <div><label className="text-sm font-semibold mb-1 block">Kullanıcı Adı (Giriş)</label><input required value={form.username} onChange={e=>setForm({...form, username: e.target.value})} className="w-full border p-2 rounded" /></div>
             <div><label className="text-sm font-semibold mb-1 block">Şifre</label><input required value={form.password} onChange={e=>setForm({...form, password: e.target.value})} className="w-full border p-2 rounded" /></div>
             <div>
+              <label className="text-sm font-semibold mb-1 block">Masa Sınırı</label>
+              <select value={form.max_tables} onChange={e=>setForm({...form, max_tables: parseInt(e.target.value)})} className="w-full border p-2 rounded">
+                <option value={15}>15 Masa</option>
+                <option value={30}>30 Masa</option>
+                <option value={50}>50 Masa</option>
+                <option value={100}>100 Masa (Büyük Tesis)</option>
+              </select>
+            </div>
+            <div>
               <label className="text-sm font-semibold mb-1 block">Abonelik Türü</label>
               <select value={form.type} onChange={e=>setForm({...form, type: e.target.value as 'unlimited'|'timed'})} className="w-full border p-2 rounded">
                 <option value="unlimited">Sınırsız (Ömür Boyu)</option>
@@ -120,25 +157,66 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
 
         <div className="grid grid-cols-1 gap-4">
           {restaurants.map(rest => (
-            <div key={rest.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-800">{rest.name || 'İsimsiz (Kurulum Bekliyor)'}</h3>
-                  <div className="flex gap-4 text-xs text-slate-500 mt-1">
-                    <span className="flex items-center gap-1"><Key className="w-3 h-3" /> {rest.owner_username}</span>
-                    <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {rest.subscription_type === 'unlimited' ? 'Sınırsız' : new Date(rest.subscription_expires_at!).toLocaleDateString()}</span>
-                    <span>🔗 menu.zagroja.com/m/{rest.slug}</span>
+            <div key={rest.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                    <Building2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-800">{rest.name || 'İsimsiz'}</h3>
+                    <div className="flex gap-4 text-xs text-slate-500 mt-1">
+                      <span className="flex items-center gap-1"><Key className="w-3 h-3" /> {rest.owner_username}</span>
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {rest.subscription_type === 'unlimited' ? 'Sınırsız' : new Date(rest.subscription_expires_at!).toLocaleDateString()}</span>
+                      <span>Masa Sınırı: {rest.max_tables || 25}</span>
+                    </div>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <button onClick={() => copyResetLink(rest.slug)} title="Şifre Sıfırlama Linki Kopyala" className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg">
+                    <LinkIcon className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => {
+                    setEditForm({ max_tables: rest.max_tables || 25, type: rest.subscription_type, days: 0 });
+                    setShowEdit(showEdit === rest.id ? null : rest.id);
+                  }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg">
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleDelete(rest.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleDelete(rest.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
+              
+              {showEdit === rest.id && (
+                <form onSubmit={(e) => handleEditSubmit(e, rest)} className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Masa Sınırı</label>
+                    <select value={editForm.max_tables} onChange={e=>setEditForm({...editForm, max_tables: parseInt(e.target.value)})} className="w-full border p-2 rounded text-sm">
+                      <option value={15}>15 Masa</option>
+                      <option value={30}>30 Masa</option>
+                      <option value={50}>50 Masa</option>
+                      <option value={100}>100 Masa</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold mb-1 block">Abonelik Türü</label>
+                    <select value={editForm.type} onChange={e=>setEditForm({...editForm, type: e.target.value as 'unlimited'|'timed'})} className="w-full border p-2 rounded text-sm">
+                      <option value="unlimited">Sınırsız (Ömür Boyu)</option>
+                      <option value="timed">Süreli (Süre Ekle)</option>
+                    </select>
+                  </div>
+                  {editForm.type === 'timed' ? (
+                    <div>
+                      <label className="text-xs font-semibold mb-1 block">Süre Ekle (Gün)</label>
+                      <input type="number" min="0" value={editForm.days} onChange={e=>setEditForm({...editForm, days: parseInt(e.target.value)})} className="w-full border p-2 rounded text-sm" placeholder="+30 gün vs" />
+                    </div>
+                  ) : <div></div>}
+                  <div className="flex items-end">
+                    <button type="submit" className="w-full py-2 bg-blue-600 text-white font-bold rounded-lg text-sm">Kaydet</button>
+                  </div>
+                </form>
+              )}
             </div>
           ))}
           {restaurants.length === 0 && (
