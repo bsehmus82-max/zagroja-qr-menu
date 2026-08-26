@@ -6,7 +6,7 @@ import {
   playNotificationSound 
 } from '../../lib/store';
 import { supabase } from '../../lib/supabase';
-import { Restaurant, SupportMessage, ZagrojaSystemType, ZAGROJA_SYSTEMS } from '../../types';
+import { Restaurant, SupportMessage } from '../../types';
 import { 
   Shield, 
   Plus, 
@@ -31,12 +31,10 @@ import {
   Share2,
   Lock,
   LogOut,
-  Utensils,
-  ShoppingBag,
-  BedDouble,
-  Briefcase,
   Layers,
-  Check
+  UtensilsCrossed,
+  Clock,
+  ArrowUpRight
 } from 'lucide-react';
 
 const generateResetLink = (slug: string): string => {
@@ -53,7 +51,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
   );
 
   const [activeTab, setActiveTab] = useState<'restaurants' | 'support'>('restaurants');
-  const [selectedSystemFilter, setSelectedSystemFilter] = useState<'all' | ZagrojaSystemType>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended' | 'timed'>('all');
   const [restaurants, setRestaurants] = useState<Restaurant[]>(store.getAllRestaurants());
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +77,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
     slug: '',
     username: '',
     password: '',
-    system_type: 'qr_menu' as ZagrojaSystemType,
     type: 'unlimited' as 'unlimited' | 'timed',
     days: '30',
     max_tables: '25'
@@ -87,7 +84,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
 
   const [editForm, setEditForm] = useState({
     max_tables: '25',
-    system_type: 'qr_menu' as ZagrojaSystemType,
     type: 'unlimited' as 'unlimited' | 'timed',
     days: '0'
   });
@@ -188,7 +184,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
         slug: form.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
         owner_username: form.username,
         owner_password: form.password,
-        system_type: form.system_type,
         subscription_type: form.type,
         subscription_days: parsedDays,
         max_tables: parsedTables
@@ -200,7 +195,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
         slug: '',
         username: '',
         password: '',
-        system_type: 'qr_menu',
         type: 'unlimited',
         days: '30',
         max_tables: '25'
@@ -225,7 +219,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
 
     await store.updateRestaurant(rest.id, {
       max_tables: parsedTables,
-      system_type: editForm.system_type,
       subscription_type: editForm.type,
       ...(editForm.type === 'timed' && parsedDays > 0 ? { subscription_expires_at: newExpiresAt } : {})
     });
@@ -286,32 +279,20 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
     }
   };
 
-  // Filter by System and Search
+  // Filter by Status and Search
   const filteredRestaurants = restaurants.filter(r => {
-    const currentSys = r.system_type || 'qr_menu';
-    const matchesSystem = selectedSystemFilter === 'all' || currentSys === selectedSystemFilter;
+    let matchesStatus = true;
+    if (statusFilter === 'active') matchesStatus = r.is_active;
+    if (statusFilter === 'suspended') matchesStatus = !r.is_active;
+    if (statusFilter === 'timed') matchesStatus = r.subscription_type === 'timed';
+
     const matchesSearch = 
       (r.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.owner_username || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.slug || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSystem && matchesSearch;
+
+    return matchesStatus && matchesSearch;
   });
-
-  const getSystemConfig = (sysType?: ZagrojaSystemType) => {
-    const type = sysType || 'qr_menu';
-    return ZAGROJA_SYSTEMS.find(s => s.id === type) || ZAGROJA_SYSTEMS[0];
-  };
-
-  const getSystemIcon = (iconName: string, className: string = "w-4 h-4") => {
-    switch (iconName) {
-      case 'Utensils': return <Utensils className={className} />;
-      case 'Calendar': return <Calendar className={className} />;
-      case 'ShoppingBag': return <ShoppingBag className={className} />;
-      case 'BedDouble': return <BedDouble className={className} />;
-      case 'Briefcase': return <Briefcase className={className} />;
-      default: return <Building2 className={className} />;
-    }
-  };
 
   const totalUnreadSupport = supportMessages.filter(m => m.sender_type === 'business' && !m.is_read).length;
   const currentChatRest = restaurants.find(r => r.id === selectedRestId);
@@ -425,7 +406,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                   Platform Yöneticisi
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Tüm Zagroja Sistemleri, Müşteriler & Canlı İletişim ({restaurants.length} İşletme)</p>
+              <p className="text-xs text-slate-400">İşletme Yönetimi, Lisanslar & Canlı Destek ({restaurants.length} İşletme)</p>
             </div>
           </div>
 
@@ -441,7 +422,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
               onClick={() => setShowAddModal(!showAddModal)}
               className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white rounded-xl font-bold text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
             >
-              <Plus className="w-4 h-4" /> Yeni Hesap Ekle
+              <Plus className="w-4 h-4" /> Yeni İşletme Ekle
             </button>
             <button
               onClick={onLogout}
@@ -486,43 +467,59 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 1: RESTAURANTS & MULTI-SYSTEM DISTRIBUTION */}
+        {/* TAB 1: RESTAURANTS LIST */}
         {/* ========================================================================= */}
         {activeTab === 'restaurants' && (
           <div className="space-y-4 animate-fade-in">
-            {/* System Filter Category Hub */}
+            {/* Status Filter Hub */}
             <div className="bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 flex items-center gap-2 overflow-x-auto hide-scrollbar">
               <button
-                onClick={() => setSelectedSystemFilter('all')}
+                onClick={() => setStatusFilter('all')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                  selectedSystemFilter === 'all'
+                  statusFilter === 'all'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>Tüm Sistemler ({restaurants.length})</span>
+                <span>Tümü ({restaurants.length})</span>
               </button>
 
-              {ZAGROJA_SYSTEMS.map(sys => {
-                const sysCount = restaurants.filter(r => (r.system_type || 'qr_menu') === sys.id).length;
-                const isSelected = selectedSystemFilter === sys.id;
+              <button
+                onClick={() => setStatusFilter('active')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  statusFilter === 'active'
+                    ? 'bg-emerald-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Aktif İşletmeler ({restaurants.filter(r => r.is_active).length})</span>
+              </button>
 
-                return (
-                  <button
-                    key={sys.id}
-                    onClick={() => setSelectedSystemFilter(sys.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                      isSelected
-                        ? `bg-gradient-to-r ${sys.color} text-white shadow-md`
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    {getSystemIcon(sys.icon, "w-3.5 h-3.5")}
-                    <span>{sys.name} ({sysCount})</span>
-                  </button>
-                );
-              })}
+              <button
+                onClick={() => setStatusFilter('suspended')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  statusFilter === 'suspended'
+                    ? 'bg-rose-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                <span>Askıdaki İşletmeler ({restaurants.filter(r => !r.is_active).length})</span>
+              </button>
+
+              <button
+                onClick={() => setStatusFilter('timed')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  statusFilter === 'timed'
+                    ? 'bg-amber-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Süreli Abonelikler ({restaurants.filter(r => r.subscription_type === 'timed').length})</span>
+              </button>
             </div>
 
             {/* Search */}
@@ -543,49 +540,17 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                 <div className="sm:col-span-2 lg:col-span-3 border-b border-slate-800 pb-3 flex items-center justify-between">
                   <h3 className="font-bold text-white flex items-center gap-2 text-sm">
                     <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <span>Yeni İşletme & Sistem Hesabı Oluştur</span>
+                    <span>Yeni İşletme Hesabı Oluştur</span>
                   </h3>
                   <button type="button" onClick={() => setShowAddModal(false)} className="text-xs text-slate-400 hover:text-white">Kapat</button>
                 </div>
 
-                {/* System Module Selection */}
-                <div className="sm:col-span-2 lg:col-span-3">
-                  <label className="text-xs font-bold text-slate-400 mb-1.5 block">Kurulacak Zagroja Sistemi *</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {ZAGROJA_SYSTEMS.map(sys => {
-                      const isSelected = form.system_type === sys.id;
-                      return (
-                        <div
-                          key={sys.id}
-                          onClick={() => setForm({ ...form, system_type: sys.id })}
-                          className={`p-3 rounded-2xl border transition-all cursor-pointer select-none flex items-start gap-2.5 ${
-                            isSelected
-                              ? 'border-indigo-500 bg-indigo-950/40 ring-2 ring-indigo-500/20'
-                              : 'border-slate-800 bg-slate-800/60 hover:border-slate-700'
-                          }`}
-                        >
-                          <div className={`p-2 rounded-xl ${isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                            {getSystemIcon(sys.icon, "w-4 h-4")}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-xs text-white">{sys.name}</h4>
-                              {isSelected && <Check className="w-3.5 h-3.5 text-indigo-400" />}
-                            </div>
-                            <p className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">{sys.description}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
                 <div>
-                  <label className="text-xs font-bold text-slate-400 mb-1 block">İşletme / Müşteri Adı *</label>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">İşletme Adı *</label>
                   <input required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="İşletme Adı" className="w-full bg-slate-800 border border-slate-700 text-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 mb-1 block">Kalıcı URL Slug *</label>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Kalıcı URL Kodu *</label>
                   <input required value={form.slug} onChange={e => setForm({ ...form, slug: e.target.value })} placeholder="isletme-kodu" className="w-full bg-slate-800 border border-slate-700 text-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
@@ -597,7 +562,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                   <input required value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="••••••••" className="w-full bg-slate-800 border border-slate-700 text-white p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-indigo-500" />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-400 mb-1 block">Maksimum Kapasite / Masa Sınırı</label>
+                  <label className="text-xs font-bold text-slate-400 mb-1 block">Maksimum Masa Sınırı</label>
                   <input 
                     type="number" 
                     min={1} 
@@ -628,7 +593,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                 )}
                 <div className="sm:col-span-2 lg:col-span-3 pt-2">
                   <button type="submit" className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs shadow-lg transition-all">
-                    Hesabı Doğrudan Buluta Kaydet
+                    İşletmeyi Doğrudan Buluta Kaydet
                   </button>
                 </div>
               </form>
@@ -637,23 +602,18 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
             {/* List of Businesses */}
             <div className="space-y-3">
               {filteredRestaurants.map(rest => {
-                const sys = getSystemConfig(rest.system_type);
-
                 return (
                   <div key={rest.id} className="bg-slate-900 p-4 sm:p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col gap-3 shadow-lg">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5">
                         <div className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm ${
-                          rest.is_active ? `${sys.badge_bg} ${sys.badge_text} border` : 'bg-slate-800 text-slate-500'
+                          rest.is_active ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'bg-slate-800 text-slate-500'
                         }`}>
-                          {getSystemIcon(sys.icon, "w-5 h-5")}
+                          <UtensilsCrossed className="w-5 h-5" />
                         </div>
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <h3 className="font-extrabold text-sm sm:text-base text-white">{rest.name}</h3>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${sys.badge_bg} ${sys.badge_text}`}>
-                              {sys.name}
-                            </span>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                               rest.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                             }`}>
@@ -679,7 +639,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                             setActiveTab('support');
                             setSelectedRestId(rest.id);
                           }}
-                          title="İşletmeyle Canlı Sohbet Aç"
+                          title="İşletmeyle Canlı Destek Aç"
                           className="p-2 text-indigo-400 hover:bg-indigo-950/50 rounded-xl transition-all"
                         >
                           <Headphones className="w-4 h-4" />
@@ -688,7 +648,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                           href={`/?r=${rest.slug}&table=1`}
                           target="_blank"
                           rel="noreferrer"
-                          title="Sistemi / Müşteri Menüsünü Aç"
+                          title="Müşteri QR Menüsünü Aç"
                           className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -715,13 +675,12 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                           onClick={() => {
                             setEditForm({
                               max_tables: String(rest.max_tables || 25),
-                              system_type: rest.system_type || 'qr_menu',
                               type: rest.subscription_type,
                               days: '0'
                             });
                             setEditingRestId(editingRestId === rest.id ? null : rest.id);
                           }}
-                          title="Masa Sınırı ve Sistem Düzenle"
+                          title="Masa Sınırı ve Lisans Düzenle"
                           className="p-2 text-blue-400 hover:bg-blue-950/50 rounded-xl transition-all"
                         >
                           <Edit className="w-4 h-4" />
@@ -738,21 +697,9 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
 
                     {/* Edit dropdown */}
                     {editingRestId === rest.id && (
-                      <form onSubmit={(e) => handleEditRestaurant(e, rest)} className="mt-2 p-4 bg-slate-800/80 rounded-2xl border border-slate-700 grid grid-cols-1 sm:grid-cols-4 gap-3 animate-fade-in text-xs">
+                      <form onSubmit={(e) => handleEditRestaurant(e, rest)} className="mt-2 p-4 bg-slate-800/80 rounded-2xl border border-slate-700 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-fade-in text-xs">
                         <div>
-                          <label className="text-slate-400 font-bold mb-1 block">Zagroja Sistemi</label>
-                          <select 
-                            value={editForm.system_type} 
-                            onChange={e => setEditForm({ ...editForm, system_type: e.target.value as any })} 
-                            className="w-full bg-slate-900 border border-slate-600 text-white p-2 rounded-xl"
-                          >
-                            {ZAGROJA_SYSTEMS.map(s => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-slate-400 font-bold mb-1 block">Masa / Kapasite Sınırı</label>
+                          <label className="text-slate-400 font-bold mb-1 block">Masa Sınırı</label>
                           <input 
                             type="number" 
                             min={1} 
@@ -782,7 +729,7 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                             />
                           </div>
                         ) : <div />}
-                        <div className="flex items-end gap-2 sm:col-span-4 justify-end">
+                        <div className="flex items-end gap-2 sm:col-span-3 justify-end">
                           <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl">Ayarları Kaydet</button>
                           <button type="button" onClick={() => setEditingRestId(null)} className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl">İptal</button>
                         </div>
@@ -795,8 +742,8 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
               {filteredRestaurants.length === 0 && !isLoading && (
                 <div className="bg-slate-900 rounded-3xl border border-slate-800 p-12 text-center text-slate-500">
                   <Building2 className="w-12 h-12 text-slate-700 mx-auto mb-2" />
-                  <p className="font-bold text-slate-300 text-sm">Bu Sistemde Kayıtlı İşletme Bulunmuyor</p>
-                  <p className="text-xs text-slate-500 mt-1">Yukarıdaki "Yeni Hesap Ekle" butonuna basarak bu sisteme işletme kaydedebilirsiniz.</p>
+                  <p className="font-bold text-slate-300 text-sm">Kayıtlı İşletme Bulunmuyor</p>
+                  <p className="text-xs text-slate-500 mt-1">Yukarıdaki "Yeni İşletme Ekle" butonuna basarak ilk işletmenizi kaydedebilirsiniz.</p>
                 </div>
               )}
             </div>
@@ -834,7 +781,6 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                     const lastMsg = rMsgs[rMsgs.length - 1];
                     const unread = rMsgs.filter(m => m.sender_type === 'business' && !m.is_read).length;
                     const isSelected = selectedRestId === r.id;
-                    const sys = getSystemConfig(r.system_type);
 
                     return (
                       <button
@@ -857,14 +803,9 @@ export const SuperAdminHQ: React.FC<{ onLogout: () => void }> = ({ onLogout }) =
                               </span>
                             )}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className={`text-[9px] font-bold px-1 rounded ${sys.badge_bg} ${sys.badge_text}`}>
-                              {sys.short_name}
-                            </span>
-                            <p className="text-[11px] text-slate-400 truncate flex-1">
-                              {lastMsg ? `${lastMsg.sender_type === 'superadmin' ? 'Siz: ' : ''}${lastMsg.message}` : 'Henüz mesaj yok'}
-                            </p>
-                          </div>
+                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                            {lastMsg ? `${lastMsg.sender_type === 'superadmin' ? 'Siz: ' : ''}${lastMsg.message}` : 'Henüz mesaj yok'}
+                          </p>
                         </div>
 
                         {unread > 0 && (

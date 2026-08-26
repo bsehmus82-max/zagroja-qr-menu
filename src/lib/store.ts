@@ -204,7 +204,7 @@ class ZagrojaStore {
     slug: string;
     owner_username: string;
     owner_password?: string;
-    system_type?: import('../types').ZagrojaSystemType;
+    system_type?: string;
     subscription_type?: 'unlimited' | 'timed';
     subscription_days?: number;
     max_tables?: number;
