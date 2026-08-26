@@ -95,11 +95,16 @@ export function App() {
     return <PasswordResetScreen token={pathInfo.resetToken} onComplete={() => { window.location.href = '/'; }} />;
   }
 
-  if (pathInfo.isSuperAdminPath) {
-    return <SuperAdmin onLogout={() => {
-      localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
-      window.location.href = '/';
-    }} />;
+  if (pathInfo.isSuperAdminPath || isSuperAdmin) {
+    return (
+      <SuperAdmin
+        onLogout={() => {
+          localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
+          setIsSuperAdmin(false);
+          window.location.href = '/';
+        }}
+      />
+    );
   }
 
   if (isAdminView) {
