@@ -1,17 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase Environment variables or localStorage config
+const DEFAULT_SUPABASE_URL = 'https://pxgnqbeklzorlhrhbluj.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_3PUM74SygM7pmyZMNh0l1g_Lf0Kq-s9';
+
 const getStoredSupabaseConfig = () => {
   try {
-    const url = localStorage.getItem('qr_supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
-    const key = localStorage.getItem('qr_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    const url = localStorage.getItem('qr_supabase_url') || import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const key = localStorage.getItem('qr_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_KEY;
     return { url, key };
   } catch (e) {
-    return { url: '', key: '' };
+    return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
   }
 };
-
-const config = getStoredSupabaseConfig();
 
 export const isSupabaseConfigured = () => {
   const { url, key } = getStoredSupabaseConfig();
