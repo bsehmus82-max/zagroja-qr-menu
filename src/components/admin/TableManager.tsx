@@ -188,6 +188,31 @@ export const TableManager: React.FC<TableManagerProps> = ({
         </form>
       )}
 
+      {/* Empty State */}
+      {tables.length === 0 && !isAddingTable && (
+        <div className="bg-white rounded-3xl border-2 border-dashed border-slate-200 p-12 text-center max-w-lg mx-auto space-y-4 shadow-xs">
+          <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <QrCode className="w-8 h-8" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Henüz Tanımlı Masa Yok</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Mekanınızdaki masaları isimlendirerek (Örn: Masa 1, Bahçe 1, Teras VIP) hemen ekleyin ve özel baskı QR kodlarını anında oluşturun.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setNewTableNumber(1);
+              setNewTableName('Masa 1');
+              setIsAddingTable(true);
+            }}
+            className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 inline-flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" /> İlk Masayı Ekle
+          </button>
+        </div>
+      )}
+
       {/* Tables Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {tables.map((table) => {

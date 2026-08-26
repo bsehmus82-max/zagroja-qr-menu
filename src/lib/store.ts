@@ -357,10 +357,11 @@ class RestaurantStore {
 
     await this.updateRestaurant(restaurantId, restaurantData);
 
-    // Initialize default menu template for this restaurant
+    // Initialize default master menu template for this restaurant
     this.setCurrentRestaurant(restaurantId);
     await this.initializeDefaultMenu(restaurantId);
-    await this.initializeDefaultTables(restaurantId);
+    // New accounts start with 0 tables so the business names their own tables
+    this.set('tables', []);
   }
 
   private async initializeDefaultMenu(restaurantId: string) {
