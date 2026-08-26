@@ -226,41 +226,53 @@ class RestaurantStore {
 
   async loadAllRestaurantsFromCloud(): Promise<Restaurant[]> {
     try {
-      // 1. Check if any locally stored restaurants have invalid IDs and sync them
       const localRests = this.getAllRestaurants();
-      for (const loc of localRests) {
-        if (!loc.id || loc.id.startsWith('rest_') || loc.id.length !== 36) {
-          loc.id = generateUUID();
-          try {
-            await supabase.from('restaurants').upsert([{
-              id: loc.id,
-              slug: loc.slug,
-              name: loc.name,
-              owner_username: loc.owner_username,
-              owner_password: loc.owner_password,
-              subscription_type: loc.subscription_type || 'unlimited',
-              subscription_expires_at: loc.subscription_expires_at,
-              is_active: loc.is_active ?? true,
-              setup_completed: loc.setup_completed ?? false,
-              max_tables: loc.max_tables || 25,
-              created_at: loc.created_at || new Date().toISOString()
-            }]);
-          } catch (e) {
-            console.warn('Migration insert error:', e);
-          }
-        }
-      }
 
-      // 2. Fetch fresh list from Supabase
+      // 1. Fetch current list from Supabase
       const { data, error } = await supabase
         .from('restaurants')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (data && !error && data.length > 0) {
-        this.saveAllRestaurants(data as Restaurant[]);
+      // 2. If this device has any local restaurant that is missing from Supabase, upload it immediately!
+      if (localRests && localRests.length > 0) {
+        for (const loc of localRests) {
+          if (!loc.id || loc.id.length !== 36) {
+            loc.id = generateUUID();
+          }
+          const existsInCloud = data?.some(d => d.id === loc.id || (d.slug && loc.slug && d.slug === loc.slug));
+          if (!existsInCloud) {
+            try {
+              await supabase.from('restaurants').upsert([{
+                id: loc.id,
+                slug: loc.slug || 'isletme-' + Date.now(),
+                name: loc.name || 'İşletme',
+                owner_username: loc.owner_username || 'admin',
+                owner_password: loc.owner_password || '123456',
+                subscription_type: loc.subscription_type || 'unlimited',
+                subscription_expires_at: loc.subscription_expires_at,
+                is_active: loc.is_active ?? true,
+                setup_completed: loc.setup_completed ?? false,
+                max_tables: loc.max_tables || 25,
+                created_at: loc.created_at || new Date().toISOString()
+              }]);
+            } catch (err) {
+              console.warn('Sync local to cloud error:', err);
+            }
+          }
+        }
+      }
+
+      // 3. Re-fetch the unified cloud list
+      const { data: finalData, error: finalError } = await supabase
+        .from('restaurants')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (finalData && !finalError) {
+        this.saveAllRestaurants(finalData as Restaurant[]);
         this.notify();
-        return data as Restaurant[];
+        return finalData as Restaurant[];
       }
     } catch (e) {
       console.warn('loadAllRestaurantsFromCloud error:', e);
