@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Restaurant } from '../../types';
 import { store } from '../../lib/store';
+import { uploadImage } from '../../lib/supabase';
 import { 
   Building2, Wifi, Save, Globe, Phone, MapPin, 
-  Image, Check, RefreshCw, Palette
+  Image, Check, RefreshCw, Palette, Shield, UploadCloud
 } from 'lucide-react';
 
 interface RestaurantSettingsProps {
@@ -14,6 +15,20 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
   const [form, setForm] = useState<Restaurant>({ ...restaurant });
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'logo_url' | 'cover_url') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    alert('Resim yükleniyor, lütfen bekleyin...');
+    const url = await uploadImage(file);
+    if (url) {
+      handleChange(field, url);
+      alert('Resim başarıyla yüklendi, kaydetmeyi unutmayın!');
+    } else {
+      alert('Yükleme başarısız oldu. Lütfen tekrar deneyin.');
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,53 +159,58 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
           </div>
         </div>
 
-        {/* Visuals */}
+        {/* Branding & Media */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
-          <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <Image className="w-4 h-4 text-purple-500" />
-            Görsel Ayarlar
+          <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Image className="w-5 h-5 text-purple-500" />
+            Görsel Ayarları
           </h3>
-          <div className="grid gap-4">
+          <div className="grid gap-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL</label>
-              <input
-                type="url"
-                value={form.logo_url}
-                onChange={e => handleChange('logo_url', e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
-              />
-              {form.logo_url && (
-                <div className="mt-2 flex items-center gap-3">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">İşletme Logosu</label>
+              <div className="flex items-center gap-4">
+                {form.logo_url && (
                   <img 
                     src={form.logo_url} 
                     alt="Logo önizleme" 
-                    className="w-12 h-12 rounded-xl object-cover border border-slate-200"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-slate-100 shadow-sm bg-white"
                   />
-                  <span className="text-xs text-slate-500">Logo önizleme</span>
+                )}
+                <div className="flex-1">
+                  <label className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 hover:border-purple-500 hover:bg-purple-50 rounded-xl cursor-pointer transition-colors group">
+                    <UploadCloud className="w-5 h-5 text-slate-400 group-hover:text-purple-600" />
+                    <span className="text-sm font-semibold text-slate-600 group-hover:text-purple-700">Logo Seç ve Yükle</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={e => handleImageUpload(e, 'logo_url')}
+                    />
+                  </label>
                 </div>
-              )}
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Kapak Fotoğrafı URL</label>
-              <input
-                type="url"
-                value={form.cover_url}
-                onChange={e => handleChange('cover_url', e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
-              />
-              {form.cover_url && (
-                <div className="mt-2">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Kapak Fotoğrafı (Menü Üstü)</label>
+              <div className="flex flex-col gap-3">
+                {form.cover_url && (
                   <img 
                     src={form.cover_url} 
                     alt="Kapak önizleme" 
-                    className="w-full h-24 rounded-xl object-cover border border-slate-200"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
+                    className="w-full h-32 rounded-2xl object-cover border-2 border-slate-100 shadow-sm bg-white"
                   />
-                </div>
-              )}
+                )}
+                <label className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 hover:border-purple-500 hover:bg-purple-50 rounded-xl cursor-pointer transition-colors group">
+                  <UploadCloud className="w-5 h-5 text-slate-400 group-hover:text-purple-600" />
+                  <span className="text-sm font-semibold text-slate-600 group-hover:text-purple-700">Kapak Fotoğrafı Seç ve Yükle</span>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={e => handleImageUpload(e, 'cover_url')}
+                  />
+                </label>
+              </div>
             </div>
           </div>
         </div>

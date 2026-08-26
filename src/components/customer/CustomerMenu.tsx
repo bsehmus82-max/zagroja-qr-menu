@@ -214,7 +214,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
             onCallWaiter={handleCallWaiter}
             onRequestBill={handleRequestBill}
             onOpenWifi={() => setIsWifiOpen(true)}
-            hasWifi={Boolean(restaurant.wifi_password || restaurant.wifi_network)}
+            hasWifi={Boolean(restaurant.wifi_password || restaurant.wifi_name)}
           />
 
           {/* Order Tracking Banner (If active orders exist) */}

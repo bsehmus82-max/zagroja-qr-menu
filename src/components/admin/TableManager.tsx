@@ -188,12 +188,24 @@ export const TableManager: React.FC<TableManagerProps> = ({
       )}
 
       {/* Tables Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {tables.map((table) => {
-          const url = getTableUrl(table);
+          const qrUrl = getTableUrl(table);
           const isEditing = editingTableId === table.id;
           
           return (
+            <div
+              key={table.id}
+              className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition-all flex flex-col items-center text-center relative group"
+            >
+              {/* Section badge */}
+              <span className="absolute top-3.5 left-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Layers className="w-3 h-3 text-slate-400" />
+                {table.section}
+              </span>
+
+              {/* Action menu in card */}
+              <div className="absolute top-3.5 right-3.5 flex items-center gap-1">
                 <button
                   onClick={() => handleRegenerateQR(table.id, table.table_name)}
                   className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
@@ -211,9 +223,24 @@ export const TableManager: React.FC<TableManagerProps> = ({
               </div>
 
               {/* Table Name */}
-              <div className="mt-5 mb-3">
-                <h3 className="font-extrabold text-slate-900 text-lg">{table.table_name}</h3>
-                <span className="text-xs text-orange-600 font-semibold">Masa #{table.table_number}</span>
+              <div className="mt-5 mb-3 w-full">
+                {isEditing ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <input autoFocus type="text" value={editTableName} onChange={e => setEditTableName(e.target.value)} className="border border-slate-300 rounded-lg px-2 py-1 text-sm font-bold w-full text-center" />
+                    <div className="flex gap-2">
+                      <button onClick={() => handleSaveEdit(table.id)} className="text-white bg-green-600 font-bold text-xs px-3 py-1.5 rounded-lg w-full">Kaydet</button>
+                      <button onClick={() => setEditingTableId(null)} className="text-slate-500 bg-slate-100 text-xs px-3 py-1.5 rounded-lg w-full">İptal</button>
+                    </div>
+                  </div>
+                ) : (
+                  <h3 className="font-extrabold text-slate-900 text-lg flex items-center justify-center gap-2">
+                    {table.table_name}
+                    <button onClick={() => { setEditTableName(table.table_name); setEditingTableId(table.id); }} className="text-slate-300 hover:text-blue-500 transition-colors">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </h3>
+                )}
+                <span className="text-xs text-orange-600 font-semibold mt-1 inline-block">Masa #{table.table_number}</span>
               </div>
 
               {/* QR Code Container */}
@@ -248,7 +275,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
                     onClick={() => onOpenManualOrderForTable(table.table_number)}
                     className="w-full py-2 px-3 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 active:scale-95 text-white flex items-center justify-center gap-1.5 transition-all shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <ShoppingCart className="w-3.5 h-3.5" />
                     <span>Masaya Sipariş / Satış Gir</span>
                   </button>
                 )}
