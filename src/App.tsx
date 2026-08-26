@@ -16,7 +16,7 @@ export function App() {
     const path = window.location.pathname.toLowerCase();
     return {
       isAdminPath: params.get('admin') === 'true' || path.startsWith('/admin'),
-      isSuperAdminPath: path === '/super' || params.get('panel') === 'super',
+      isSuperAdminPath: path.startsWith('/super') || params.get('panel') === 'super',
       restaurantSlug: path.startsWith('/m/') ? path.replace('/m/', '').split('/')[0] : params.get('r'),
       tableNumber: parseInt(params.get('table') || '0', 10),
     };
