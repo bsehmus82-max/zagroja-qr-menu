@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { CustomerMenu } from './components/customer/CustomerMenu';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { BusinessLogin } from './components/business/BusinessLogin';
-import { SetupWizard } from './components/admin/SetupWizard';
 import { SuperAdminHQ } from './components/superadmin/SuperAdminHQ';
 import { PasswordResetScreen } from './components/admin/PasswordResetScreen';
 import { store } from './lib/store';
@@ -21,6 +20,13 @@ export function App() {
     const restaurantSlug = params.get('r');
     const tableNumber = parseInt(params.get('table') || '0', 10);
     const isAdminParam = params.get('admin') === 'true';
+
+    // If an invalid or legacy path like /super is visited, clean the browser URL
+    if (!isSuperAdmin && !resetToken && !restaurantSlug && path !== '/' && path !== '') {
+      try {
+        window.history.replaceState({}, '', '/');
+      } catch { /* ignore */ }
+    }
 
     return {
       isSuperAdmin,
@@ -48,8 +54,14 @@ export function App() {
           if (user.restaurantId) {
             store.setCurrentRestaurant(user.restaurantId);
             await store.syncFromCloud();
+          } else {
+            localStorage.removeItem('zagroja_business_session');
+            setIsBusinessAuthenticated(false);
           }
-        } catch { /* ignore */ }
+        } catch {
+          localStorage.removeItem('zagroja_business_session');
+          setIsBusinessAuthenticated(false);
+        }
       } else if (pathInfo.restaurantSlug) {
         await store.loadRestaurantBySlug(pathInfo.restaurantSlug);
       }
@@ -68,7 +80,7 @@ export function App() {
   }, [pathInfo.restaurantSlug]);
 
   // ============================================================
-  // ROUTE 1: ZAGROJA MASTER SUPERADMIN HQ (ISOLATED & UNIQUE)
+  // ROUTE 1: ZAGROJA MASTER SUPERADMIN HQ
   // ============================================================
   if (pathInfo.isSuperAdmin) {
     return (
@@ -100,12 +112,12 @@ export function App() {
     const currentRest = store.getRestaurant();
     const validTable = pathInfo.tableNumber > 0 ? pathInfo.tableNumber : 1;
 
-    if (!currentRest || !currentRest.setup_completed) {
+    if (!currentRest) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 text-white">
           <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl text-center max-w-sm w-full">
-            <h1 className="text-xl font-black text-white mb-2">QR Menü</h1>
-            <p className="text-xs text-slate-400">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
+            <h1 className="text-xl font-bold text-white mb-2">QR Menü</h1>
+            <p className="text-xs text-slate-400">İşletme bulunamadı.</p>
           </div>
         </div>
       );
@@ -125,10 +137,6 @@ export function App() {
   // ============================================================
   if (isBusinessAuthenticated) {
     const rest = store.getRestaurant();
-
-    if (rest && !rest.setup_completed) {
-      return <SetupWizard restaurant={rest} onComplete={() => window.location.reload()} />;
-    }
 
     return (
       <AdminDashboard

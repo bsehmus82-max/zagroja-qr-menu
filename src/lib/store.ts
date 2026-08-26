@@ -222,7 +222,7 @@ class ZagrojaStore {
         ? new Date(Date.now() + data.subscription_days * 24 * 60 * 60 * 1000).toISOString()
         : null,
       is_active: true,
-      setup_completed: false,
+      setup_completed: true,
       max_tables: data.max_tables || 25,
       currency: '₺',
       created_at: new Date().toISOString()
