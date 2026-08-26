@@ -115,12 +115,35 @@ class RestaurantStore {
   private channel: BroadcastChannel | null = null;
 
   private constructor() {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      this.channel = new BroadcastChannel('qr_menu_sync');
-      this.channel.onmessage = () => {
-        // MUST NOT rebroadcast when receiving from another tab!
-        this.notify(false);
-      };
+    if (typeof window !== 'undefined') {
+      try {
+        const lastId = localStorage.getItem('last_active_restaurant_id');
+        if (lastId) this.currentRestaurantId = lastId;
+
+        const session = localStorage.getItem('app_admin_session');
+        if (session) {
+          const user = JSON.parse(session);
+          if (user.restaurant_id) this.currentRestaurantId = user.restaurant_id;
+          else {
+            const rest = this.getRestaurantByUsername(user.username);
+            if (rest) this.currentRestaurantId = rest.id;
+          }
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const rSlug = params.get('r');
+        if (rSlug) {
+          const rest = this.getRestaurantBySlug(rSlug);
+          if (rest) this.currentRestaurantId = rest.id;
+        }
+      } catch { /* ignore */ }
+
+      if ('BroadcastChannel' in window) {
+        this.channel = new BroadcastChannel('qr_menu_sync');
+        this.channel.onmessage = () => {
+          this.notify(false);
+        };
+      }
     }
   }
 
@@ -133,6 +156,11 @@ class RestaurantStore {
 
   setCurrentRestaurant(id: string) {
     this.currentRestaurantId = id;
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('last_active_restaurant_id', id);
+      }
+    } catch { /* ignore */ }
   }
 
   getCurrentRestaurantId(): string | null {
