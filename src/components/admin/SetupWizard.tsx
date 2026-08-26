@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Restaurant } from '../../types';
 import { store } from '../../lib/store';
 import { uploadImage } from '../../lib/supabase';
-import { Building2, Image as ImageIcon, MapPin, CheckCircle2, UploadCloud } from 'lucide-react';
+import { Building2, Image as ImageIcon, MapPin, CheckCircle2, UploadCloud, Loader2 } from 'lucide-react';
 
 export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant, onComplete: () => void }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     name: restaurant.name || '',
     logo_url: restaurant.logo_url || '',
@@ -18,14 +19,13 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    alert('Resim yükleniyor, lütfen bekleyin...');
+    setUploading(true);
     const url = await uploadImage(file);
+    setUploading(false);
     if (url) {
-      setForm({...form, logo_url: url});
-      alert('Resim başarıyla yüklendi!');
-    } else {
-      alert('Yükleme başarısız oldu. Lütfen tekrar deneyin.');
+      setForm(prev => ({...prev, logo_url: url}));
     }
+    // uploadImage now shows alert on error internally
   };
 
   const handleComplete = async () => {
@@ -99,14 +99,24 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
                       className="w-24 h-24 rounded-2xl object-cover border border-slate-200"
                     />
                   )}
-                  <label className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed border-slate-300 hover:border-purple-500 rounded-xl cursor-pointer transition-colors text-slate-600 font-medium">
-                    <UploadCloud className="w-5 h-5 text-purple-500" />
-                    Logo Seç ve Yükle
+                  <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-slate-50 border-2 border-dashed rounded-xl cursor-pointer transition-colors text-slate-600 font-medium ${uploading ? 'border-orange-400 bg-orange-50' : 'border-slate-300 hover:border-purple-500'}`}>
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 text-orange-500 animate-spin" />
+                        <span className="text-orange-600">Yükleniyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-5 h-5 text-purple-500" />
+                        {form.logo_url ? 'Farklı Logo Seç' : 'Logo Seç ve Yükle'}
+                      </>
+                    )}
                     <input 
                       type="file" 
                       accept="image/*"
                       className="hidden" 
                       onChange={handleImageUpload}
+                      disabled={uploading}
                     />
                   </label>
                 </div>
