@@ -45,19 +45,47 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
             <Building2 className="w-5 h-5 text-orange-500" />
             İşletme Ayarları
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">Restoran bilgilerini ve görünümünü düzenleyin</p>
+          <p className="text-sm text-slate-500 mt-0.5">Restoran bilgilerini, görünümünü ve şifrenizi düzenleyin</p>
         </div>
         <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-colors disabled:opacity-60"
+          onClick={handleResetDay}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 rounded-xl font-semibold text-sm transition-all"
         >
-          {savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          {savedSuccess ? 'Kaydedildi!' : saving ? 'Kaydediliyor...' : 'Kaydet'}
+          <RefreshCw className="w-4 h-4" />
+          Günü Sıfırla
         </button>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-4">
+      <form onSubmit={handleSave} className="space-y-6">
+        
+        {/* Güvenlik (Şifre Değiştirme) */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs">
+          <h3 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-red-500" />
+            Güvenlik & Giriş Şifresi
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Kullanıcı Adı</label>
+              <input
+                disabled
+                type="text"
+                value={form.owner_username}
+                className="w-full px-4 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 text-sm font-medium cursor-not-allowed"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Yeni Şifre Belirle</label>
+              <input
+                type="text"
+                value={form.owner_password}
+                onChange={(e) => handleChange('owner_password', e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
+                placeholder="Yeni şifrenizi girin"
+              />
+            </div>
+          </div>
+        </div>
 
         {/* Basic Info */}
         <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs">
@@ -223,6 +251,17 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
           {savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           {savedSuccess ? 'Kaydedildi!' : saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
         </button>
+
+        <div className="flex justify-end pt-4">
+          <button
+            type="submit"
+            disabled={saving}
+            className="flex items-center gap-2 px-8 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-600/20 active:scale-95 disabled:opacity-60"
+          >
+            {savedSuccess ? <Check className="w-5 h-5" /> : <Save className="w-5 h-5" />}
+            {savedSuccess ? 'Kaydedildi!' : saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
+          </button>
+        </div>
       </form>
 
       {/* Danger Zone */}

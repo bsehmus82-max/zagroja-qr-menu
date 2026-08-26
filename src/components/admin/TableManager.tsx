@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { RestaurantTable, Restaurant } from '../../types';
 import { store } from '../../lib/store';
 import { QRCodeSVG } from 'qrcode.react';
@@ -10,6 +10,8 @@ import {
   ExternalLink, 
   Trash2, 
   QrCode, 
+  Edit,
+  ShoppingCart,
   X,
   Sparkles,
   Layers
@@ -36,6 +38,13 @@ export const TableManager: React.FC<TableManagerProps> = ({
   const [newTableName, setNewTableName] = useState(`Masa ${tables.length + 1}`);
   const [newSection, setNewSection] = useState('Salon');
 
+  // Edit Table Form
+  const [editingTableId, setEditingTableId] = useState<string | null>(null);
+  const [editTableName, setEditTableName] = useState('');
+
+  const maxTables = restaurant.max_tables || 25;
+  const canAddMore = tables.length < maxTables;
+
   const getTableUrl = (table: RestaurantTable) => {
     const origin = window.location.origin;
     return `${origin}/?r=${restaurant.slug}&table=${table.table_number}&token=${table.qr_token}`;
@@ -43,6 +52,10 @@ export const TableManager: React.FC<TableManagerProps> = ({
 
   const handleSaveTable = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canAddMore) {
+      alert(`Maksimum masa sınırına (${maxTables}) ulaştınız.`);
+      return;
+    }
     store.addTable({
       table_number: Number(newTableNumber),
       table_name: newTableName,
@@ -51,6 +64,11 @@ export const TableManager: React.FC<TableManagerProps> = ({
     setIsAddingTable(false);
     setNewTableNumber(tables.length + 2);
     setNewTableName(`Masa ${tables.length + 2}`);
+  };
+
+  const handleSaveEdit = (tableId: string) => {
+    store.updateTable(tableId, { table_name: editTableName });
+    setEditingTableId(null);
   };
 
   const handleRegenerateQR = (tableId: string, tableName: string) => {
@@ -95,36 +113,87 @@ export const TableManager: React.FC<TableManagerProps> = ({
             <span>Masa ve QR Kod Yönetim Merkezi</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Masaları tanımlayın, her masa için benzersiz QR kod üretin, yazdırın ve gerekirse anında yenileyin.
+            Masaları tanımlayın, yönetin ve özel manuel siparişler girin. Sınır: {tables.length}/{maxTables} Masa.
           </p>
         </div>
-
-        <button
-          onClick={() => setIsAddingTable(true)}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 active:scale-95 text-white shadow-md shadow-orange-500/20 transition-all flex items-center gap-1.5 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Yeni Masa Tanımla</span>
-        </button>
+        
+        <div className="flex gap-2">
+          {!isAddingTable && (
+            <button
+              onClick={() => setIsAddingTable(true)}
+              disabled={!canAddMore}
+              className={`px-4 py-2 text-white text-sm font-semibold rounded-xl flex items-center gap-2 transition-all shadow-sm
+                ${canAddMore ? 'bg-orange-600 hover:bg-orange-700 active:scale-95' : 'bg-slate-400 cursor-not-allowed'}
+              `}
+            >
+              <Plus className="w-4 h-4" /> 
+              {canAddMore ? 'Yeni Masa Ekle' : 'Masa Sınırı Doldu'}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Tables Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {tables.map((table) => {
-          const qrUrl = getTableUrl(table);
-          return (
-            <div
-              key={table.id}
-              className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition-all flex flex-col items-center text-center relative group"
+      {/* Add Table Form */}
+      {isAddingTable && (
+        <form onSubmit={handleSaveTable} className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm animate-fade-in grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Masa Numarası</label>
+            <input
+              type="number"
+              required
+              min="1"
+              value={newTableNumber}
+              onChange={(e) => setNewTableNumber(Number(e.target.value))}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Masa Görünür Adı</label>
+            <input
+              type="text"
+              required
+              value={newTableName}
+              onChange={(e) => setNewTableName(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
+              placeholder="Örn: Bahçe 1"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Bölüm / Kategori</label>
+            <input
+              type="text"
+              required
+              value={newSection}
+              onChange={(e) => setNewSection(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
+              placeholder="Örn: Teras, Salon"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 py-2.5 bg-orange-600 text-white font-bold rounded-xl hover:bg-orange-700 active:scale-95 transition-all shadow-xs text-sm"
             >
-              {/* Section badge */}
-              <span className="absolute top-3.5 left-3.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Layers className="w-3 h-3 text-slate-400" />
-                {table.section}
-              </span>
+              Kaydet
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAddingTable(false)}
+              className="px-4 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 active:scale-95 transition-all text-sm"
+            >
+              İptal
+            </button>
+          </div>
+        </form>
+      )}
 
-              {/* Action menu in card */}
-              <div className="absolute top-3.5 right-3.5 flex items-center gap-1">
+      {/* Tables Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {tables.map((table) => {
+          const url = getTableUrl(table);
+          const isEditing = editingTableId === table.id;
+          
+          return (
                 <button
                   onClick={() => handleRegenerateQR(table.id, table.table_name)}
                   className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"

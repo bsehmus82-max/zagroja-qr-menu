@@ -174,6 +174,7 @@ class RestaurantStore {
     owner_password: string;
     subscription_type: 'unlimited' | 'timed';
     subscription_days?: number;
+    max_tables?: number;
   }): Promise<Restaurant> {
     const id = `rest_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
     const expiresAt = data.subscription_type === 'timed' && data.subscription_days
@@ -201,6 +202,8 @@ class RestaurantStore {
       payment_pending: false,
       payment_proof_url: null,
       created_at: new Date().toISOString(),
+      max_tables: data.max_tables || 25,
+      active_sessions: []
     };
 
     const all = this.getAllRestaurants();
