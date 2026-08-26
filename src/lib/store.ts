@@ -251,7 +251,49 @@ class RestaurantStore {
   }
 
   getRestaurantByUsername(username: string): Restaurant | null {
-    return this.getAllRestaurants().find(r => r.owner_username === username) || null;
+    const clean = (username || '').trim().toLowerCase();
+    return this.getAllRestaurants().find(r => r.owner_username?.toLowerCase() === clean) || null;
+  }
+
+  async authenticateOwner(username: string, password: string): Promise<{ success: boolean; restaurant?: Restaurant; error?: string }> {
+    const cleanUser = (username || '').trim().toLowerCase();
+    const cleanPass = (password || '').trim();
+
+    // 1. Try local cache
+    let rest = this.getAllRestaurants().find(r => r.owner_username?.toLowerCase() === cleanUser);
+
+    // 2. If not found locally or if password doesn't match locally, fetch fresh from Supabase!
+    if (!rest || rest.owner_password !== cleanPass) {
+      try {
+        const { data, error } = await supabase
+          .from('restaurants')
+          .select('*')
+          .ilike('owner_username', cleanUser)
+          .maybeSingle();
+
+        if (data && !error) {
+          rest = data as Restaurant;
+          const all = this.getAllRestaurants();
+          this.saveAllRestaurants([...all.filter(r => r.id !== rest!.id), rest]);
+        }
+      } catch (e) {
+        console.warn('Supabase auth fetch error:', e);
+      }
+    }
+
+    if (!rest) {
+      return { success: false, error: 'Bu kullanıcı adına ait işletme bulunamadı.' };
+    }
+
+    if (rest.owner_password !== cleanPass) {
+      return { success: false, error: 'Hatalı şifre girdiniz.' };
+    }
+
+    if (!rest.is_active) {
+      return { success: false, error: 'İşletme hesabınız askıya alınmıştır.' };
+    }
+
+    return { success: true, restaurant: rest };
   }
 
   async createRestaurant(data: {
@@ -722,14 +764,6 @@ class RestaurantStore {
       if (rest) {
         const all = this.getAllRestaurants();
         this.saveAllRestaurants(all.map(r => r.id === id ? { ...r, ...rest } : r));
-
-        const localSession = localStorage.getItem('admin_session_id');
-        if (localSession && rest.active_sessions && !rest.active_sessions.includes(localSession)) {
-          // Bu oturum atılmış!
-          localStorage.removeItem('app_admin_session');
-          localStorage.removeItem('admin_session_id');
-          window.location.href = '/';
-        }
       }
 
       if (cats && cats.length > 0) this.set('categories', cats);

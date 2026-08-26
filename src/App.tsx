@@ -5,6 +5,7 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { SetupWizard } from './components/admin/SetupWizard';
 import { SuperAdmin } from './components/admin/SuperAdmin';
 import { store, SUPER_ADMIN_SESSION_KEY } from './lib/store';
+import { supabase } from './lib/supabase';
 import { LanguageProvider } from './lib/i18n';
 
 export function App() {
@@ -42,6 +43,14 @@ export function App() {
           let userRest = store.getRestaurantByUsername(user.username);
           if (!userRest && user.slug) {
             userRest = await store.loadRestaurantBySlug(user.slug);
+          }
+          if (!userRest && user.username) {
+            const { data } = await supabase.from('restaurants').select('*').ilike('owner_username', user.username).maybeSingle();
+            if (data) {
+              userRest = data as any;
+              const all = store.getAllRestaurants();
+              store.saveAllRestaurants([...all.filter(r => r.id !== userRest!.id), userRest!]);
+            }
           }
           if (userRest) {
             store.setCurrentRestaurant(userRest.id);

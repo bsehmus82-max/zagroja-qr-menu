@@ -13,40 +13,37 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    setTimeout(() => {
-      const rest = store.getRestaurantByUsername(username.trim());
-      
-      if (rest && rest.owner_password === password.trim()) {
-        if (!rest.is_active) {
-          setError('Hesabınız sistem yöneticisi tarafından askıya alınmıştır.');
-          setIsLoading(false);
-          return;
-        }
-
+    try {
+      const res = await store.authenticateOwner(username, password);
+      if (res.success && res.restaurant) {
+        const rest = res.restaurant;
         const sessionId = crypto.randomUUID();
         localStorage.setItem('admin_session_id', sessionId);
         
         localStorage.setItem('app_admin_session', JSON.stringify({
           restaurantId: rest.id,
           username: rest.owner_username,
+          slug: rest.slug,
           loginTime: new Date().toISOString()
         }));
 
         store.setCurrentRestaurant(rest.id);
-        store.registerAdminSession(rest.id, sessionId).then(() => {
-          setIsLoading(false);
-          onSuccess();
-        });
+        await store.syncFromCloud();
+        setIsLoading(false);
+        onSuccess();
       } else {
         setIsLoading(false);
-        setError('Hatalı kullanıcı adı veya şifre girdiniz.');
+        setError(res.error || 'Hatalı kullanıcı adı veya şifre girdiniz.');
       }
-    }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      setError('Bağlantı hatası: ' + (err?.message || 'Giriş yapılamadı.'));
+    }
   };
 
   return (
