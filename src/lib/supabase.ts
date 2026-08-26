@@ -1,9 +1,52 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = 'https://pxgnqbeklzorlhrhbluj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_3PUM74SygM7pmyZMNh0l1g_Lf0Kq-s9';
+const DEFAULT_SUPABASE_URL = 'https://pxgnqbeklzorlhrhbluj.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_3PUM74SygM7pmyZMNh0l1g_Lf0Kq-s9';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const getSupabaseConfig = () => {
+  try {
+    const url = localStorage.getItem('qr_supabase_url') || (import.meta as any).env?.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const key = localStorage.getItem('qr_supabase_anon_key') || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+    return { url, key };
+  } catch {
+    return { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_ANON_KEY };
+  }
+};
+
+let currentClient: SupabaseClient = createClient(getSupabaseConfig().url, getSupabaseConfig().key);
+
+export const supabase = new Proxy({} as SupabaseClient, {
+  get(_target, prop) {
+    return (currentClient as any)[prop];
+  }
+});
+
+export const updateSupabaseCredentials = (url: string, key: string) => {
+  if (url && key) {
+    localStorage.setItem('qr_supabase_url', url.trim());
+    localStorage.setItem('qr_supabase_anon_key', key.trim());
+  } else {
+    localStorage.removeItem('qr_supabase_url');
+    localStorage.removeItem('qr_supabase_anon_key');
+  }
+  const config = getSupabaseConfig();
+  currentClient = createClient(config.url, config.key);
+};
+
+export const testSupabaseConnection = async (testUrl?: string, testKey?: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const targetUrl = testUrl || getSupabaseConfig().url;
+    const targetKey = testKey || getSupabaseConfig().key;
+    const client = createClient(targetUrl, targetKey);
+    const { error } = await client.from('restaurants').select('id').limit(1);
+    if (error && error.code !== 'PGRST116') {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Bağlantı kurulamadı' };
+  }
+};
 
 export const isSupabaseConfigured = () => true;
 

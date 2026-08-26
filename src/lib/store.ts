@@ -1,6 +1,7 @@
 import { 
   Restaurant, RestaurantTable, Category, Product, 
-  Order, OrderItem, ServiceCall, EndOfDayReportData, TableSummary
+  Order, OrderItem, ServiceCall, EndOfDayReportData, TableSummary,
+  SupportMessage
 } from '../types';
 import { supabase } from './supabase';
 import { showToast } from './toast';
@@ -860,6 +861,125 @@ class RestaurantStore {
       .subscribe();
   }
 
+  // ===== CANLI DESTEK & MESAJLAŞMA (5 GÜNLÜK DÖNGÜ) =====
+  getSupportMessages(restaurantId?: string): SupportMessage[] {
+    const targetId = restaurantId || this.currentRestaurantId;
+    const all = this.getAllSupportMessages();
+    const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+    
+    // 5 günden eski mesajları filtrele (hafıza tasarrufu)
+    const valid = all.filter(m => new Date(m.created_at).getTime() >= fiveDaysAgo);
+    
+    if (valid.length !== all.length) {
+      this.saveAllSupportMessages(valid);
+    }
+    
+    if (!targetId) return valid;
+    return valid.filter(m => m.restaurant_id === targetId);
+  }
+
+  private getAllSupportMessages(): SupportMessage[] {
+    try {
+      const d = localStorage.getItem('qr_support_messages');
+      return d ? JSON.parse(d) : [];
+    } catch { return []; }
+  }
+
+  private saveAllSupportMessages(messages: SupportMessage[]) {
+    try {
+      localStorage.setItem('qr_support_messages', JSON.stringify(messages));
+    } catch { /* ignore */ }
+    this.notify();
+  }
+
+  async sendSupportMessage(data: {
+    restaurant_id: string;
+    restaurant_name: string;
+    sender_type: 'business' | 'superadmin';
+    sender_name: string;
+    message: string;
+  }): Promise<SupportMessage> {
+    const newMsg: SupportMessage = {
+      id: generateUUID(),
+      restaurant_id: data.restaurant_id,
+      restaurant_name: data.restaurant_name,
+      sender_type: data.sender_type,
+      sender_name: data.sender_name,
+      message: data.message.trim(),
+      created_at: new Date().toISOString(),
+      is_read: false
+    };
+
+    const all = this.getAllSupportMessages();
+    this.saveAllSupportMessages([...all, newMsg]);
+
+    try {
+      await supabase.from('support_messages').insert([newMsg]);
+    } catch (e) {
+      console.warn('Supabase sendSupportMessage error:', e);
+    }
+
+    return newMsg;
+  }
+
+  async markSupportMessagesAsRead(restaurantId: string, readBy: 'business' | 'superadmin') {
+    const all = this.getAllSupportMessages();
+    // If superadmin reads, mark business messages as read. If business reads, mark superadmin messages as read.
+    const targetSender = readBy === 'superadmin' ? 'business' : 'superadmin';
+    
+    const updated = all.map(m => {
+      if (m.restaurant_id === restaurantId && m.sender_type === targetSender) {
+        return { ...m, is_read: true };
+      }
+      return m;
+    });
+
+    this.saveAllSupportMessages(updated);
+
+    try {
+      await supabase
+        .from('support_messages')
+        .update({ is_read: true })
+        .eq('restaurant_id', restaurantId)
+        .eq('sender_type', targetSender);
+    } catch (e) {
+      console.warn('Supabase markSupportMessagesAsRead:', e);
+    }
+  }
+
+  async loadSupportMessagesFromCloud(restaurantId?: string): Promise<SupportMessage[]> {
+    const fiveDaysAgoIso = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      let query = supabase
+        .from('support_messages')
+        .select('*')
+        .gte('created_at', fiveDaysAgoIso)
+        .order('created_at', { ascending: true });
+
+      if (restaurantId) {
+        query = query.eq('restaurant_id', restaurantId);
+      }
+
+      const { data, error } = await query;
+      if (data && !error) {
+        const local = this.getAllSupportMessages();
+        const mergedMap = new Map<string, SupportMessage>();
+        local.forEach(m => mergedMap.set(m.id, m));
+        (data as SupportMessage[]).forEach(m => mergedMap.set(m.id, m));
+        
+        const mergedList = Array.from(mergedMap.values()).filter(
+          m => new Date(m.created_at).getTime() >= (Date.now() - 5 * 24 * 60 * 60 * 1000)
+        );
+
+        this.saveAllSupportMessages(mergedList);
+        return restaurantId ? mergedList.filter(m => m.restaurant_id === restaurantId) : mergedList;
+      }
+    } catch (e) {
+      console.warn('loadSupportMessagesFromCloud error:', e);
+    }
+    return this.getSupportMessages(restaurantId);
+  }
+
   // ===== BACKWARD COMPAT METHODS =====
   async toggleProductAvailability(productId: string) {
     const products = this.getProducts();
@@ -870,7 +990,6 @@ class RestaurantStore {
   }
 
   resetAllToSample() {
-    // Clears all tenant data - for legacy compat
     this.resetDay();
   }
 }

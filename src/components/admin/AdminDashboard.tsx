@@ -14,6 +14,7 @@ import { TableManager } from './TableManager';
 import { EndOfDayReport } from './EndOfDayReport';
 import { RestaurantSettings } from './RestaurantSettings';
 import { ManualPosScreen } from './ManualPosScreen';
+import { SupportChat } from './SupportChat';
 import { 
   ChefHat, 
   UtensilsCrossed, 
@@ -24,7 +25,8 @@ import {
   Menu as MenuIcon, 
   X,
   ShoppingCart,
-  LogOut
+  LogOut,
+  Headphones
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -32,7 +34,7 @@ interface AdminDashboardProps {
   onLogout?: () => void;
 }
 
-export type AdminTab = 'live_orders' | 'pos' | 'menu' | 'tables' | 'eod' | 'settings';
+export type AdminTab = 'live_orders' | 'pos' | 'menu' | 'tables' | 'eod' | 'settings' | 'support';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenCustomerMenu,
@@ -47,11 +49,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [activeTab, setActiveTabState] = useState<AdminTab>(() => {
     try {
       const hash = window.location.hash.replace('#', '') as AdminTab;
-      if (['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings'].includes(hash)) {
+      if (['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings', 'support'].includes(hash)) {
         return hash;
       }
       const saved = localStorage.getItem('admin_active_tab') as AdminTab;
-      if (saved && ['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings'].includes(saved)) {
+      if (saved && ['live_orders', 'pos', 'menu', 'tables', 'eod', 'settings', 'support'].includes(saved)) {
         return saved;
       }
     } catch { /* ignore */ }
@@ -120,6 +122,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   ).length;
 
   const activeCallsCount = serviceCalls.filter((c) => c.status === 'active').length;
+  const unreadSupportCount = store.getSupportMessages(restaurant.id).filter(
+    (m) => m.sender_type === 'superadmin' && !m.is_read
+  ).length;
 
   const navItems = [
     {
@@ -141,6 +146,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       icon: QrCode,
       badge: `${tables.length} Masa`,
       badgeColor: 'bg-slate-700',
+    },
+    {
+      id: 'support' as AdminTab,
+      label: 'Canlı Destek & Yardım',
+      icon: Headphones,
+      badge: unreadSupportCount > 0 ? `${unreadSupportCount} Yeni` : null,
+      badgeColor: 'bg-blue-600 animate-pulse',
     },
     {
       id: 'eod' as AdminTab,
@@ -334,6 +346,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               onOpenManualOrderForTable={() => setActiveTab('pos')}
             />
           )}
+
+          {activeTab === 'support' && <SupportChat restaurant={restaurant} />}
 
           {activeTab === 'eod' && <EndOfDayReport restaurant={restaurant} />}
 

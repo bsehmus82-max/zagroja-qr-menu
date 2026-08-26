@@ -148,3 +148,15 @@ export interface DefaultProduct {
   preparation_time_minutes?: number;
   sort_order: number;
 }
+
+// ===== CANLI DESTEK MESAJLARI (5 GÜNLÜK DÖNGÜ) =====
+export interface SupportMessage {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  sender_type: 'business' | 'superadmin';
+  sender_name: string;
+  message: string;
+  created_at: string;
+  is_read: boolean;
+}

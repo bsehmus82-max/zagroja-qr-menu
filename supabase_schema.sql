@@ -258,3 +258,34 @@ BEGIN
     (r_id, cat_tatli, 'Fıstıklı İtalyan Tiramisu', 'Mascarpone kreması, espressoya batırılmış kedi dili ve Antep fıstığı tozu.', 230.00, 'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=600&auto=format&fit=crop&q=80', false, 420);
 
 END $$;
+
+-- ==============================================================================
+-- 12. CANLI DESTEK & MESAJLAŞMA TABLOSU (5 GÜNLÜK OTOMATİK TEMİZLİK)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.support_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    restaurant_id UUID REFERENCES public.restaurants(id) ON DELETE CASCADE,
+    restaurant_name VARCHAR(255) NOT NULL,
+    sender_type VARCHAR(20) NOT NULL, -- 'business' veya 'superadmin'
+    sender_name VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_messages_restaurant ON public.support_messages(restaurant_id);
+CREATE INDEX IF NOT EXISTS idx_support_messages_created ON public.support_messages(created_at);
+
+-- RLS & Realtime
+ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all access to support_messages" ON public.support_messages FOR ALL USING (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
+
+-- 5 Günden eski mesajları otomatik temizleyen fonksiyon
+CREATE OR REPLACE FUNCTION delete_old_support_messages()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM public.support_messages WHERE created_at < NOW() - INTERVAL '5 days';
+END;
+$$ LANGUAGE plpgsql;
+

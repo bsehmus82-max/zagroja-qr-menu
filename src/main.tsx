@@ -10,4 +10,13 @@ createRoot(document.getElementById('root')!).render(
       <App />
     </ToastProvider>
   </StrictMode>,
-)
+);
+
+// Register PWA Service Worker
+if ('serviceWorker' in navigator && (import.meta as any).env?.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('SW registration error:', err);
+    });
+  });
+}
