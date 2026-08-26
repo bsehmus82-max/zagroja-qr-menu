@@ -45,7 +45,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
     const matchCat = selectedCatId === 'all' || p.category_id === selectedCatId;
     const matchSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -167,7 +167,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  {getCategoryIcon(cat.icon, "w-4 h-4")}
+                  {getCategoryIcon(cat.icon || 'Utensils', "w-4 h-4")}
                   {cat.name}
                 </button>
               );

@@ -121,7 +121,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:scale-95'
                 }`}
               >
-                {getCategoryIcon(cat.icon, 'w-3.5 h-3.5')}
+                {getCategoryIcon(cat.icon || 'Utensils', 'w-3.5 h-3.5')}
                 <span>{tDynamic(cat.name)}</span>
               </button>
             );

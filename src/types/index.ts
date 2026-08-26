@@ -1,45 +1,35 @@
-// ===== TEMEL TİPLER =====
+// ============================================================
+// ZAGROJA PLATFORM — TYPES & INTERFACES
+// ============================================================
 
-// Backward compat alias
-export type OrderStatus = 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
-
-// Defined below — forward reference resolved at runtime
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface CartItem {
-  product: any; // Product type (defined below, avoids circular ref)
-  quantity: number;
-  notes: string;
-}
-
+export type SubscriptionType = 'unlimited' | 'timed';
 
 export interface Restaurant {
   id: string;
-  slug: string;
   name: string;
-  description: string;
-  logo_url: string;
-  cover_url: string;
+  slug: string;
+  description?: string | null;
+  logo_url?: string | null;
+  cover_url?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  wifi_name?: string | null;
+  wifi_password?: string | null;
+  wifi_ssid?: string | null;
   currency: string;
-  wifi_name: string;
-  wifi_password: string;
-  phone: string;
-  address: string;
   owner_username: string;
-  owner_password: string;
-  setup_completed: boolean;
-  subscription_type: 'unlimited' | 'timed';
-  subscription_expires_at: string | null;
+  owner_password?: string;
+  subscription_type: SubscriptionType;
+  subscription_expires_at?: string | null;
   is_active: boolean;
-  payment_pending: boolean;
-  payment_proof_url: string | null;
-  created_at: string;
-  // Backward compat & optional extras
-  wifi_ssid?: string;
-  tax_rate?: number;
+  setup_completed: boolean;
+  payment_pending?: boolean;
+  payment_proof_url?: string | null;
   max_tables?: number;
-  active_sessions?: string[];
+  tax_rate?: number;
+  created_at: string;
+  updated_at?: string;
 }
-
 
 export interface RestaurantTable {
   id: string;
@@ -49,39 +39,64 @@ export interface RestaurantTable {
   section: string;
   qr_token: string;
   is_active: boolean;
+  created_at?: string;
 }
 
 export interface Category {
   id: string;
   restaurant_id: string;
   name: string;
-  icon: string;
+  icon?: string;
   sort_order: number;
   is_active: boolean;
+  created_at?: string;
+}
+
+export interface DefaultCategory {
+  id?: string;
+  name: string;
+  icon?: string;
+  sort_order: number;
+  template_products?: any[];
 }
 
 export interface Product {
   id: string;
+  restaurant_id?: string;
   category_id: string;
-  restaurant_id: string;
   name: string;
-  description: string;
+  description?: string | null;
   price: number;
-  image_url: string;
-  calories?: number;
-  preparation_time_minutes?: number;
-  prep_time_minutes?: number; // backward compat alias
+  image_url?: string | null;
   is_available: boolean;
-  is_featured?: boolean; // backward compat
+  is_featured?: boolean;
+  calories?: number | null;
+  prep_time_minutes?: number | null;
+  preparation_time_minutes?: number | null;
+  allergens?: string[] | null;
   sort_order: number;
+  created_at?: string;
 }
 
+export interface CartItem {
+  product: Product;
+  quantity: number;
+  notes?: string;
+  selectedOptions?: { [key: string]: string };
+}
+
+export type OrderStatus = 'pending' | 'preparing' | 'delivered' | 'cancelled' | 'served' | 'completed';
+export type PaymentStatus = 'unpaid' | 'paid';
+export type PaymentMethod = 'cash' | 'credit_card' | 'online' | 'unpaid';
+
 export interface OrderItem {
+  id?: string;
   product_id: string;
   product_name: string;
-  unit_price: number;
   quantity: number;
+  unit_price: number;
   total_price: number;
+  notes?: string;
   item_notes?: string;
 }
 
@@ -89,24 +104,40 @@ export interface Order {
   id: string;
   restaurant_id: string;
   table_number: number;
-  status: 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  table_name: string;
+  status: OrderStatus;
+  payment_status: PaymentStatus;
+  payment_method: PaymentMethod;
   total_amount: number;
-  customer_notes?: string;
-  payment_status: 'unpaid' | 'paid';
-  payment_method: 'cash' | 'credit_card';
+  customer_note?: string | null;
+  customer_notes?: string | null;
   items: OrderItem[];
   created_at: string;
-  updated_at?: string;
 }
+
+export type ServiceCallType = 'waiter' | 'bill' | 'water' | 'cleanup' | 'other';
+export type ServiceCallStatus = 'active' | 'completed' | 'cancelled';
 
 export interface ServiceCall {
   id: string;
   restaurant_id: string;
   table_number: number;
-  type: 'waiter' | 'bill';
-  payment_type?: 'cash' | 'credit_card';
-  status: 'active' | 'completed';
-  notes?: string;
+  table_name: string;
+  call_type: ServiceCallType;
+  type?: ServiceCallType;
+  payment_type?: string;
+  status: ServiceCallStatus;
+  created_at: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  restaurant_id: string;
+  restaurant_name: string;
+  sender_type: 'business' | 'superadmin';
+  sender_name: string;
+  message: string;
+  is_read: boolean;
   created_at: string;
 }
 
@@ -120,43 +151,27 @@ export interface TableSummary {
   items_sold: { [productName: string]: number };
 }
 
+export interface TopProduct {
+  name: string;
+  count: number;
+  revenue: number;
+}
+
 export interface EndOfDayReportData {
   date: string;
   total_revenue: number;
+  cash_revenue: number;
+  cash_total: number;
+  card_revenue: number;
+  credit_card_total: number;
+  online_revenue: number;
   total_orders: number;
   total_items_sold: number;
-  cash_total: number;
-  credit_card_total: number;
+  completed_orders: number;
+  cancelled_orders: number;
+  total_service_calls: number;
+  popular_products: TopProduct[];
+  top_products: TopProduct[];
+  table_performance: { table_number: number; order_count: number; revenue: number }[];
   table_summaries: TableSummary[];
-  top_products: { name: string; count: number; revenue: number }[];
-}
-
-// Menü şablonu için (her işletme açıldığında yüklenen varsayılan kategoriler)
-export interface DefaultCategory {
-  name: string;
-  icon: string;
-  sort_order: number;
-  template_products: DefaultProduct[];
-}
-
-export interface DefaultProduct {
-  name: string;
-  description: string;
-  price: number; // Her zaman 0 başlar
-  image_url: string;
-  calories?: number;
-  preparation_time_minutes?: number;
-  sort_order: number;
-}
-
-// ===== CANLI DESTEK MESAJLARI (5 GÜNLÜK DÖNGÜ) =====
-export interface SupportMessage {
-  id: string;
-  restaurant_id: string;
-  restaurant_name: string;
-  sender_type: 'business' | 'superadmin';
-  sender_name: string;
-  message: string;
-  created_at: string;
-  is_read: boolean;
 }

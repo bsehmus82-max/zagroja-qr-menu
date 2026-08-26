@@ -53,7 +53,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     const matchCat = selectedCatId === 'all' || p.category_id === selectedCatId;
     const matchSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -205,7 +205,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    {getCategoryIcon(cat.icon, 'w-3 h-3')}
+                    {getCategoryIcon(cat.icon || 'Utensils', 'w-3 h-3')}
                     <span>{cat.name}</span>
                   </button>
                 ))}
@@ -234,7 +234,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
                     <div className="flex items-center gap-2">
                       <img
-                        src={product.image_url}
+                        src={product.image_url || ''}
                         alt={product.name}
                         className="w-10 h-10 rounded-xl object-cover bg-slate-100 flex-shrink-0"
                       />

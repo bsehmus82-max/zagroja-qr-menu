@@ -21,6 +21,7 @@ export const initialRestaurant: Restaurant = {
   subscription_expires_at: null,
   payment_pending: false,
   payment_proof_url: null,
+  max_tables: 25,
   created_at: new Date().toISOString(),
 };
 

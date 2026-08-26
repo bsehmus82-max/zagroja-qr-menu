@@ -96,7 +96,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
     };
 
     const unsubscribe = store.subscribe(updateLocalState);
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Filter products by category and search query
@@ -105,7 +107,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
       selectedCategoryId === 'all' || product.category_id === selectedCategoryId;
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (product.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -191,7 +193,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
         {/* Top Header & Restaurant Cover */}
         <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-900 flex-shrink-0">
           <img
-            src={restaurant.cover_url}
+            src={restaurant.cover_url || ''}
             alt={restaurant.name}
             className="w-full h-full object-cover opacity-60"
           />
@@ -214,7 +216,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           {/* Restaurant Profile Card in Cover */}
           <div className="absolute bottom-3 left-3 right-3 flex items-end gap-3 z-10">
             <img
-              src={restaurant.logo_url}
+              src={restaurant.logo_url || ''}
               alt={restaurant.name}
               className="w-14 h-14 rounded-2xl object-cover border-2 border-white shadow-md bg-white flex-shrink-0"
             />
@@ -384,7 +386,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           isOpen={isWifiOpen}
           onClose={() => setIsWifiOpen(false)}
           ssid={restaurant.wifi_name || restaurant.wifi_ssid || ''}
-          password={restaurant.wifi_password}
+          password={restaurant.wifi_password || ''}
         />
 
         {/* Order Status Modal */}

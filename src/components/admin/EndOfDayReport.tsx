@@ -204,7 +204,7 @@ export const EndOfDayReport: React.FC<EndOfDayReportProps> = ({ restaurant }) =>
                     {items.length === 0 ? (
                       <p className="text-xs text-slate-400 italic">Bugün sipariş alınmadı.</p>
                     ) : (
-                      items.map(([name, qty], idx) => (
+                      items.map(([name, qty]: [string, any], idx) => (
                         <div key={idx} className="flex justify-between items-center text-xs">
                           <span className="text-slate-700 font-medium">{name}</span>
                           <span className="font-bold text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">

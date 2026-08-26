@@ -45,7 +45,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Product Image Banner */}
         <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-slate-100 flex-shrink-0">
           <img
-            src={product.image_url}
+            src={product.image_url || ''}
             alt={tDynamic(product.name)}
             className="w-full h-full object-cover"
             onError={(e) => {

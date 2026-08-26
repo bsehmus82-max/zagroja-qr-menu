@@ -1,33 +1,19 @@
 {
-  "name": "Zagroja QR Menü & Yönetim Sistemi",
-  "short_name": "Zagroja QR",
-  "description": "Gelişmiş QR Menü, Masa ve Sipariş Yönetim Sistemi",
-  "start_url": "/?panel=super",
+  "name": "Zagroja Master Platform HQ",
+  "short_name": "Zagroja HQ",
+  "description": "Zagroja Platform Master Yönetim Merkezi",
+  "start_url": "/?zagroja=hq",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#020617",
+  "theme_color": "#020617",
   "icons": [
     {
       "src": "/favicon.svg",
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Süper Admin Paneli",
-      "short_name": "SuperAdmin",
-      "url": "/?panel=super",
-      "description": "Zagroja Süper Admin Yönetim Merkezi"
-    },
-    {
-      "name": "İşletme Girişi",
-      "short_name": "Giriş",
-      "url": "/?admin=true",
-      "description": "İşletme Yönetim Paneli Girişi"
     }
   ]
 }

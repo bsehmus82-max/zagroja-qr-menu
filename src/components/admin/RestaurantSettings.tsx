@@ -130,7 +130,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Açıklama</label>
               <textarea
-                value={form.description}
+                value={form.description || ''}
                 onChange={e => handleChange('description', e.target.value)}
                 placeholder="Kısa işletme açıklaması..."
                 rows={2}
@@ -144,7 +144,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
               </label>
               <input
                 type="tel"
-                value={form.phone}
+                value={form.phone || ''}
                 onChange={e => handleChange('phone', e.target.value)}
                 placeholder="+90 (5xx) xxx xx xx"
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
@@ -157,7 +157,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
               </label>
               <input
                 type="text"
-                value={form.address}
+                value={form.address || ''}
                 onChange={e => handleChange('address', e.target.value)}
                 placeholder="İşletme adresi"
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
@@ -233,7 +233,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
               <label className="block text-sm font-medium text-slate-700 mb-1">Wi-Fi Adı (SSID)</label>
               <input
                 type="text"
-                value={form.wifi_name}
+                value={form.wifi_name || ''}
                 onChange={e => handleChange('wifi_name', e.target.value)}
                 placeholder="Misafir Wi-Fi adı"
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"
@@ -243,7 +243,7 @@ export const RestaurantSettings: React.FC<RestaurantSettingsProps> = ({ restaura
               <label className="block text-sm font-medium text-slate-700 mb-1">Wi-Fi Şifresi</label>
               <input
                 type="text"
-                value={form.wifi_password}
+                value={form.wifi_password || ''}
                 onChange={e => handleChange('wifi_password', e.target.value)}
                 placeholder="Wi-Fi şifresi (opsiyonel)"
                 className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-400 focus:border-transparent outline-none"

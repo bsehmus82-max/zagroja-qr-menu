@@ -89,7 +89,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     };
 
     const unsubscribe = store.subscribe(update);
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   // Subscription Check
@@ -181,7 +183,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <div className="p-5 border-b border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img
-                src={restaurant.logo_url}
+                src={restaurant.logo_url || ''}
                 alt={restaurant.name}
                 className="w-10 h-10 rounded-2xl object-cover border border-slate-700 bg-white"
               />
@@ -266,7 +268,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           {/* Top Header Mobile Toggle */}
           <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
-              <img src={restaurant.logo_url} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
+              <img src={restaurant.logo_url || ''} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
               <span className="font-bold text-slate-800">{restaurant.name}</span>
             </div>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-600">

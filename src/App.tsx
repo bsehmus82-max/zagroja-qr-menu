@@ -1,124 +1,113 @@
 import React, { useState, useEffect } from 'react';
 import { CustomerMenu } from './components/customer/CustomerMenu';
 import { AdminDashboard } from './components/admin/AdminDashboard';
-import { AdminLogin } from './components/admin/AdminLogin';
+import { BusinessLogin } from './components/business/BusinessLogin';
 import { SetupWizard } from './components/admin/SetupWizard';
-import { SuperAdmin } from './components/admin/SuperAdmin';
+import { SuperAdminHQ } from './components/superadmin/SuperAdminHQ';
 import { PasswordResetScreen } from './components/admin/PasswordResetScreen';
-import { store, SUPER_ADMIN_SESSION_KEY } from './lib/store';
-import { supabase } from './lib/supabase';
+import { store } from './lib/store';
 import { LanguageProvider } from './lib/i18n';
 
 export function App() {
-  const [isSuperAdmin, setIsSuperAdmin] = useState(
-    Boolean(localStorage.getItem(SUPER_ADMIN_SESSION_KEY))
-  );
-
   const getPathInfo = () => {
     const params = new URLSearchParams(window.location.search);
     const path = window.location.pathname.toLowerCase();
+
+    const isSuperAdmin = 
+      params.get('zagroja') === 'hq' ||
+      params.get('panel') === 'super' ||
+      path.startsWith('/zagroja') ||
+      path.startsWith('/super');
+
+    const resetToken = params.get('reset');
+    const restaurantSlug = path.startsWith('/m/') ? path.replace('/m/', '').split('/')[0] : params.get('r');
+    const tableNumber = parseInt(params.get('table') || '0', 10);
+    const isAdminParam = params.get('admin') === 'true';
+
     return {
-      isAdminPath: params.get('admin') === 'true' || path.startsWith('/admin'),
-      isSuperAdminPath: path.startsWith('/super') || params.get('panel') === 'super',
-      resetToken: params.get('reset'),
-      restaurantSlug: path.startsWith('/m/') ? path.replace('/m/', '').split('/')[0] : params.get('r'),
-      tableNumber: parseInt(params.get('table') || '0', 10),
+      isSuperAdmin,
+      resetToken,
+      restaurantSlug,
+      tableNumber,
+      isAdminParam
     };
   };
 
   const pathInfo = getPathInfo();
 
-  // URL'de bir restoran slug yoksa (yani direkt ana sayfaya girildiyse), varsayılan olarak giriş ekranını göster.
-  const [isAdminView, setIsAdminView] = useState<boolean>(pathInfo.isAdminPath || !pathInfo.restaurantSlug);
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return Boolean(localStorage.getItem('app_admin_session'));
+  const [isBusinessAuthenticated, setIsBusinessAuthenticated] = useState<boolean>(() => {
+    return Boolean(localStorage.getItem('zagroja_business_session'));
   });
-  const [loadingTenant, setLoadingTenant] = useState<boolean>(true);
 
-  // Fetch tenant info on load
+  const [isReady, setIsReady] = useState<boolean>(false);
+
   useEffect(() => {
     const init = async () => {
-      const storedSession = localStorage.getItem('app_admin_session');
+      const storedSession = localStorage.getItem('zagroja_business_session');
       if (storedSession) {
         try {
           const user = JSON.parse(storedSession);
-          let userRest = store.getRestaurantByUsername(user.username);
-          if (!userRest && user.slug) {
-            userRest = await store.loadRestaurantBySlug(user.slug);
-          }
-          if (!userRest && user.username) {
-            const { data } = await supabase.from('restaurants').select('*').ilike('owner_username', user.username).maybeSingle();
-            if (data) {
-              userRest = data as any;
-              const all = store.getAllRestaurants();
-              store.saveAllRestaurants([...all.filter(r => r.id !== userRest!.id), userRest!]);
-            }
-          }
-          if (userRest) {
-            store.setCurrentRestaurant(userRest.id);
+          if (user.restaurantId) {
+            store.setCurrentRestaurant(user.restaurantId);
             await store.syncFromCloud();
           }
-        } catch (e) {
-          console.warn('Session init error:', e);
-        }
+        } catch { /* ignore */ }
       } else if (pathInfo.restaurantSlug) {
         await store.loadRestaurantBySlug(pathInfo.restaurantSlug);
       }
-      setLoadingTenant(false);
+      setIsReady(true);
     };
 
     init();
 
     const unsubscribe = store.subscribe(() => {
-      // Trigger re-render when store updates
-      setLoadingTenant(false);
+      setIsReady(true);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, [pathInfo.restaurantSlug]);
 
-  const handleLoginSuccess = () => {
-    setIsAdminAuthenticated(true);
-    setIsAdminView(true);
-    // Refresh to apply context
-    window.location.reload();
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('app_admin_session');
-    setIsAdminAuthenticated(false);
-    setIsAdminView(false);
-    window.location.href = '/';
-  };
-
-  if (pathInfo.resetToken) {
-    return <PasswordResetScreen token={pathInfo.resetToken} onComplete={() => { window.location.href = '/'; }} />;
-  }
-
-  // Sadece süper admin yolundaysa (/?panel=super veya /super) Süper Admin panelini aç
-  if (pathInfo.isSuperAdminPath) {
+  // ============================================================
+  // ROUTE 1: ZAGROJA MASTER SUPERADMIN HQ (ISOLATED & UNIQUE)
+  // ============================================================
+  if (pathInfo.isSuperAdmin) {
     return (
-      <SuperAdmin
+      <SuperAdminHQ
         onLogout={() => {
-          localStorage.removeItem(SUPER_ADMIN_SESSION_KEY);
-          setIsSuperAdmin(false);
+          localStorage.removeItem('zagroja_super_admin_session');
           window.location.href = '/';
         }}
       />
     );
   }
 
-  // Müşteri QR menüsü linki varsa (örn: ?r=slug veya /m/slug)
-  if (pathInfo.restaurantSlug && !pathInfo.isAdminPath) {
+  // ============================================================
+  // ROUTE 2: PASSWORD RESET (15-MIN TOKEN)
+  // ============================================================
+  if (pathInfo.resetToken) {
+    return (
+      <PasswordResetScreen
+        token={pathInfo.resetToken}
+        onComplete={() => { window.location.href = '/'; }}
+      />
+    );
+  }
+
+  // ============================================================
+  // ROUTE 3: CUSTOMER QR MENU (TABLE SPECIFIC)
+  // ============================================================
+  if (pathInfo.restaurantSlug && !pathInfo.isAdminParam) {
     const currentRest = store.getRestaurant();
     const validTable = pathInfo.tableNumber > 0 ? pathInfo.tableNumber : 1;
 
     if (!currentRest || !currentRest.setup_completed) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-          <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-sm w-full">
-            <h1 className="text-xl font-bold text-slate-800 mb-2">QR Menü</h1>
-            <p className="text-slate-500">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 text-white">
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl text-center max-w-sm w-full">
+            <h1 className="text-xl font-black text-white mb-2">QR Menü</h1>
+            <p className="text-xs text-slate-400">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
           </div>
         </div>
       );
@@ -133,11 +122,12 @@ export function App() {
     );
   }
 
-  // İşletme Yönetim Paneli veya İşletme Girişi
-  if (isAdminAuthenticated) {
+  // ============================================================
+  // ROUTE 4: BUSINESS MANAGEMENT PORTAL (LOGIN OR DASHBOARD)
+  // ============================================================
+  if (isBusinessAuthenticated) {
     const rest = store.getRestaurant();
-    
-    // If restaurant hasn't completed setup wizard, show it
+
     if (rest && !rest.setup_completed) {
       return <SetupWizard restaurant={rest} onComplete={() => window.location.reload()} />;
     }
@@ -147,17 +137,20 @@ export function App() {
         onOpenCustomerMenu={(tableNum = 1) => {
           window.open(`/?r=${rest.slug}&table=${tableNum}`, '_blank');
         }}
-        onLogout={handleLogout}
+        onLogout={() => {
+          localStorage.removeItem('zagroja_business_session');
+          setIsBusinessAuthenticated(false);
+          window.location.href = '/';
+        }}
       />
     );
   }
 
   return (
-    <AdminLogin
-      onSuccess={handleLoginSuccess}
-      onCancel={() => {
-        setIsAdminView(false);
-        window.location.href = `/`;
+    <BusinessLogin
+      onSuccess={() => {
+        setIsBusinessAuthenticated(true);
+        window.location.reload();
       }}
     />
   );

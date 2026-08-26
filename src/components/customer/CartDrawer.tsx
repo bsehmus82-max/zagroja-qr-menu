@@ -117,7 +117,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 className="bg-slate-50 border border-slate-100 rounded-2xl p-3 flex gap-3 items-center"
               >
                 <img
-                  src={item.product.image_url}
+                  src={item.product.image_url || ''}
                   alt={tDynamic(item.product.name)}
                   className="w-14 h-14 rounded-xl object-cover bg-slate-200 flex-shrink-0"
                 />

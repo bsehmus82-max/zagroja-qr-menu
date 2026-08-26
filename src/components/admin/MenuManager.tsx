@@ -73,7 +73,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     const matchCat = selectedCatId === 'all' || p.category_id === selectedCatId;
     const matchSearch =
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      (p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchCat && matchSearch;
   });
 
@@ -102,9 +102,9 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
     setProdForm({
       name: prod.name,
       category_id: prod.category_id,
-      description: prod.description,
+      description: prod.description || '',
       price: prod.price,
-      image_url: prod.image_url,
+      image_url: prod.image_url || '',
       is_available: prod.is_available,
       is_featured: prod.is_featured || false,
       prep_time_minutes: prod.prep_time_minutes || prod.preparation_time_minutes || 0,
@@ -247,7 +247,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
               }`}
             >
-              {getCategoryIcon(cat.icon, 'w-3.5 h-3.5')}
+              {getCategoryIcon(cat.icon || 'Utensils', 'w-3.5 h-3.5')}
               <span>{cat.name}</span>
               <span className="text-[10px] opacity-75">
                 ({products.filter((p) => p.category_id === cat.id).length})
@@ -305,7 +305,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={product.image_url}
+                            src={product.image_url || ''}
                             alt={product.name}
                             className="w-12 h-12 rounded-xl object-cover bg-slate-100 flex-shrink-0"
                           />
