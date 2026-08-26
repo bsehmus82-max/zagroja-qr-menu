@@ -48,7 +48,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
 
   const getTableUrl = (table: RestaurantTable) => {
     const origin = window.location.origin;
-    return `${origin}/?r=${restaurant.slug}&table=${table.table_number}&token=${table.qr_token}`;
+    return `${origin}/?r=${restaurant.slug}&table=${table.table_number}`;
   };
 
   const handleSaveTable = (e: React.FormEvent) => {

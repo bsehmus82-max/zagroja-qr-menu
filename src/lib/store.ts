@@ -358,7 +358,7 @@ class RestaurantStore {
           restaurant_id: restaurantId,
           name: prod.name,
           description: prod.description,
-          price: 0,
+          price: prod.price || 0,
           image_url: prod.image_url,
           calories: prod.calories,
           preparation_time_minutes: prod.preparation_time_minutes,
@@ -389,7 +389,9 @@ class RestaurantStore {
   }
 
   private async initializeDefaultTables(restaurantId: string) {
-    const tables: RestaurantTable[] = defaultTables.map((t, idx) => ({
+    const rest = this.getRestaurantById(restaurantId);
+    const max = rest?.max_tables || 10;
+    const tables: RestaurantTable[] = defaultTables(max).map((t, idx) => ({
       id: `tbl_${Date.now()}_${idx}`,
       restaurant_id: restaurantId,
       table_number: t.table_number,
