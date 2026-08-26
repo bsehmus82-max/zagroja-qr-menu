@@ -22,9 +22,10 @@ import {
 import { Restaurant } from '../../types';
 
 const generateResetLink = (slug: string): string => {
-  const expires = Date.now() + 24 * 60 * 60 * 1000;
+  // 15 dakika geçerli
+  const expires = Date.now() + 15 * 60 * 1000;
   const token = btoa(`${slug}:${expires}`);
-  return `${window.location.origin}/?r=${slug}&reset=${token}`;
+  return `${window.location.origin}/?reset=${token}`;
 };
 
 export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
@@ -154,7 +155,7 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(id);
-      showToast('Şifre sıfırlama linki kopyalandı! (24 saat geçerli)');
+      showToast('Şifre sıfırlama linki kopyalandı! (15 dakika geçerli)');
       setTimeout(() => setCopiedId(null), 3000);
     } catch {
       showToast('Kopyalanamadı. Manuel seçin: ' + url, 'error');
@@ -354,7 +355,7 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
                   </a>
                   <button
                     onClick={() => copyResetLink(rest.id, rest.slug)}
-                    title="Şifre Sıfırlama Linki Kopyala (24 saat geçerli)"
+                    title="Şifre Sıfırlama Linki Kopyala (15 dakika geçerli)"
                     className={`p-2 rounded-xl transition-all ${copiedId === rest.id ? 'text-emerald-600 bg-emerald-50' : 'text-indigo-600 hover:bg-indigo-50'}`}
                   >
                     {copiedId === rest.id ? <CheckCircle2 className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

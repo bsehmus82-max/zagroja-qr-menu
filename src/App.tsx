@@ -4,6 +4,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLogin } from './components/admin/AdminLogin';
 import { SetupWizard } from './components/admin/SetupWizard';
 import { SuperAdmin } from './components/admin/SuperAdmin';
+import { PasswordResetScreen } from './components/admin/PasswordResetScreen';
 import { store, SUPER_ADMIN_SESSION_KEY } from './lib/store';
 import { supabase } from './lib/supabase';
 import { LanguageProvider } from './lib/i18n';
@@ -19,6 +20,7 @@ export function App() {
     return {
       isAdminPath: params.get('admin') === 'true' || path.startsWith('/admin'),
       isSuperAdminPath: path.startsWith('/super') || params.get('panel') === 'super',
+      resetToken: params.get('reset'),
       restaurantSlug: path.startsWith('/m/') ? path.replace('/m/', '').split('/')[0] : params.get('r'),
       tableNumber: parseInt(params.get('table') || '0', 10),
     };
@@ -88,6 +90,10 @@ export function App() {
     setIsAdminView(false);
     window.location.href = '/';
   };
+
+  if (pathInfo.resetToken) {
+    return <PasswordResetScreen token={pathInfo.resetToken} onComplete={() => { window.location.href = '/'; }} />;
+  }
 
   if (pathInfo.isSuperAdminPath) {
     return <SuperAdmin onLogout={() => {
