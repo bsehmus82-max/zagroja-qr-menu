@@ -44,11 +44,9 @@ export const TableManager: React.FC<TableManagerProps> = ({
   const handleSaveTable = (e: React.FormEvent) => {
     e.preventDefault();
     store.addTable({
-      restaurant_id: restaurant.id,
       table_number: Number(newTableNumber),
       table_name: newTableName,
       section: newSection,
-      is_active: true,
     });
     setIsAddingTable(false);
     setNewTableNumber(tables.length + 2);
@@ -353,7 +351,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
               </div>
 
               <div className="text-[11px] text-slate-500 space-y-1 pt-1">
-                <p className="font-semibold text-slate-700">📶 Ücretsiz Wi-Fi: {restaurant.wifi_ssid}</p>
+                <p className="font-semibold text-slate-700">📶 Ücretsiz Wi-Fi: {restaurant.wifi_name || restaurant.wifi_ssid}</p>
                 <p className="font-mono text-orange-600 font-bold">Şifre: {restaurant.wifi_password}</p>
               </div>
             </div>

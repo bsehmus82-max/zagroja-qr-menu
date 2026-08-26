@@ -1,20 +1,29 @@
 import { Restaurant, RestaurantTable, Category, Product } from '../types';
 
 export const initialRestaurant: Restaurant = {
-  id: 'rest_gusto_01',
-  name: 'Bistro Gusto Restaurant & Lounge',
-  slug: 'bistro-gusto',
-  description: 'Özenle hazırlanan gurme lezzetler, taze kahveler ve eşsiz tatlar.',
-  logo_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300&auto=format&fit=crop&q=80',
-  cover_url: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&auto=format&fit=crop&q=80',
-  phone: '+90 (212) 555 0199',
-  address: 'Bağdat Caddesi No: 142, Kadıköy / İstanbul',
-  wifi_ssid: 'Gusto_Guest_5G',
-  wifi_password: 'GustoLezzet2026',
+  id: 'rest_demo_01',
+  name: '',
+  slug: 'demo',
+  description: '',
+  logo_url: '',
+  cover_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&auto=format&fit=crop&q=80',
+  phone: '',
+  address: '',
+  wifi_ssid: '',
+  wifi_name: '',
+  wifi_password: '',
   currency: '₺',
-  tax_rate: 10,
   is_active: true,
+  owner_username: 'admin',
+  owner_password: 'admin1234',
+  setup_completed: false,
+  subscription_type: 'unlimited',
+  subscription_expires_at: null,
+  payment_pending: false,
+  payment_proof_url: null,
+  created_at: new Date().toISOString(),
 };
+
 
 export const initialTables: RestaurantTable[] = [
   { id: 'tbl_1', restaurant_id: 'rest_gusto_01', table_number: 1, table_name: 'Masa 1', section: 'Salon', qr_token: 'tok_m1_a9f1', is_active: true },

@@ -58,6 +58,15 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   const [isOrderStatusOpen, setIsOrderStatusOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
 
+  // Update document title dynamically
+  useEffect(() => {
+    if (restaurant && restaurant.name) {
+      document.title = `${restaurant.name} — Dijital Menü`;
+    } else {
+      document.title = 'QR Menü';
+    }
+  }, [restaurant]);
+
   // Subscribe to realtime store changes
   useEffect(() => {
     const updateLocalState = () => {
@@ -350,7 +359,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
         <WifiModal
           isOpen={isWifiOpen}
           onClose={() => setIsWifiOpen(false)}
-          ssid={restaurant.wifi_ssid}
+          ssid={restaurant.wifi_name || restaurant.wifi_ssid || ''}
           password={restaurant.wifi_password}
         />
 

@@ -1,417 +1,472 @@
 import { 
-  Restaurant, 
-  RestaurantTable, 
-  Category, 
-  Product, 
-  Order, 
-  OrderItem, 
-  ServiceCall, 
-  EndOfDayReportData, 
-  TableSummary 
+  Restaurant, RestaurantTable, Category, Product, 
+  Order, OrderItem, ServiceCall, EndOfDayReportData, TableSummary
 } from '../types';
-import { initialRestaurant, initialTables, initialCategories, initialProducts } from '../data/sampleMenu';
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase } from './supabase';
+import { defaultMenuTemplate, defaultTables } from '../data/menuTemplate';
 
-// BroadcastChannel for cross-tab realtime sync in local mode
-const channel = typeof window !== 'undefined' && 'BroadcastChannel' in window
-  ? new BroadcastChannel('qr_menu_realtime_sync')
-  : null;
+// ============================================================
+// SUPER ADMIN KREDENSİYELLERİ — SADECE BURASI BİLİR
+// ============================================================
+export const SUPER_ADMIN_KEY = 'k9Z_super_p2X';  // URL'de ?panel=super
+export const SUPER_ADMIN_PASSWORD = 'ZgR_82#M@x!_2026_qRtY'; // Kırılması imkansız şifre
+export const SUPER_ADMIN_SESSION_KEY = 'sa_session_v2';
 
-// Audio notification generator using Web Audio API
+// ============================================================
+// BİLDİRİM SESİ
+// ============================================================
 export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'order') => {
   try {
-    const AudioContext = window.AudioContext || (window as unknown as { webkitAudioContext: typeof window.AudioContext }).webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-
     osc.connect(gain);
     gain.connect(ctx.destination);
-
     if (type === 'order') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(587.33, now); // D5
-      osc.frequency.setValueAtTime(880, now + 0.15); // A5
+      osc.frequency.setValueAtTime(587, now);
+      osc.frequency.setValueAtTime(880, now + 0.15);
       gain.gain.setValueAtTime(0.3, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      osc.start(now);
-      osc.stop(now + 0.6);
     } else if (type === 'call') {
       osc.type = 'sine';
       osc.frequency.setValueAtTime(800, now);
       osc.frequency.setValueAtTime(1200, now + 0.1);
       gain.gain.setValueAtTime(0.35, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-      osc.start(now);
-      osc.stop(now + 0.8);
     } else {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now);
-      osc.frequency.setValueAtTime(659.25, now + 0.1);
+      osc.frequency.setValueAtTime(523, now);
+      osc.frequency.setValueAtTime(659, now + 0.1);
       gain.gain.setValueAtTime(0.2, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
     }
-  } catch (e) {
-    console.warn('Audio notification failed:', e);
+    osc.start(now);
+    osc.stop(now + 0.8);
+  } catch (e) { /* ignore */ }
+};
+
+// ============================================================
+// ABONELIK KONTROLÜ
+// ============================================================
+export const getSubscriptionStatus = (restaurant: Restaurant): {
+  isActive: boolean;
+  daysLeft: number | null;
+  isExpiringSoon: boolean;
+  isExpired: boolean;
+} => {
+  if (!restaurant.is_active) {
+    return { isActive: false, daysLeft: null, isExpiringSoon: false, isExpired: true };
   }
-};
-
-// Storage keys
-const STORAGE_KEYS = {
-  RESTAURANT: 'qr_restaurant_data',
-  TABLES: 'qr_tables_data',
-  CATEGORIES: 'qr_categories_data',
-  PRODUCTS: 'qr_products_data',
-  ORDERS: 'qr_orders_data',
-  SERVICE_CALLS: 'qr_service_calls_data',
-};
-
-const getStored = <T>(key: string, fallback: T): T => {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch (e) {
-    return fallback;
+  if (restaurant.subscription_type === 'unlimited') {
+    return { isActive: true, daysLeft: null, isExpiringSoon: false, isExpired: false };
   }
-};
-
-const setStored = <T>(key: string, value: T) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    if (channel) {
-      channel.postMessage({ type: 'STORE_UPDATED', key, timestamp: Date.now() });
-    }
-  } catch (e) {
-    console.error('Storage error:', e);
+  if (!restaurant.subscription_expires_at) {
+    return { isActive: false, daysLeft: null, isExpiringSoon: false, isExpired: true };
   }
+  const now = new Date();
+  const expires = new Date(restaurant.subscription_expires_at);
+  const daysLeft = Math.ceil((expires.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  
+  return {
+    isActive: daysLeft > 0,
+    daysLeft,
+    isExpiringSoon: daysLeft > 0 && daysLeft <= 3,
+    isExpired: daysLeft <= 0,
+  };
 };
 
-export class AppDataStore {
-  private static instance: AppDataStore;
+// ============================================================
+// RESTAURANT STORE — ÇOK KİRACILI MİMARİ
+// ============================================================
+
+class RestaurantStore {
+  private static instance: RestaurantStore;
   private listeners: Set<() => void> = new Set();
+  private currentRestaurantId: string | null = null;
+  private channel: BroadcastChannel | null = null;
 
   private constructor() {
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', () => this.notify());
-      if (channel) {
-        channel.onmessage = () => this.notify();
-      }
-      this.initSupabaseSync();
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      this.channel = new BroadcastChannel('qr_menu_sync');
+      this.channel.onmessage = () => this.notify();
     }
   }
 
-  public static getInstance(): AppDataStore {
-    if (!AppDataStore.instance) {
-      AppDataStore.instance = new AppDataStore();
+  static getInstance(): RestaurantStore {
+    if (!RestaurantStore.instance) {
+      RestaurantStore.instance = new RestaurantStore();
     }
-    return AppDataStore.instance;
+    return RestaurantStore.instance;
   }
 
-  public subscribe(listener: () => void): () => void {
+  setCurrentRestaurant(id: string) {
+    this.currentRestaurantId = id;
+  }
+
+  getCurrentRestaurantId(): string | null {
+    return this.currentRestaurantId;
+  }
+
+  subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
+    return () => this.listeners.delete(listener);
   }
 
   private notify() {
-    this.listeners.forEach((l) => l());
+    this.listeners.forEach(l => l());
+    if (this.channel) this.channel.postMessage({ ts: Date.now() });
   }
 
-  // --- SUPABASE CLOUD SYNC & REALTIME SUBSCRIPTIONS ---
-  private async initSupabaseSync() {
-    if (!isSupabaseConfigured() || !supabase) return;
+  // LocalStorage key prefixed by restaurant_id for tenant isolation
+  private key(suffix: string): string {
+    if (!this.currentRestaurantId) return `qr_${suffix}`;
+    return `qr_${this.currentRestaurantId}_${suffix}`;
+  }
+
+  private get<T>(suffix: string, fallback: T): T {
+    try {
+      const d = localStorage.getItem(this.key(suffix));
+      return d ? JSON.parse(d) : fallback;
+    } catch { return fallback; }
+  }
+
+  private set<T>(suffix: string, value: T) {
+    try {
+      localStorage.setItem(this.key(suffix), JSON.stringify(value));
+    } catch (e) { console.error('Storage error', e); }
+  }
+
+  // ===== ALL RESTAURANTS (for super admin & login) =====
+  getAllRestaurants(): Restaurant[] {
+    try {
+      const d = localStorage.getItem('qr_all_restaurants');
+      return d ? JSON.parse(d) : [];
+    } catch { return []; }
+  }
+
+  saveAllRestaurants(restaurants: Restaurant[]) {
+    try {
+      localStorage.setItem('qr_all_restaurants', JSON.stringify(restaurants));
+    } catch { /* ignore */ }
+    this.notify();
+  }
+
+  getRestaurantById(id: string): Restaurant | null {
+    return this.getAllRestaurants().find(r => r.id === id) || null;
+  }
+
+  getRestaurantBySlug(slug: string): Restaurant | null {
+    return this.getAllRestaurants().find(r => r.slug === slug) || null;
+  }
+
+  getRestaurantByUsername(username: string): Restaurant | null {
+    return this.getAllRestaurants().find(r => r.owner_username === username) || null;
+  }
+
+  async createRestaurant(data: {
+    name: string;
+    slug: string;
+    owner_username: string;
+    owner_password: string;
+    subscription_type: 'unlimited' | 'timed';
+    subscription_days?: number;
+  }): Promise<Restaurant> {
+    const id = `rest_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const expiresAt = data.subscription_type === 'timed' && data.subscription_days
+      ? new Date(Date.now() + data.subscription_days * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+
+    const restaurant: Restaurant = {
+      id,
+      slug: data.slug,
+      name: data.name,
+      description: '',
+      logo_url: '',
+      cover_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80&auto=format&fit=crop',
+      currency: '₺',
+      wifi_name: '',
+      wifi_password: '',
+      phone: '',
+      address: '',
+      owner_username: data.owner_username,
+      owner_password: data.owner_password,
+      setup_completed: false,
+      subscription_type: data.subscription_type,
+      subscription_expires_at: expiresAt,
+      is_active: true,
+      payment_pending: false,
+      payment_proof_url: null,
+      created_at: new Date().toISOString(),
+    };
+
+    const all = this.getAllRestaurants();
+    all.push(restaurant);
+    this.saveAllRestaurants(all);
+
+    // Supabase sync
+    try {
+      await supabase.from('restaurants').insert([{
+        id: restaurant.id,
+        slug: restaurant.slug,
+        name: restaurant.name,
+        owner_username: restaurant.owner_username,
+        owner_password: restaurant.owner_password,
+        subscription_type: restaurant.subscription_type,
+        subscription_expires_at: restaurant.subscription_expires_at,
+        is_active: true,
+        setup_completed: false,
+        payment_pending: false,
+        created_at: restaurant.created_at,
+      }]);
+    } catch (e) { console.warn('Supabase createRestaurant:', e); }
+
+    return restaurant;
+  }
+
+  async updateRestaurant(id: string, data: Partial<Restaurant>) {
+    const all = this.getAllRestaurants().map(r => r.id === id ? { ...r, ...data } : r);
+    this.saveAllRestaurants(all);
+    // Update current restaurant data in per-tenant store too
+    if (this.currentRestaurantId === id) {
+      this.set('restaurant', { ...this.getRestaurant(), ...data });
+    }
+    this.notify();
+    try {
+      await supabase.from('restaurants').update(data).eq('id', id);
+    } catch (e) { console.warn('Supabase updateRestaurant:', e); }
+  }
+
+  async deleteRestaurant(id: string) {
+    const all = this.getAllRestaurants().filter(r => r.id !== id);
+    this.saveAllRestaurants(all);
+    try {
+      await supabase.from('restaurants').delete().eq('id', id);
+    } catch (e) { console.warn('Supabase deleteRestaurant:', e); }
+    this.notify();
+  }
+
+  // ===== SETUP WIZARD =====
+  async completeSetup(restaurantId: string, setupData: {
+    name: string;
+    logo_url: string;
+    cover_url?: string;
+    phone?: string;
+    address?: string;
+    wifi_name?: string;
+    wifi_password?: string;
+    currency?: string;
+  }) {
+    const restaurantData: Partial<Restaurant> = {
+      ...setupData,
+      setup_completed: true,
+    };
+
+    await this.updateRestaurant(restaurantId, restaurantData);
+
+    // Initialize default menu template for this restaurant
+    this.setCurrentRestaurant(restaurantId);
+    await this.initializeDefaultMenu(restaurantId);
+    await this.initializeDefaultTables(restaurantId);
+  }
+
+  private async initializeDefaultMenu(restaurantId: string) {
+    const categories: Category[] = [];
+    const products: Product[] = [];
+
+    defaultMenuTemplate.forEach((cat) => {
+      const catId = `cat_${Date.now()}_${Math.random().toString(36).substring(2, 5)}_${cat.sort_order}`;
+      categories.push({
+        id: catId,
+        restaurant_id: restaurantId,
+        name: cat.name,
+        icon: cat.icon,
+        sort_order: cat.sort_order,
+        is_active: true,
+      });
+
+      cat.template_products.forEach((prod, pIdx) => {
+        const prodId = `prod_${Date.now()}_${Math.random().toString(36).substring(2, 5)}_${pIdx}`;
+        products.push({
+          id: prodId,
+          category_id: catId,
+          restaurant_id: restaurantId,
+          name: prod.name,
+          description: prod.description,
+          price: 0,
+          image_url: prod.image_url,
+          calories: prod.calories,
+          preparation_time_minutes: prod.preparation_time_minutes,
+          is_available: true,
+          sort_order: prod.sort_order,
+        });
+      });
+    });
+
+    this.set('categories', categories);
+    this.set('products', products);
 
     try {
-      // 1. Fetch live products from Supabase
-      const { data: dbProducts } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
-      if (dbProducts && dbProducts.length > 0) {
-        setStored(STORAGE_KEYS.PRODUCTS, dbProducts);
+      await supabase.from('categories').insert(categories.map(c => ({
+        id: c.id, restaurant_id: c.restaurant_id, name: c.name,
+        icon: c.icon, sort_order: c.sort_order, is_active: true
+      })));
+      for (const p of products) {
+        await supabase.from('products').insert([{
+          id: p.id, category_id: p.category_id, restaurant_id: p.restaurant_id,
+          name: p.name, description: p.description, price: p.price,
+          image_url: p.image_url, calories: p.calories,
+          preparation_time_minutes: p.preparation_time_minutes,
+          is_available: true, sort_order: p.sort_order
+        }]);
       }
-
-      // 2. Fetch live categories
-      const { data: dbCategories } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
-      if (dbCategories && dbCategories.length > 0) {
-        setStored(STORAGE_KEYS.CATEGORIES, dbCategories);
-      }
-
-      // 3. Fetch live tables
-      const { data: dbTables } = await supabase.from('restaurant_tables').select('*').order('table_number', { ascending: true });
-      if (dbTables && dbTables.length > 0) {
-        setStored(STORAGE_KEYS.TABLES, dbTables);
-      }
-
-      // 4. Fetch live restaurant
-      const { data: dbRestaurants } = await supabase.from('restaurants').select('*').limit(1).single();
-      if (dbRestaurants) {
-        setStored(STORAGE_KEYS.RESTAURANT, dbRestaurants);
-      }
-
-      // 5. Fetch live orders
-      const { data: dbOrders } = await supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false });
-      if (dbOrders) {
-        setStored(STORAGE_KEYS.ORDERS, dbOrders);
-      }
-
-      // 6. Fetch live service calls
-      const { data: dbCalls } = await supabase.from('service_calls').select('*').order('created_at', { ascending: false });
-      if (dbCalls) {
-        setStored(STORAGE_KEYS.SERVICE_CALLS, dbCalls);
-      }
-
-      this.notify();
-
-      // Subscribe to Realtime Postgres Changes
-      supabase
-        .channel('public_realtime_stream')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => this.refreshOrdersFromCloud())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'service_calls' }, () => this.refreshCallsFromCloud())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => this.refreshProductsFromCloud())
-        .subscribe();
-
-    } catch (err) {
-      console.warn('Supabase initial fetch warning:', err);
-    }
+    } catch (e) { console.warn('Supabase initMenu:', e); }
   }
 
-  private async refreshOrdersFromCloud() {
-    if (!supabase) return;
-    const { data } = await supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false });
-    if (data) {
-      setStored(STORAGE_KEYS.ORDERS, data);
-      playNotificationSound('order');
-      this.notify();
-    }
+  private async initializeDefaultTables(restaurantId: string) {
+    const tables: RestaurantTable[] = defaultTables.map((t, idx) => ({
+      id: `tbl_${Date.now()}_${idx}`,
+      restaurant_id: restaurantId,
+      table_number: t.table_number,
+      table_name: t.table_name,
+      section: t.section,
+      qr_token: `tok_${Math.random().toString(36).substring(2, 10)}`,
+      is_active: true,
+    }));
+    this.set('tables', tables);
+    try {
+      await supabase.from('restaurant_tables').insert(tables);
+    } catch (e) { console.warn('Supabase initTables:', e); }
   }
 
-  private async refreshCallsFromCloud() {
-    if (!supabase) return;
-    const { data } = await supabase.from('service_calls').select('*').order('created_at', { ascending: false });
-    if (data) {
-      setStored(STORAGE_KEYS.SERVICE_CALLS, data);
-      playNotificationSound('call');
-      this.notify();
-    }
+  // ===== PER-TENANT DATA =====
+  getRestaurant(): Restaurant {
+    const id = this.currentRestaurantId;
+    if (!id) return this.getAllRestaurants()[0] || ({} as Restaurant);
+    const all = this.getAllRestaurants();
+    return all.find(r => r.id === id) || ({} as Restaurant);
   }
 
-  private async refreshProductsFromCloud() {
-    if (!supabase) return;
-    const { data } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
-    if (data) {
-      setStored(STORAGE_KEYS.PRODUCTS, data);
-      this.notify();
-    }
+  getTables(): RestaurantTable[] {
+    return this.get<RestaurantTable[]>('tables', []);
   }
 
-  // --- RESTAURANT ---
-  public getRestaurant(): Restaurant {
-    return getStored<Restaurant>(STORAGE_KEYS.RESTAURANT, initialRestaurant);
+  getCategories(): Category[] {
+    return this.get<Category[]>('categories', []);
   }
 
-  public async updateRestaurant(data: Partial<Restaurant>) {
-    const current = this.getRestaurant();
-    const updated = { ...current, ...data };
-    setStored(STORAGE_KEYS.RESTAURANT, updated);
-    this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('restaurants').update(data).eq('id', current.id);
-    }
+  getProducts(): Product[] {
+    return this.get<Product[]>('products', []);
   }
 
-  // --- TABLES ---
-  public getTables(): RestaurantTable[] {
-    return getStored<RestaurantTable[]>(STORAGE_KEYS.TABLES, initialTables);
+  getOrders(): Order[] {
+    return this.get<Order[]>('orders', []);
   }
 
-  public async addTable(table: Omit<RestaurantTable, 'id' | 'qr_token'>) {
+  getServiceCalls(): ServiceCall[] {
+    return this.get<ServiceCall[]>('service_calls', []);
+  }
+
+  // ===== TABLE MANAGEMENT =====
+  async addTable(table: Pick<RestaurantTable, 'table_number' | 'table_name' | 'section'>) {
     const tables = this.getTables();
-    const newId = `tbl_${Date.now()}`;
-    const qrToken = `tok_m${table.table_number}_${Math.random().toString(36).substring(2, 7)}`;
     const newTable: RestaurantTable = {
-      ...table,
-      id: newId,
-      qr_token: qrToken,
+      id: `tbl_${Date.now()}`,
+      restaurant_id: this.currentRestaurantId || '',
+      table_number: table.table_number,
+      table_name: table.table_name,
+      section: table.section,
+      qr_token: `tok_${Math.random().toString(36).substring(2, 10)}`,
       is_active: true,
     };
-    setStored(STORAGE_KEYS.TABLES, [...tables, newTable]);
+    this.set('tables', [...tables, newTable]);
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('restaurant_tables').insert([{
-        restaurant_id: table.restaurant_id,
-        table_number: table.table_number,
-        table_name: table.table_name,
-        section: table.section,
-        qr_token: qrToken,
-        is_active: true,
-      }]);
-    }
-
+    try { await supabase.from('restaurant_tables').insert([newTable]); } catch { /* ignore */ }
     return newTable;
   }
 
-  public async updateTable(id: string, data: Partial<RestaurantTable>) {
-    const tables = this.getTables();
-    const updated = tables.map((t) => (t.id === id ? { ...t, ...data } : t));
-    setStored(STORAGE_KEYS.TABLES, updated);
+  async updateTable(id: string, data: Partial<RestaurantTable>) {
+    const tables = this.getTables().map(t => t.id === id ? { ...t, ...data } : t);
+    this.set('tables', tables);
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('restaurant_tables').update(data).eq('id', id);
-    }
+    try { await supabase.from('restaurant_tables').update(data).eq('id', id); } catch { /* ignore */ }
   }
 
-  public async regenerateTableQR(id: string) {
-    const tables = this.getTables();
-    const newQRToken = `tok_qr_${Math.random().toString(36).substring(2, 8)}_${Date.now().toString().slice(-4)}`;
-    const updated = tables.map((t) => {
-      if (t.id === id) {
-        return { ...t, qr_token: newQRToken };
-      }
-      return t;
-    });
-    setStored(STORAGE_KEYS.TABLES, updated);
+  async regenerateTableQR(id: string) {
+    const newToken = `tok_${Math.random().toString(36).substring(2, 10)}`;
+    await this.updateTable(id, { qr_token: newToken });
+  }
+
+  async deleteTable(id: string) {
+    this.set('tables', this.getTables().filter(t => t.id !== id));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('restaurant_tables').update({ qr_token: newQRToken }).eq('id', id);
-    }
+    try { await supabase.from('restaurant_tables').delete().eq('id', id); } catch { /* ignore */ }
   }
 
-  public async deleteTable(id: string) {
-    const tables = this.getTables();
-    setStored(STORAGE_KEYS.TABLES, tables.filter((t) => t.id !== id));
-    this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('restaurant_tables').delete().eq('id', id);
-    }
-  }
-
-  // --- CATEGORIES ---
-  public getCategories(): Category[] {
-    return getStored<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
-  }
-
-  public async addCategory(name: string, icon = 'Utensils') {
+  // ===== CATEGORY MANAGEMENT =====
+  async addCategory(name: string, icon: string = 'Utensils') {
     const cats = this.getCategories();
     const newCat: Category = {
       id: `cat_${Date.now()}`,
-      restaurant_id: this.getRestaurant().id,
-      name,
-      icon,
+      restaurant_id: this.currentRestaurantId || '',
+      name, icon,
       sort_order: cats.length + 1,
       is_active: true,
     };
-    setStored(STORAGE_KEYS.CATEGORIES, [...cats, newCat]);
+    this.set('categories', [...cats, newCat]);
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('categories').insert([{
-        restaurant_id: newCat.restaurant_id,
-        name,
-        icon,
-        sort_order: newCat.sort_order,
-      }]);
-    }
-
+    try { await supabase.from('categories').insert([newCat]); } catch { /* ignore */ }
     return newCat;
   }
 
-  public async updateCategory(id: string, data: Partial<Category>) {
-    const cats = this.getCategories();
-    setStored(STORAGE_KEYS.CATEGORIES, cats.map((c) => (c.id === id ? { ...c, ...data } : c)));
+  async updateCategory(id: string, data: Partial<Category>) {
+    this.set('categories', this.getCategories().map(c => c.id === id ? { ...c, ...data } : c));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('categories').update(data).eq('id', id);
-    }
+    try { await supabase.from('categories').update(data).eq('id', id); } catch { /* ignore */ }
   }
 
-  public async deleteCategory(id: string) {
-    const cats = this.getCategories();
-    setStored(STORAGE_KEYS.CATEGORIES, cats.filter((c) => c.id !== id));
+  async deleteCategory(id: string) {
+    this.set('categories', this.getCategories().filter(c => c.id !== id));
+    this.set('products', this.getProducts().filter(p => p.category_id !== id));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('categories').delete().eq('id', id);
-    }
+    try { await supabase.from('categories').delete().eq('id', id); } catch { /* ignore */ }
   }
 
-  // --- PRODUCTS ---
-  public getProducts(): Product[] {
-    return getStored<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
-  }
-
-  public async addProduct(product: Omit<Product, 'id'>) {
-    const products = this.getProducts();
-    const newProduct: Product = {
-      ...product,
-      id: `prod_${Date.now()}`,
-    };
-    setStored(STORAGE_KEYS.PRODUCTS, [newProduct, ...products]);
+  // ===== PRODUCT MANAGEMENT =====
+  async addProduct(product: Omit<Product, 'id'>) {
+    const newProd: Product = { ...product, id: `prod_${Date.now()}` };
+    this.set('products', [newProd, ...this.getProducts()]);
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('products').insert([product]);
-    }
-
-    return newProduct;
+    try { await supabase.from('products').insert([newProd]); } catch { /* ignore */ }
+    return newProd;
   }
 
-  public async updateProduct(id: string, data: Partial<Product>) {
-    const products = this.getProducts();
-    setStored(STORAGE_KEYS.PRODUCTS, products.map((p) => (p.id === id ? { ...p, ...data } : p)));
+  async updateProduct(id: string, data: Partial<Product>) {
+    this.set('products', this.getProducts().map(p => p.id === id ? { ...p, ...data } : p));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('products').update(data).eq('id', id);
-    }
+    try { await supabase.from('products').update(data).eq('id', id); } catch { /* ignore */ }
   }
 
-  public async toggleProductAvailability(id: string) {
-    const products = this.getProducts();
-    const current = products.find((p) => p.id === id);
-    const newStatus = current ? !current.is_available : false;
-    
-    setStored(
-      STORAGE_KEYS.PRODUCTS,
-      products.map((p) => (p.id === id ? { ...p, is_available: newStatus } : p))
-    );
+  async deleteProduct(id: string) {
+    this.set('products', this.getProducts().filter(p => p.id !== id));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('products').update({ is_available: newStatus }).eq('id', id);
-    }
+    try { await supabase.from('products').delete().eq('id', id); } catch { /* ignore */ }
   }
 
-  public async deleteProduct(id: string) {
-    const products = this.getProducts();
-    setStored(STORAGE_KEYS.PRODUCTS, products.filter((p) => p.id !== id));
-    this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('products').delete().eq('id', id);
-    }
-  }
-
-  // --- ORDERS ---
-  public getOrders(): Order[] {
-    return getStored<Order[]>(STORAGE_KEYS.ORDERS, []);
-  }
-
-  public async createOrder(tableNumber: number, items: OrderItem[], notes = '', paymentMethod: 'cash' | 'credit_card' = 'cash'): Promise<Order> {
-    const orders = this.getOrders();
-    const total = items.reduce((sum, item) => sum + item.total_price, 0);
+  // ===== ORDER MANAGEMENT =====
+  async createOrder(
+    tableNumber: number,
+    items: OrderItem[],
+    notes: string = '',
+    paymentMethod: 'cash' | 'credit_card' = 'cash'
+  ): Promise<Order> {
+    const total = items.reduce((s, i) => s + i.total_price, 0);
     const newOrder: Order = {
       id: `ord_${Date.now()}_${Math.random().toString(36).substring(2, 5)}`,
-      restaurant_id: this.getRestaurant().id,
+      restaurant_id: this.currentRestaurantId || '',
       table_number: tableNumber,
       status: 'pending',
       total_amount: total,
@@ -421,210 +476,161 @@ export class AppDataStore {
       items,
       created_at: new Date().toISOString(),
     };
-    setStored(STORAGE_KEYS.ORDERS, [newOrder, ...orders]);
+    this.set('orders', [newOrder, ...this.getOrders()]);
     playNotificationSound('order');
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      try {
-        const { data: insertedOrder } = await supabase.from('orders').insert([{
-          restaurant_id: newOrder.restaurant_id,
-          table_number: tableNumber,
-          status: 'pending',
-          total_amount: total,
-          customer_notes: notes,
-          payment_method: paymentMethod,
-          payment_status: 'unpaid',
-        }]).select().single();
-
-        if (insertedOrder && items.length > 0) {
-          const orderItemRows = items.map((i) => ({
-            order_id: insertedOrder.id,
-            product_id: i.product_id?.startsWith('prod_') ? null : i.product_id,
-            product_name: i.product_name,
-            unit_price: i.unit_price,
-            quantity: i.quantity,
-            total_price: i.total_price,
-            item_notes: i.item_notes,
-          }));
-          await supabase.from('order_items').insert(orderItemRows);
-        }
-      } catch (err) {
-        console.error('Supabase createOrder error:', err);
+    try {
+      const { data: ins } = await supabase.from('orders').insert([{
+        id: newOrder.id, restaurant_id: newOrder.restaurant_id,
+        table_number: tableNumber, status: 'pending',
+        total_amount: total, customer_notes: notes,
+        payment_method: paymentMethod, payment_status: 'unpaid',
+      }]).select().single();
+      if (ins) {
+        await supabase.from('order_items').insert(items.map(i => ({
+          order_id: ins.id, product_name: i.product_name,
+          unit_price: i.unit_price, quantity: i.quantity,
+          total_price: i.total_price, item_notes: i.item_notes || '',
+        })));
       }
-    }
-
+    } catch (e) { console.warn('Supabase createOrder:', e); }
     return newOrder;
   }
 
-  public async updateOrderStatus(orderId: string, status: Order['status'], paymentStatus?: Order['payment_status']) {
-    const orders = this.getOrders();
-    setStored(
-      STORAGE_KEYS.ORDERS,
-      orders.map((o) => {
-        if (o.id === orderId) {
-          return {
-            ...o,
-            status,
-            payment_status: paymentStatus !== undefined ? paymentStatus : o.payment_status,
-            updated_at: new Date().toISOString(),
-          };
-        }
-        return o;
-      })
-    );
+  async updateOrderStatus(orderId: string, status: Order['status'], paymentStatus?: Order['payment_status']) {
+    this.set('orders', this.getOrders().map(o => {
+      if (o.id === orderId) return { ...o, status, payment_status: paymentStatus ?? o.payment_status };
+      return o;
+    }));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('orders').update({
-        status,
-        ...(paymentStatus !== undefined ? { payment_status: paymentStatus } : {}),
-      }).eq('id', orderId);
-    }
+    try {
+      await supabase.from('orders').update({ status, ...(paymentStatus ? { payment_status: paymentStatus } : {}) }).eq('id', orderId);
+    } catch { /* ignore */ }
   }
 
-  // --- SERVICE CALLS (GARSON & HESAP) ---
-  public getServiceCalls(): ServiceCall[] {
-    return getStored<ServiceCall[]>(STORAGE_KEYS.SERVICE_CALLS, []);
-  }
-
-  public async createServiceCall(tableNumber: number, type: 'waiter' | 'bill', paymentType?: 'cash' | 'credit_card', notes = ''): Promise<ServiceCall> {
-    const calls = this.getServiceCalls();
+  // ===== SERVICE CALLS =====
+  async createServiceCall(tableNumber: number, type: 'waiter' | 'bill', paymentType?: 'cash' | 'credit_card'): Promise<ServiceCall> {
     const newCall: ServiceCall = {
       id: `call_${Date.now()}`,
-      restaurant_id: this.getRestaurant().id,
+      restaurant_id: this.currentRestaurantId || '',
       table_number: tableNumber,
-      type,
-      payment_type: paymentType,
+      type, payment_type: paymentType,
       status: 'active',
-      notes,
       created_at: new Date().toISOString(),
     };
-    setStored(STORAGE_KEYS.SERVICE_CALLS, [newCall, ...calls]);
+    this.set('service_calls', [newCall, ...this.getServiceCalls()]);
     playNotificationSound('call');
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('service_calls').insert([{
-        restaurant_id: newCall.restaurant_id,
-        table_number: tableNumber,
-        type,
-        payment_type: paymentType,
-        status: 'active',
-        notes,
-      }]);
-    }
-
+    try { await supabase.from('service_calls').insert([newCall]); } catch { /* ignore */ }
     return newCall;
   }
 
-  public async resolveServiceCall(callId: string) {
-    const calls = this.getServiceCalls();
-    setStored(
-      STORAGE_KEYS.SERVICE_CALLS,
-      calls.map((c) => (c.id === callId ? { ...c, status: 'completed' as const } : c))
-    );
+  async resolveServiceCall(callId: string) {
+    this.set('service_calls', this.getServiceCalls().map(c => c.id === callId ? { ...c, status: 'completed' as const } : c));
     this.notify();
-
-    if (supabase && isSupabaseConfigured()) {
-      await supabase.from('service_calls').update({ status: 'completed' }).eq('id', callId);
-    }
+    try { await supabase.from('service_calls').update({ status: 'completed' }).eq('id', callId); } catch { /* ignore */ }
   }
 
-  // --- END OF DAY (GÜN SONU / Z RAPORU) ---
-  public getEndOfDayReport(): EndOfDayReportData {
+  // ===== END OF DAY REPORT =====
+  getEndOfDayReport(): EndOfDayReportData {
     const orders = this.getOrders();
     const tables = this.getTables();
-
-    let total_revenue = 0;
-    let total_items_sold = 0;
-    let cash_total = 0;
-    let credit_card_total = 0;
+    let total_revenue = 0, total_items_sold = 0, cash_total = 0, credit_card_total = 0;
     const productCounts: { [name: string]: { count: number; revenue: number } } = {};
-    const tableMap: { [tableNum: number]: TableSummary } = {};
+    const tableMap: { [num: number]: TableSummary } = {};
 
-    tables.forEach((t) => {
+    tables.forEach(t => {
       tableMap[t.table_number] = {
-        table_number: t.table_number,
-        table_name: t.table_name,
-        order_count: 0,
-        total_sales: 0,
-        paid_sales: 0,
-        active_orders: 0,
-        items_sold: {},
+        table_number: t.table_number, table_name: t.table_name,
+        order_count: 0, total_sales: 0, paid_sales: 0, active_orders: 0, items_sold: {},
       };
     });
 
-    orders.forEach((o) => {
-      if (o.status !== 'cancelled') {
-        total_revenue += o.total_amount;
-        if (o.payment_method === 'cash') cash_total += o.total_amount;
-        if (o.payment_method === 'credit_card') credit_card_total += o.total_amount;
-
-        if (!tableMap[o.table_number]) {
-          tableMap[o.table_number] = {
-            table_number: o.table_number,
-            table_name: `Masa ${o.table_number}`,
-            order_count: 0,
-            total_sales: 0,
-            paid_sales: 0,
-            active_orders: 0,
-            items_sold: {},
-          };
-        }
-
-        const tSummary = tableMap[o.table_number];
-        tSummary.order_count += 1;
-        tSummary.total_sales += o.total_amount;
-        if (o.payment_status === 'paid') tSummary.paid_sales += o.total_amount;
-        if (o.status === 'pending' || o.status === 'preparing') tSummary.active_orders += 1;
-
-        if (o.items) {
-          o.items.forEach((item) => {
-            total_items_sold += item.quantity;
-            tSummary.items_sold[item.product_name] = (tSummary.items_sold[item.product_name] || 0) + item.quantity;
-
-            if (!productCounts[item.product_name]) {
-              productCounts[item.product_name] = { count: 0, revenue: 0 };
-            }
-            productCounts[item.product_name].count += item.quantity;
-            productCounts[item.product_name].revenue += item.total_price;
-          });
-        }
+    orders.filter(o => o.status !== 'cancelled').forEach(o => {
+      total_revenue += o.total_amount;
+      if (o.payment_method === 'cash') cash_total += o.total_amount;
+      if (o.payment_method === 'credit_card') credit_card_total += o.total_amount;
+      if (!tableMap[o.table_number]) {
+        tableMap[o.table_number] = {
+          table_number: o.table_number, table_name: `Masa ${o.table_number}`,
+          order_count: 0, total_sales: 0, paid_sales: 0, active_orders: 0, items_sold: {},
+        };
       }
+      const ts = tableMap[o.table_number];
+      ts.order_count++; ts.total_sales += o.total_amount;
+      if (o.payment_status === 'paid') ts.paid_sales += o.total_amount;
+      if (o.status === 'pending' || o.status === 'preparing') ts.active_orders++;
+      (o.items || []).forEach(item => {
+        total_items_sold += item.quantity;
+        ts.items_sold[item.product_name] = (ts.items_sold[item.product_name] || 0) + item.quantity;
+        if (!productCounts[item.product_name]) productCounts[item.product_name] = { count: 0, revenue: 0 };
+        productCounts[item.product_name].count += item.quantity;
+        productCounts[item.product_name].revenue += item.total_price;
+      });
     });
-
-    const top_products = Object.entries(productCounts)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.count - a.count);
 
     return {
       date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
-      total_revenue,
-      total_orders: orders.filter((o) => o.status !== 'cancelled').length,
-      total_items_sold,
-      cash_total,
-      credit_card_total,
+      total_revenue, total_orders: orders.filter(o => o.status !== 'cancelled').length,
+      total_items_sold, cash_total, credit_card_total,
       table_summaries: Object.values(tableMap).sort((a, b) => a.table_number - b.table_number),
-      top_products,
+      top_products: Object.entries(productCounts).map(([name, d]) => ({ name, ...d })).sort((a, b) => b.count - a.count),
     };
   }
 
-  public resetDay() {
-    setStored(STORAGE_KEYS.ORDERS, []);
-    setStored(STORAGE_KEYS.SERVICE_CALLS, []);
+  resetDay() {
+    this.set('orders', []);
+    this.set('service_calls', []);
     this.notify();
   }
 
-  public resetAllToSample() {
-    localStorage.removeItem(STORAGE_KEYS.RESTAURANT);
-    localStorage.removeItem(STORAGE_KEYS.TABLES);
-    localStorage.removeItem(STORAGE_KEYS.CATEGORIES);
-    localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
-    localStorage.removeItem(STORAGE_KEYS.ORDERS);
-    localStorage.removeItem(STORAGE_KEYS.SERVICE_CALLS);
-    this.notify();
+  // ===== SUPABASE SYNC (initial load) =====
+  async syncFromCloud() {
+    const id = this.currentRestaurantId;
+    if (!id) return;
+
+    try {
+      const [{ data: cats }, { data: prods }, { data: tbls }, { data: ords }, { data: calls }] = await Promise.all([
+        supabase.from('categories').select('*').eq('restaurant_id', id).order('sort_order'),
+        supabase.from('products').select('*').eq('restaurant_id', id).order('sort_order'),
+        supabase.from('restaurant_tables').select('*').eq('restaurant_id', id).order('table_number'),
+        supabase.from('orders').select('*, items:order_items(*)').eq('restaurant_id', id).order('created_at', { ascending: false }),
+        supabase.from('service_calls').select('*').eq('restaurant_id', id).order('created_at', { ascending: false }),
+      ]);
+
+      if (cats && cats.length > 0) this.set('categories', cats);
+      if (prods && prods.length > 0) this.set('products', prods);
+      if (tbls && tbls.length > 0) this.set('tables', tbls);
+      if (ords) this.set('orders', ords);
+      if (calls) this.set('service_calls', calls);
+
+      this.notify();
+    } catch (e) { console.warn('Supabase syncFromCloud:', e); }
+  }
+
+  subscribeToRealtimeUpdates() {
+    const id = this.currentRestaurantId;
+    if (!id) return;
+
+    supabase.channel(`rt_${id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_calls', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .subscribe();
+  }
+
+  // ===== BACKWARD COMPAT METHODS =====
+  async toggleProductAvailability(productId: string) {
+    const products = this.getProducts();
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      await this.updateProduct(productId, { is_available: !product.is_available });
+    }
+  }
+
+  resetAllToSample() {
+    // Clears all tenant data - for legacy compat
+    this.resetDay();
   }
 }
 
-export const store = AppDataStore.getInstance();
+export const store = RestaurantStore.getInstance();

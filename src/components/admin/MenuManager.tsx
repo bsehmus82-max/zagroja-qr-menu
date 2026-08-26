@@ -88,8 +88,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       price: prod.price,
       image_url: prod.image_url,
       is_available: prod.is_available,
-      is_featured: prod.is_featured,
-      prep_time_minutes: prod.prep_time_minutes,
+      is_featured: prod.is_featured || false,
+      prep_time_minutes: prod.prep_time_minutes || prod.preparation_time_minutes || 0,
       calories: prod.calories || 0,
     });
     setIsAddingProduct(true);
@@ -108,6 +108,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         image_url: prodForm.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
         is_available: prodForm.is_available,
         is_featured: prodForm.is_featured,
+        preparation_time_minutes: Number(prodForm.prep_time_minutes),
         prep_time_minutes: Number(prodForm.prep_time_minutes),
         calories: Number(prodForm.calories),
       });
@@ -121,8 +122,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
         image_url: prodForm.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
         is_available: prodForm.is_available,
         is_featured: prodForm.is_featured,
+        preparation_time_minutes: Number(prodForm.prep_time_minutes),
         prep_time_minutes: Number(prodForm.prep_time_minutes),
         calories: Number(prodForm.calories),
+        sort_order: products.filter(p => p.category_id === prodForm.category_id).length + 1,
       });
     }
 

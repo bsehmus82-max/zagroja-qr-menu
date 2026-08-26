@@ -1,0 +1,140 @@
+import React, { useState } from 'react';
+import { Restaurant } from '../../types';
+import { store } from '../../lib/store';
+import { Building2, Image as ImageIcon, MapPin, CheckCircle2 } from 'lucide-react';
+
+export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant, onComplete: () => void }) => {
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    name: restaurant.name || '',
+    logo_url: restaurant.logo_url || '',
+    cover_url: restaurant.cover_url || 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1200&q=80',
+    phone: restaurant.phone || '',
+    address: restaurant.address || '',
+  });
+
+  const handleComplete = async () => {
+    setLoading(true);
+    await store.completeSetup(restaurant.id, form);
+    onComplete();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+      <div className="bg-white max-w-lg w-full rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+        
+        {/* Header */}
+        <div className="bg-orange-500 p-8 text-white text-center">
+          <h1 className="text-2xl font-bold mb-2">Hoş Geldiniz!</h1>
+          <p className="text-orange-100 text-sm">Dijital menünüzü kullanmaya başlamak için birkaç temel bilgiyi doldurmanız gerekiyor.</p>
+        </div>
+
+        <div className="p-8">
+          {/* Progress */}
+          <div className="flex justify-between mb-8 relative">
+            <div className="absolute top-1/2 -mt-[1px] w-full h-[2px] bg-slate-100 z-0" />
+            {[1, 2, 3].map(i => (
+              <div key={i} className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                step >= i ? 'bg-orange-500 text-white' : 'bg-slate-200 text-slate-500'
+              }`}>
+                {i}
+              </div>
+            ))}
+          </div>
+
+          {/* Steps */}
+          {step === 1 && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="flex items-center gap-3 mb-6 text-slate-800 font-semibold">
+                <Building2 className="w-5 h-5 text-orange-500" /> 1. İşletme Adı
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Mekanınızın Adı *</label>
+                <input
+                  type="text"
+                  required
+                  value={form.name}
+                  onChange={e => setForm({...form, name: e.target.value})}
+                  placeholder="Örn: Cafe Aria"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
+                />
+                <p className="text-xs text-slate-500 mt-2">Müşterileriniz QR kodu okuttuğunda bu ismi görecekler.</p>
+              </div>
+              <button 
+                onClick={() => form.name.trim() ? setStep(2) : alert('Lütfen işletme adını girin.')}
+                className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold mt-6"
+              >
+                Devam Et
+              </button>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="flex items-center gap-3 mb-6 text-slate-800 font-semibold">
+                <ImageIcon className="w-5 h-5 text-purple-500" /> 2. Görseller
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Logo URL *</label>
+                <input
+                  type="url"
+                  required
+                  value={form.logo_url}
+                  onChange={e => setForm({...form, logo_url: e.target.value})}
+                  placeholder="https://...logo.png"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setStep(1)} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold">Geri</button>
+                <button 
+                  onClick={() => form.logo_url.trim() ? setStep(3) : alert('Lütfen logo URL girin.')}
+                  className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-bold"
+                >
+                  Devam Et
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="flex items-center gap-3 mb-6 text-slate-800 font-semibold">
+                <MapPin className="w-5 h-5 text-blue-500" /> 3. İletişim (Opsiyonel)
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Telefon</label>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={e => setForm({...form, phone: e.target.value})}
+                  placeholder="05xx..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Adres</label>
+                <textarea
+                  value={form.address}
+                  onChange={e => setForm({...form, address: e.target.value})}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none resize-none"
+                />
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setStep(2)} className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-bold">Geri</button>
+                <button 
+                  onClick={handleComplete}
+                  disabled={loading}
+                  className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2"
+                >
+                  {loading ? 'Kuruluyor...' : <><CheckCircle2 className="w-5 h-5" /> Kurulumu Tamamla</>}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

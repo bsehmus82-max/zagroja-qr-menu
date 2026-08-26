@@ -1,21 +1,43 @@
-export type Currency = '₺' | '$' | '€' | '£';
+// ===== TEMEL TİPLER =====
+
+// Backward compat alias
+export type OrderStatus = 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
+
+// Defined below — forward reference resolved at runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface CartItem {
+  product: any; // Product type (defined below, avoids circular ref)
+  quantity: number;
+  notes: string;
+}
+
 
 export interface Restaurant {
   id: string;
-  name: string;
   slug: string;
+  name: string;
   description: string;
   logo_url: string;
   cover_url: string;
+  currency: string;
+  wifi_name: string;
+  wifi_password: string;
   phone: string;
   address: string;
-  wifi_ssid: string;
-  wifi_password: string;
-  currency: Currency;
-  tax_rate: number;
+  owner_username: string;
+  owner_password: string;
+  setup_completed: boolean;
+  subscription_type: 'unlimited' | 'timed';
+  subscription_expires_at: string | null;
   is_active: boolean;
-  created_at?: string;
+  payment_pending: boolean;
+  payment_proof_url: string | null;
+  created_at: string;
+  // Backward compat & optional extras
+  wifi_ssid?: string;
+  tax_rate?: number;
 }
+
 
 export interface RestaurantTable {
   id: string;
@@ -25,7 +47,6 @@ export interface RestaurantTable {
   section: string;
   qr_token: string;
   is_active: boolean;
-  created_at?: string;
 }
 
 export interface Category {
@@ -39,26 +60,21 @@ export interface Category {
 
 export interface Product {
   id: string;
-  restaurant_id: string;
   category_id: string;
+  restaurant_id: string;
   name: string;
   description: string;
   price: number;
   image_url: string;
-  is_available: boolean; // Tükendi mi / Stokta var mı
-  is_featured: boolean;
-  prep_time_minutes: number;
   calories?: number;
-  sort_order?: number;
+  preparation_time_minutes?: number;
+  prep_time_minutes?: number; // backward compat alias
+  is_available: boolean;
+  is_featured?: boolean; // backward compat
+  sort_order: number;
 }
 
-export type OrderStatus = 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
-export type PaymentStatus = 'unpaid' | 'paid';
-export type PaymentMethod = 'cash' | 'credit_card' | 'online';
-
 export interface OrderItem {
-  id?: string;
-  order_id?: string;
   product_id: string;
   product_name: string;
   unit_price: number;
@@ -70,37 +86,26 @@ export interface OrderItem {
 export interface Order {
   id: string;
   restaurant_id: string;
-  table_id?: string;
   table_number: number;
-  status: OrderStatus;
+  status: 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
   total_amount: number;
   customer_notes?: string;
-  payment_status: PaymentStatus;
-  payment_method: PaymentMethod;
-  items?: OrderItem[];
+  payment_status: 'unpaid' | 'paid';
+  payment_method: 'cash' | 'credit_card';
+  items: OrderItem[];
   created_at: string;
   updated_at?: string;
 }
 
-export type ServiceCallType = 'waiter' | 'bill';
-export type ServiceCallStatus = 'active' | 'attended' | 'completed';
-
 export interface ServiceCall {
   id: string;
   restaurant_id: string;
-  table_id?: string;
   table_number: number;
-  type: ServiceCallType;
+  type: 'waiter' | 'bill';
   payment_type?: 'cash' | 'credit_card';
-  status: ServiceCallStatus;
+  status: 'active' | 'completed';
   notes?: string;
   created_at: string;
-}
-
-export interface CartItem {
-  product: Product;
-  quantity: number;
-  notes: string;
 }
 
 export interface TableSummary {
@@ -110,7 +115,7 @@ export interface TableSummary {
   total_sales: number;
   paid_sales: number;
   active_orders: number;
-  items_sold: { [product_name: string]: number };
+  items_sold: { [productName: string]: number };
 }
 
 export interface EndOfDayReportData {
@@ -122,4 +127,22 @@ export interface EndOfDayReportData {
   credit_card_total: number;
   table_summaries: TableSummary[];
   top_products: { name: string; count: number; revenue: number }[];
+}
+
+// Menü şablonu için (her işletme açıldığında yüklenen varsayılan kategoriler)
+export interface DefaultCategory {
+  name: string;
+  icon: string;
+  sort_order: number;
+  template_products: DefaultProduct[];
+}
+
+export interface DefaultProduct {
+  name: string;
+  description: string;
+  price: number; // Her zaman 0 başlar
+  image_url: string;
+  calories?: number;
+  preparation_time_minutes?: number;
+  sort_order: number;
 }
