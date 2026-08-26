@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 
 interface AdminDashboardProps {
+  restaurant: Restaurant;
   onOpenCustomerMenu: (tableNumber?: number) => void;
   onLogout?: () => void;
 }
@@ -37,6 +38,7 @@ interface AdminDashboardProps {
 export type AdminTab = 'live_orders' | 'pos' | 'menu' | 'tables' | 'eod' | 'settings' | 'support';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
+  restaurant: initialRestaurant,
   onOpenCustomerMenu,
   onLogout,
 }) => {
@@ -71,7 +73,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Store state
-  const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
+  const [restaurant, setRestaurant] = useState<Restaurant>(initialRestaurant);
   const [tables, setTables] = useState<RestaurantTable[]>(store.getTables());
   const [categories, setCategories] = useState<Category[]>(store.getCategories());
   const [products, setProducts] = useState<Product[]>(store.getProducts());
@@ -80,7 +82,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     const update = () => {
-      setRestaurant(store.getRestaurant());
+      const current = store.getRestaurant();
+      if (current) setRestaurant(current);
       setTables(store.getTables());
       setCategories(store.getCategories());
       setProducts(store.getProducts());

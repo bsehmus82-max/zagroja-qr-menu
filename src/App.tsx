@@ -138,18 +138,25 @@ export function App() {
   if (isBusinessAuthenticated) {
     const rest = store.getRestaurant();
 
-    return (
-      <AdminDashboard
-        onOpenCustomerMenu={(tableNum = 1) => {
-          window.open(`/?r=${rest.slug}&table=${tableNum}`, '_blank');
-        }}
-        onLogout={() => {
-          localStorage.removeItem('zagroja_business_session');
-          setIsBusinessAuthenticated(false);
-          window.location.href = '/';
-        }}
-      />
-    );
+    if (rest) {
+      return (
+        <AdminDashboard
+          restaurant={rest}
+          onOpenCustomerMenu={(tableNum = 1) => {
+            window.open(`/?r=${rest.slug}&table=${tableNum}`, '_blank');
+          }}
+          onLogout={() => {
+            localStorage.removeItem('zagroja_business_session');
+            localStorage.removeItem('zagroja_active_restaurant_id');
+            setIsBusinessAuthenticated(false);
+            window.location.href = '/';
+          }}
+        />
+      );
+    } else {
+      localStorage.removeItem('zagroja_business_session');
+      localStorage.removeItem('zagroja_active_restaurant_id');
+    }
   }
 
   return (

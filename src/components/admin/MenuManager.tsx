@@ -132,7 +132,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
       });
     } else {
       store.addProduct({
-        restaurant_id: store.getRestaurant().id,
+        restaurant_id: store.getRestaurant()?.id,
         name: prodForm.name,
         category_id: prodForm.category_id,
         description: prodForm.description,

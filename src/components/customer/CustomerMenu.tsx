@@ -31,14 +31,15 @@ import {
 
 interface CustomerMenuProps {
   initialTableNumber?: number;
-  restaurantSlug?: string;
+  restaurant?: Restaurant;
 }
 
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   initialTableNumber = 1,
+  restaurant: propRestaurant
 }) => {
   const { t, tDynamic } = useLanguage();
-  const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(propRestaurant || store.getRestaurant());
   const [tables, setTables] = useState<RestaurantTable[]>(store.getTables());
   const [categories, setCategories] = useState<Category[]>(store.getCategories());
   const [products, setProducts] = useState<Product[]>(store.getProducts());
@@ -88,7 +89,8 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   // Subscribe to realtime store changes
   useEffect(() => {
     const updateLocalState = () => {
-      setRestaurant(store.getRestaurant());
+      const cur = store.getRestaurant();
+      if (cur) setRestaurant(cur);
       setTables(store.getTables());
       setCategories(store.getCategories());
       setProducts(store.getProducts());
@@ -100,6 +102,17 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
       unsubscribe();
     };
   }, []);
+
+  if (!restaurant) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4 text-white">
+        <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-xl text-center max-w-sm w-full">
+          <h1 className="text-xl font-bold text-white mb-2">QR Menü</h1>
+          <p className="text-xs text-slate-400">İşletme yükleniyor veya bulunamadı.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Filter products by category and search query
   const filteredProducts = products.filter((product) => {

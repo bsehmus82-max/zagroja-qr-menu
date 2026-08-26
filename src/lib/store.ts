@@ -131,25 +131,13 @@ class ZagrojaStore {
     this.notify();
   }
 
-  getRestaurant(): Restaurant {
+  getRestaurant(): Restaurant | null {
     const list = this.getAllRestaurants();
     if (this.currentRestaurantId) {
       const found = list.find(r => r.id === this.currentRestaurantId);
       if (found) return found;
     }
-    if (list.length > 0) return list[0];
-    return {
-      id: generateUUID(),
-      name: 'İşletme',
-      slug: 'isletme',
-      currency: '₺',
-      owner_username: 'admin',
-      subscription_type: 'unlimited',
-      is_active: true,
-      setup_completed: false,
-      max_tables: 25,
-      created_at: new Date().toISOString()
-    };
+    return null;
   }
 
   getRestaurantBySlug(slug: string): Restaurant | null {
