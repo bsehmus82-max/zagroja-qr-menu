@@ -97,7 +97,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
     0
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItemsList.length === 0) {
       alert('Lütfen masaya en az bir ürün ekleyin.');
@@ -113,7 +113,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
       item_notes: item.notes,
     }));
 
-    const newOrder = store.createOrder(
+    const newOrder = await store.createOrder(
       selectedTableNumber,
       items,
       orderNotes ? `(Admin/Garson Girişi) ${orderNotes}` : '(Admin/Garson Manuel Giriş)',
@@ -122,7 +122,7 @@ export const ManualOrderModal: React.FC<ManualOrderModalProps> = ({
 
     // If marked as served or completed, update status immediately
     if (orderStatus !== 'pending') {
-      store.updateOrderStatus(
+      await store.updateOrderStatus(
         newOrder.id,
         orderStatus,
         orderStatus === 'completed' ? 'paid' : 'unpaid'

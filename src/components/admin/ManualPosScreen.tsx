@@ -89,7 +89,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
     0
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedItemsList.length === 0) {
       alert('Lütfen masaya en az bir ürün seçin.');
@@ -105,7 +105,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
       item_notes: item.notes,
     }));
 
-    const newOrder = store.createOrder(
+    const newOrder = await store.createOrder(
       selectedTableNumber,
       items,
       orderNotes ? `(Garson/Kasa Girişi) ${orderNotes}` : '(Garson/Kasa Girişi)',
@@ -113,7 +113,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
     );
 
     // Status update
-    store.updateOrderStatus(
+    await store.updateOrderStatus(
       newOrder.id,
       orderStatus,
       orderStatus === 'completed' ? 'paid' : 'unpaid'

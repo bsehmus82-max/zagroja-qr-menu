@@ -30,12 +30,10 @@ import {
 interface CustomerMenuProps {
   initialTableNumber?: number;
   restaurantSlug?: string;
-  onNavigateToAdmin?: () => void;
 }
 
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   initialTableNumber = 1,
-  onNavigateToAdmin,
 }) => {
   const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
   const [tables, setTables] = useState<RestaurantTable[]>(store.getTables());
@@ -128,7 +126,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
     setCart([]);
   };
 
-  const handleSubmitOrder = (notes: string, paymentMethod: 'cash' | 'credit_card') => {
+  const handleSubmitOrder = async (notes: string, paymentMethod: 'cash' | 'credit_card') => {
     const orderItems = cart.map((item) => ({
       product_id: item.product.id,
       product_name: item.product.name,
@@ -138,7 +136,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
       item_notes: item.notes,
     }));
 
-    store.createOrder(currentTableNumber, orderItems, notes, paymentMethod);
+    await store.createOrder(currentTableNumber, orderItems, notes, paymentMethod);
     setCart([]);
     setIsOrderStatusOpen(true);
   };
@@ -173,23 +171,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent" />
 
           {/* Top Bar Floating Badges */}
-          <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
-            {/* Masa Değiştir / Seçici Rozeti */}
-            <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white text-xs font-semibold shadow-lg">
+          <div className="absolute top-3 left-3 flex items-center z-10">
+            {/* Sabit Masa Etiketi */}
+            <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white text-xs font-bold shadow-lg">
               <QrCode className="w-3.5 h-3.5 text-orange-400" />
               <span>Masa {currentTableNumber}</span>
-              <select
-                value={currentTableNumber}
-                onChange={(e) => setCurrentTableNumber(Number(e.target.value))}
-                className="bg-transparent text-white font-bold cursor-pointer outline-none border-none ml-1 text-xs opacity-80 hover:opacity-100"
-                title="Masa Değiştir"
-              >
-                {tables.map((t) => (
-                  <option key={t.id} value={t.table_number} className="bg-slate-900 text-white">
-                    {t.table_name} ({t.section})
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 
@@ -297,7 +283,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
         </div>
 
         {/* Restaurant Footer Info */}
-        <div className="p-4 text-center border-t border-slate-200 bg-white/50 text-slate-400 text-[11px] space-y-1.5">
+        <div className="p-4 text-center border-t border-slate-200 bg-white/50 text-slate-400 text-[11px] space-y-1">
           <div className="flex items-center justify-center gap-1.5 font-medium text-slate-600">
             <MapPin className="w-3 h-3 text-orange-500" />
             <span>{restaurant.address}</span>
@@ -308,19 +294,8 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
           </div>
           <div className="flex items-center justify-center gap-1 pt-1 text-[10px] text-slate-400">
             <ShieldCheck className="w-3 h-3 text-emerald-600" />
-            <span>Zagroja QR Menü Sistemi</span>
+            <span>Zagroja Dijital Menü Sistemi</span>
           </div>
-
-          {onNavigateToAdmin && (
-            <div className="pt-2">
-              <button
-                onClick={onNavigateToAdmin}
-                className="text-[10px] font-semibold text-slate-500 hover:text-orange-600 transition-colors underline"
-              >
-                🔒 Restoran & Yönetici Girişi
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Sticky Floating Cart Bar (Appears when items are in cart) */}

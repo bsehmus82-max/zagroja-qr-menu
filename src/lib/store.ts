@@ -12,7 +12,7 @@ import {
 import { initialRestaurant, initialTables, initialCategories, initialProducts } from '../data/sampleMenu';
 import { supabase, isSupabaseConfigured } from './supabase';
 
-// BroadcastChannel for cross-tab realtime sync in local/demo mode
+// BroadcastChannel for cross-tab realtime sync in local mode
 const channel = typeof window !== 'undefined' && 'BroadcastChannel' in window
   ? new BroadcastChannel('qr_menu_realtime_sync')
   : null;
@@ -32,7 +32,6 @@ export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'orde
     gain.connect(ctx.destination);
 
     if (type === 'order') {
-      // Pleasant double chime for new order
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(587.33, now); // D5
       osc.frequency.setValueAtTime(880, now + 0.15); // A5
@@ -41,7 +40,6 @@ export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'orde
       osc.start(now);
       osc.stop(now + 0.6);
     } else if (type === 'call') {
-      // Bell ding for waiter/bill call
       osc.type = 'sine';
       osc.frequency.setValueAtTime(800, now);
       osc.frequency.setValueAtTime(1200, now + 0.1);
@@ -50,7 +48,6 @@ export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'orde
       osc.start(now);
       osc.stop(now + 0.8);
     } else {
-      // Short success sound
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, now);
       osc.frequency.setValueAtTime(659.25, now + 0.1);
@@ -74,7 +71,6 @@ const STORAGE_KEYS = {
   SERVICE_CALLS: 'qr_service_calls_data',
 };
 
-// Initial state helpers
 const getStored = <T>(key: string, fallback: T): T => {
   try {
     const data = localStorage.getItem(key);
@@ -105,6 +101,7 @@ export class AppDataStore {
       if (channel) {
         channel.onmessage = () => this.notify();
       }
+      this.initSupabaseSync();
     }
   }
 
@@ -126,16 +123,105 @@ export class AppDataStore {
     this.listeners.forEach((l) => l());
   }
 
+  // --- SUPABASE CLOUD SYNC & REALTIME SUBSCRIPTIONS ---
+  private async initSupabaseSync() {
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    try {
+      // 1. Fetch live products from Supabase
+      const { data: dbProducts } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
+      if (dbProducts && dbProducts.length > 0) {
+        setStored(STORAGE_KEYS.PRODUCTS, dbProducts);
+      }
+
+      // 2. Fetch live categories
+      const { data: dbCategories } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
+      if (dbCategories && dbCategories.length > 0) {
+        setStored(STORAGE_KEYS.CATEGORIES, dbCategories);
+      }
+
+      // 3. Fetch live tables
+      const { data: dbTables } = await supabase.from('restaurant_tables').select('*').order('table_number', { ascending: true });
+      if (dbTables && dbTables.length > 0) {
+        setStored(STORAGE_KEYS.TABLES, dbTables);
+      }
+
+      // 4. Fetch live restaurant
+      const { data: dbRestaurants } = await supabase.from('restaurants').select('*').limit(1).single();
+      if (dbRestaurants) {
+        setStored(STORAGE_KEYS.RESTAURANT, dbRestaurants);
+      }
+
+      // 5. Fetch live orders
+      const { data: dbOrders } = await supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false });
+      if (dbOrders) {
+        setStored(STORAGE_KEYS.ORDERS, dbOrders);
+      }
+
+      // 6. Fetch live service calls
+      const { data: dbCalls } = await supabase.from('service_calls').select('*').order('created_at', { ascending: false });
+      if (dbCalls) {
+        setStored(STORAGE_KEYS.SERVICE_CALLS, dbCalls);
+      }
+
+      this.notify();
+
+      // Subscribe to Realtime Postgres Changes
+      supabase
+        .channel('public_realtime_stream')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => this.refreshOrdersFromCloud())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'service_calls' }, () => this.refreshCallsFromCloud())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => this.refreshProductsFromCloud())
+        .subscribe();
+
+    } catch (err) {
+      console.warn('Supabase initial fetch warning:', err);
+    }
+  }
+
+  private async refreshOrdersFromCloud() {
+    if (!supabase) return;
+    const { data } = await supabase.from('orders').select('*, items:order_items(*)').order('created_at', { ascending: false });
+    if (data) {
+      setStored(STORAGE_KEYS.ORDERS, data);
+      playNotificationSound('order');
+      this.notify();
+    }
+  }
+
+  private async refreshCallsFromCloud() {
+    if (!supabase) return;
+    const { data } = await supabase.from('service_calls').select('*').order('created_at', { ascending: false });
+    if (data) {
+      setStored(STORAGE_KEYS.SERVICE_CALLS, data);
+      playNotificationSound('call');
+      this.notify();
+    }
+  }
+
+  private async refreshProductsFromCloud() {
+    if (!supabase) return;
+    const { data } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
+    if (data) {
+      setStored(STORAGE_KEYS.PRODUCTS, data);
+      this.notify();
+    }
+  }
+
   // --- RESTAURANT ---
   public getRestaurant(): Restaurant {
     return getStored<Restaurant>(STORAGE_KEYS.RESTAURANT, initialRestaurant);
   }
 
-  public updateRestaurant(data: Partial<Restaurant>) {
+  public async updateRestaurant(data: Partial<Restaurant>) {
     const current = this.getRestaurant();
     const updated = { ...current, ...data };
     setStored(STORAGE_KEYS.RESTAURANT, updated);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('restaurants').update(data).eq('id', current.id);
+    }
   }
 
   // --- TABLES ---
@@ -143,7 +229,7 @@ export class AppDataStore {
     return getStored<RestaurantTable[]>(STORAGE_KEYS.TABLES, initialTables);
   }
 
-  public addTable(table: Omit<RestaurantTable, 'id' | 'qr_token'>) {
+  public async addTable(table: Omit<RestaurantTable, 'id' | 'qr_token'>) {
     const tables = this.getTables();
     const newId = `tbl_${Date.now()}`;
     const qrToken = `tok_m${table.table_number}_${Math.random().toString(36).substring(2, 7)}`;
@@ -155,35 +241,57 @@ export class AppDataStore {
     };
     setStored(STORAGE_KEYS.TABLES, [...tables, newTable]);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('restaurant_tables').insert([{
+        restaurant_id: table.restaurant_id,
+        table_number: table.table_number,
+        table_name: table.table_name,
+        section: table.section,
+        qr_token: qrToken,
+        is_active: true,
+      }]);
+    }
+
     return newTable;
   }
 
-  public updateTable(id: string, data: Partial<RestaurantTable>) {
+  public async updateTable(id: string, data: Partial<RestaurantTable>) {
     const tables = this.getTables();
     const updated = tables.map((t) => (t.id === id ? { ...t, ...data } : t));
     setStored(STORAGE_KEYS.TABLES, updated);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('restaurant_tables').update(data).eq('id', id);
+    }
   }
 
-  public regenerateTableQR(id: string) {
+  public async regenerateTableQR(id: string) {
     const tables = this.getTables();
+    const newQRToken = `tok_qr_${Math.random().toString(36).substring(2, 8)}_${Date.now().toString().slice(-4)}`;
     const updated = tables.map((t) => {
       if (t.id === id) {
-        return {
-          ...t,
-          qr_token: `tok_m${t.table_number}_${Math.random().toString(36).substring(2, 7)}_${Date.now().toString().slice(-4)}`,
-        };
+        return { ...t, qr_token: newQRToken };
       }
       return t;
     });
     setStored(STORAGE_KEYS.TABLES, updated);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('restaurant_tables').update({ qr_token: newQRToken }).eq('id', id);
+    }
   }
 
-  public deleteTable(id: string) {
+  public async deleteTable(id: string) {
     const tables = this.getTables();
     setStored(STORAGE_KEYS.TABLES, tables.filter((t) => t.id !== id));
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('restaurant_tables').delete().eq('id', id);
+    }
   }
 
   // --- CATEGORIES ---
@@ -191,7 +299,7 @@ export class AppDataStore {
     return getStored<Category[]>(STORAGE_KEYS.CATEGORIES, initialCategories);
   }
 
-  public addCategory(name: string, icon = 'Utensils') {
+  public async addCategory(name: string, icon = 'Utensils') {
     const cats = this.getCategories();
     const newCat: Category = {
       id: `cat_${Date.now()}`,
@@ -203,19 +311,37 @@ export class AppDataStore {
     };
     setStored(STORAGE_KEYS.CATEGORIES, [...cats, newCat]);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('categories').insert([{
+        restaurant_id: newCat.restaurant_id,
+        name,
+        icon,
+        sort_order: newCat.sort_order,
+      }]);
+    }
+
     return newCat;
   }
 
-  public updateCategory(id: string, data: Partial<Category>) {
+  public async updateCategory(id: string, data: Partial<Category>) {
     const cats = this.getCategories();
     setStored(STORAGE_KEYS.CATEGORIES, cats.map((c) => (c.id === id ? { ...c, ...data } : c)));
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('categories').update(data).eq('id', id);
+    }
   }
 
-  public deleteCategory(id: string) {
+  public async deleteCategory(id: string) {
     const cats = this.getCategories();
     setStored(STORAGE_KEYS.CATEGORIES, cats.filter((c) => c.id !== id));
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('categories').delete().eq('id', id);
+    }
   }
 
   // --- PRODUCTS ---
@@ -223,7 +349,7 @@ export class AppDataStore {
     return getStored<Product[]>(STORAGE_KEYS.PRODUCTS, initialProducts);
   }
 
-  public addProduct(product: Omit<Product, 'id'>) {
+  public async addProduct(product: Omit<Product, 'id'>) {
     const products = this.getProducts();
     const newProduct: Product = {
       ...product,
@@ -231,28 +357,48 @@ export class AppDataStore {
     };
     setStored(STORAGE_KEYS.PRODUCTS, [newProduct, ...products]);
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('products').insert([product]);
+    }
+
     return newProduct;
   }
 
-  public updateProduct(id: string, data: Partial<Product>) {
+  public async updateProduct(id: string, data: Partial<Product>) {
     const products = this.getProducts();
     setStored(STORAGE_KEYS.PRODUCTS, products.map((p) => (p.id === id ? { ...p, ...data } : p)));
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('products').update(data).eq('id', id);
+    }
   }
 
-  public toggleProductAvailability(id: string) {
+  public async toggleProductAvailability(id: string) {
     const products = this.getProducts();
+    const current = products.find((p) => p.id === id);
+    const newStatus = current ? !current.is_available : false;
+    
     setStored(
       STORAGE_KEYS.PRODUCTS,
-      products.map((p) => (p.id === id ? { ...p, is_available: !p.is_available } : p))
+      products.map((p) => (p.id === id ? { ...p, is_available: newStatus } : p))
     );
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('products').update({ is_available: newStatus }).eq('id', id);
+    }
   }
 
-  public deleteProduct(id: string) {
+  public async deleteProduct(id: string) {
     const products = this.getProducts();
     setStored(STORAGE_KEYS.PRODUCTS, products.filter((p) => p.id !== id));
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('products').delete().eq('id', id);
+    }
   }
 
   // --- ORDERS ---
@@ -260,7 +406,7 @@ export class AppDataStore {
     return getStored<Order[]>(STORAGE_KEYS.ORDERS, []);
   }
 
-  public createOrder(tableNumber: number, items: OrderItem[], notes = '', paymentMethod: 'cash' | 'credit_card' = 'cash'): Order {
+  public async createOrder(tableNumber: number, items: OrderItem[], notes = '', paymentMethod: 'cash' | 'credit_card' = 'cash'): Promise<Order> {
     const orders = this.getOrders();
     const total = items.reduce((sum, item) => sum + item.total_price, 0);
     const newOrder: Order = {
@@ -278,10 +424,40 @@ export class AppDataStore {
     setStored(STORAGE_KEYS.ORDERS, [newOrder, ...orders]);
     playNotificationSound('order');
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      try {
+        const { data: insertedOrder } = await supabase.from('orders').insert([{
+          restaurant_id: newOrder.restaurant_id,
+          table_number: tableNumber,
+          status: 'pending',
+          total_amount: total,
+          customer_notes: notes,
+          payment_method: paymentMethod,
+          payment_status: 'unpaid',
+        }]).select().single();
+
+        if (insertedOrder && items.length > 0) {
+          const orderItemRows = items.map((i) => ({
+            order_id: insertedOrder.id,
+            product_id: i.product_id?.startsWith('prod_') ? null : i.product_id,
+            product_name: i.product_name,
+            unit_price: i.unit_price,
+            quantity: i.quantity,
+            total_price: i.total_price,
+            item_notes: i.item_notes,
+          }));
+          await supabase.from('order_items').insert(orderItemRows);
+        }
+      } catch (err) {
+        console.error('Supabase createOrder error:', err);
+      }
+    }
+
     return newOrder;
   }
 
-  public updateOrderStatus(orderId: string, status: Order['status'], paymentStatus?: Order['payment_status']) {
+  public async updateOrderStatus(orderId: string, status: Order['status'], paymentStatus?: Order['payment_status']) {
     const orders = this.getOrders();
     setStored(
       STORAGE_KEYS.ORDERS,
@@ -298,6 +474,13 @@ export class AppDataStore {
       })
     );
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('orders').update({
+        status,
+        ...(paymentStatus !== undefined ? { payment_status: paymentStatus } : {}),
+      }).eq('id', orderId);
+    }
   }
 
   // --- SERVICE CALLS (GARSON & HESAP) ---
@@ -305,7 +488,7 @@ export class AppDataStore {
     return getStored<ServiceCall[]>(STORAGE_KEYS.SERVICE_CALLS, []);
   }
 
-  public createServiceCall(tableNumber: number, type: 'waiter' | 'bill', paymentType?: 'cash' | 'credit_card', notes = ''): ServiceCall {
+  public async createServiceCall(tableNumber: number, type: 'waiter' | 'bill', paymentType?: 'cash' | 'credit_card', notes = ''): Promise<ServiceCall> {
     const calls = this.getServiceCalls();
     const newCall: ServiceCall = {
       id: `call_${Date.now()}`,
@@ -320,16 +503,32 @@ export class AppDataStore {
     setStored(STORAGE_KEYS.SERVICE_CALLS, [newCall, ...calls]);
     playNotificationSound('call');
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('service_calls').insert([{
+        restaurant_id: newCall.restaurant_id,
+        table_number: tableNumber,
+        type,
+        payment_type: paymentType,
+        status: 'active',
+        notes,
+      }]);
+    }
+
     return newCall;
   }
 
-  public resolveServiceCall(callId: string) {
+  public async resolveServiceCall(callId: string) {
     const calls = this.getServiceCalls();
     setStored(
       STORAGE_KEYS.SERVICE_CALLS,
       calls.map((c) => (c.id === callId ? { ...c, status: 'completed' as const } : c))
     );
     this.notify();
+
+    if (supabase && isSupabaseConfigured()) {
+      await supabase.from('service_calls').update({ status: 'completed' }).eq('id', callId);
+    }
   }
 
   // --- END OF DAY (GÜN SONU / Z RAPORU) ---
@@ -344,7 +543,6 @@ export class AppDataStore {
     const productCounts: { [name: string]: { count: number; revenue: number } } = {};
     const tableMap: { [tableNum: number]: TableSummary } = {};
 
-    // Initialize all tables in report
     tables.forEach((t) => {
       tableMap[t.table_number] = {
         table_number: t.table_number,
