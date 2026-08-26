@@ -292,10 +292,6 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
             <Phone className="w-3 h-3 text-emerald-500" />
             <span>{restaurant.phone}</span>
           </div>
-          <div className="flex items-center justify-center gap-1 pt-1 text-[10px] text-slate-400">
-            <ShieldCheck className="w-3 h-3 text-emerald-600" />
-            <span>Zagroja Dijital Menü Sistemi</span>
-          </div>
         </div>
 
         {/* Sticky Floating Cart Bar (Appears when items are in cart) */}

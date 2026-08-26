@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, ShieldCheck, ArrowRight, Sparkles, KeyRound } from 'lucide-react';
+import { Lock, User, ArrowRight, KeyRound } from 'lucide-react';
 
 interface AdminLoginProps {
   onSuccess: () => void;
@@ -7,8 +7,8 @@ interface AdminLoginProps {
 }
 
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) => {
-  const [username, setUsername] = useState('admin@zagroja.com');
-  const [password, setPassword] = useState('zagroja2026');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('admin1234');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,12 +18,14 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
     setIsLoading(true);
 
     setTimeout(() => {
-      // Simple auth check for now
-      const validUsers = ['admin', 'admin@zagroja.com', 'bistro'];
-      const validPass = 'zagroja2026';
+      const validUsers = ['admin', 'yonetici', 'bistro'];
+      const validPass = ['admin1234', 'admin', '123456'];
 
-      if (validUsers.includes(username.trim().toLowerCase()) && password.trim() === validPass) {
-        localStorage.setItem('zagroja_admin_session', 'active_' + Date.now());
+      if (
+        validUsers.includes(username.trim().toLowerCase()) &&
+        validPass.includes(password.trim())
+      ) {
+        localStorage.setItem('app_admin_session', 'active_' + Date.now());
         setIsLoading(false);
         onSuccess();
       } else {
@@ -34,8 +36,8 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
   };
 
   const handleAutoFill = () => {
-    setUsername('admin@zagroja.com');
-    setPassword('zagroja2026');
+    setUsername('admin');
+    setPassword('admin1234');
   };
 
   return (
@@ -52,11 +54,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-white">Yönetici Girişi</h2>
           <p className="text-xs text-slate-400 mt-1">
-            Zagroja Restoran & QR Menü Yönetim Paneli
+            Restoran Sipariş & Menü Yönetim Paneli
           </p>
         </div>
 
-        {/* Demo Credentials Helper Pill */}
+        {/* Credentials Helper Pill */}
         <div
           onClick={handleAutoFill}
           className="mb-5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-2xl p-3 text-left cursor-pointer transition-all flex items-center justify-between"
@@ -66,10 +68,10 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
             <KeyRound className="w-4 h-4 text-orange-400 flex-shrink-0" />
             <div>
               <div className="text-slate-300 font-semibold">
-                Giriş: <span className="text-white font-mono">admin@zagroja.com</span>
+                Kullanıcı: <span className="text-white font-mono font-bold">admin</span>
               </div>
               <div className="text-slate-400 text-[11px]">
-                Şifre: <span className="text-orange-400 font-mono font-bold">zagroja2026</span>
+                Şifre: <span className="text-orange-400 font-mono font-bold">admin1234</span>
               </div>
             </div>
           </div>
@@ -89,7 +91,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Kullanıcı Adı veya E-Posta
+              Kullanıcı Adı
             </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -98,7 +100,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin@zagroja.com"
+                placeholder="admin"
                 className="w-full bg-slate-800 text-white text-xs pl-10 pr-3.5 py-3 rounded-xl border border-slate-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
@@ -106,7 +108,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
 
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-              Yönetici Şifresi
+              Şifre
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -126,7 +128,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
             disabled={isLoading}
             className="w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg shadow-orange-500/25 hover:brightness-105 active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 mt-2"
           >
-            <span>{isLoading ? 'Giriş Yapılıyor...' : 'Panele Güvenli Giriş Yap'}</span>
+            <span>{isLoading ? 'Giriş Yapılıyor...' : 'Panele Giriş Yap'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
@@ -137,7 +139,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
             onClick={onCancel}
             className="text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors"
           >
-            ← Müşteri QR Menüsüne Geri Dön
+            ← Menüye Geri Dön
           </button>
         </div>
       </div>

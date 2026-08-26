@@ -4,7 +4,6 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLogin } from './components/admin/AdminLogin';
 
 export function App() {
-  // Check if current URL is specifically targeting admin
   const isAdminPath = () => {
     const params = new URLSearchParams(window.location.search);
     const path = window.location.pathname.toLowerCase();
@@ -13,7 +12,7 @@ export function App() {
 
   const [isAdminView, setIsAdminView] = useState<boolean>(isAdminPath());
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return Boolean(localStorage.getItem('zagroja_admin_session'));
+    return Boolean(localStorage.getItem('app_admin_session'));
   });
 
   const [activeTableNumber] = useState<number>(() => {
@@ -28,13 +27,12 @@ export function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('zagroja_admin_session');
+    localStorage.removeItem('app_admin_session');
     setIsAdminAuthenticated(false);
     setIsAdminView(false);
     window.location.href = '/';
   };
 
-  // If URL explicitly requests admin
   if (isAdminView) {
     if (isAdminAuthenticated) {
       return (
@@ -57,7 +55,6 @@ export function App() {
     );
   }
 
-  // Pure Customer QR Menu: NO admin controls, NO table switcher, completely locked
   return (
     <div className="min-h-screen bg-slate-100 font-sans">
       <CustomerMenu initialTableNumber={activeTableNumber} />

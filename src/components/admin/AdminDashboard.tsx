@@ -201,10 +201,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <span>Oturumu Kapat</span>
             </button>
           )}
-
-          <p className="text-[10px] text-slate-500 text-center">
-            Zagroja ID Tabanlı QR Menü
-          </p>
         </div>
       </aside>
 
