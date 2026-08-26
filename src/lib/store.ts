@@ -212,6 +212,20 @@ class RestaurantStore {
     } catch { return []; }
   }
 
+  async loadAllRestaurantsFromCloud(): Promise<Restaurant[]> {
+    try {
+      const { data, error } = await supabase.from('restaurants').select('*').order('created_at', { ascending: false });
+      if (data && !error) {
+        this.saveAllRestaurants(data as Restaurant[]);
+        this.notify();
+        return data as Restaurant[];
+      }
+    } catch (e) {
+      console.warn('loadAllRestaurantsFromCloud error:', e);
+    }
+    return this.getAllRestaurants();
+  }
+
   saveAllRestaurants(restaurants: Restaurant[]) {
     try {
       localStorage.setItem('qr_all_restaurants', JSON.stringify(restaurants));
