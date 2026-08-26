@@ -11,20 +11,42 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.restaurants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
-    slug VARCHAR(100) UNIQUE NOT NULL,
+    slug VARCHAR(100) UNIQUE,
     description TEXT,
     logo_url TEXT,
     cover_url TEXT,
     phone VARCHAR(50),
     address TEXT,
-    wifi_ssid VARCHAR(100) DEFAULT 'Lezzet_Guest_WiFi',
+    wifi_name VARCHAR(100) DEFAULT 'Lezzet_Guest_WiFi',
     wifi_password VARCHAR(100) DEFAULT 'Lezzet2026!',
     currency VARCHAR(10) DEFAULT '₺',
-    tax_rate NUMERIC(5,2) DEFAULT 10.00,
+    owner_username VARCHAR(100),
+    owner_password VARCHAR(255),
+    subscription_type VARCHAR(50) DEFAULT 'unlimited',
+    subscription_expires_at TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE,
+    setup_completed BOOLEAN DEFAULT FALSE,
+    payment_pending BOOLEAN DEFAULT FALSE,
+    payment_proof_url TEXT,
+    max_tables INTEGER DEFAULT 25,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Var olan restaurants tablosuna eksik sütunları güvenle ekle
+ALTER TABLE public.restaurants 
+ADD COLUMN IF NOT EXISTS slug VARCHAR(100) UNIQUE,
+ADD COLUMN IF NOT EXISTS owner_username VARCHAR(100),
+ADD COLUMN IF NOT EXISTS owner_password VARCHAR(255),
+ADD COLUMN IF NOT EXISTS subscription_type VARCHAR(50) DEFAULT 'unlimited',
+ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE,
+ADD COLUMN IF NOT EXISTS setup_completed BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS payment_pending BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS payment_proof_url TEXT,
+ADD COLUMN IF NOT EXISTS max_tables INTEGER DEFAULT 25,
+ADD COLUMN IF NOT EXISTS wifi_name VARCHAR(100),
+ADD COLUMN IF NOT EXISTS wifi_password VARCHAR(100);
 
 -- 3. Masalar Tablosu
 CREATE TABLE IF NOT EXISTS public.restaurant_tables (
