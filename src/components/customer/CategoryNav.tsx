@@ -1,5 +1,6 @@
 import React from 'react';
 import { Category } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 import { 
   Coffee, 
   GlassWater, 
@@ -56,6 +57,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
   selectedCategoryId,
   onSelectCategory,
 }) => {
+  const { t, tDynamic } = useLanguage();
   return (
     <div className="sticky top-[64px] z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-sm py-2.5 px-3">
       <div className="flex gap-2 overflow-x-auto no-scrollbar scroll-smooth">
@@ -88,7 +90,7 @@ export const CategoryNav: React.FC<CategoryNavProps> = ({
                 }`}
               >
                 {getCategoryIcon(cat.icon, 'w-3.5 h-3.5')}
-                <span>{cat.name}</span>
+                <span>{tDynamic(cat.name)}</span>
               </button>
             );
           })}

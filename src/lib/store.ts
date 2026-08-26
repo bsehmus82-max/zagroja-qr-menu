@@ -15,38 +15,62 @@ export const SUPER_ADMIN_SESSION_KEY = 'sa_session_v2';
 // ============================================================
 // BİLDİRİM SESİ
 // ============================================================
-export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'order') => {
+export const playNotificationSound = (type: 'order' | 'call' | 'success' = 'order', message?: string) => {
   try {
+    // 1. Audio Notification
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    if (type === 'order') {
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(587, now);
-      osc.frequency.setValueAtTime(880, now + 0.15);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    } else if (type === 'call') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(800, now);
-      osc.frequency.setValueAtTime(1200, now + 0.1);
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-    } else {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523, now);
-      osc.frequency.setValueAtTime(659, now + 0.1);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    if (AudioCtx) {
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      if (type === 'order') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587, now);
+        osc.frequency.setValueAtTime(880, now + 0.15);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      } else if (type === 'call') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.setValueAtTime(1200, now + 0.1);
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+      } else if (type === 'success') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.setValueAtTime(900, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      }
+      osc.start(now);
+      osc.stop(now + 1);
     }
-    osc.start(now);
-    osc.stop(now + 0.8);
-  } catch (e) { /* ignore */ }
+
+    // 2. Vibration API
+    if ('vibrate' in navigator) {
+      if (type === 'order') {
+        navigator.vibrate([200, 100, 200]); // double pulse
+      } else if (type === 'call') {
+        navigator.vibrate([300]); // single long pulse
+      } else {
+        navigator.vibrate([100]); // short pulse
+      }
+    }
+
+    // 3. System Notification API
+    if (message && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification(type === 'order' ? 'Yeni Sipariş' : 'Masa Çağrısı', {
+        body: message,
+        icon: '/favicon.ico'
+      });
+    }
+
+  } catch (e) {
+    console.warn('Audio/Notification error:', e);
+  }
 };
 
 // ============================================================
@@ -385,9 +409,15 @@ class RestaurantStore {
       qr_token: `tok_${Math.random().toString(36).substring(2, 10)}`,
       is_active: true,
     };
+    const { error } = await supabase.from('restaurant_tables').insert([newTable]);
+    
+    if (error) {
+      alert('Masa eklenemedi: ' + error.message);
+      throw error;
+    }
+
     this.set('tables', [...tables, newTable]);
     this.notify();
-    try { await supabase.from('restaurant_tables').insert([newTable]); } catch { /* ignore */ }
     return newTable;
   }
 
@@ -480,7 +510,6 @@ class RestaurantStore {
       created_at: new Date().toISOString(),
     };
     this.set('orders', [newOrder, ...this.getOrders()]);
-    playNotificationSound('order');
     this.notify();
     try {
       const { data: ins } = await supabase.from('orders').insert([{
@@ -522,7 +551,6 @@ class RestaurantStore {
       created_at: new Date().toISOString(),
     };
     this.set('service_calls', [newCall, ...this.getServiceCalls()]);
-    playNotificationSound('call');
     this.notify();
     try { await supabase.from('service_calls').insert([newCall]); } catch { /* ignore */ }
     return newCall;
@@ -587,19 +615,44 @@ class RestaurantStore {
     this.notify();
   }
 
+  async registerAdminSession(restaurantId: string, sessionId: string) {
+    try {
+      await supabase.rpc('enforce_session_limit', {
+        p_restaurant_id: restaurantId,
+        p_session_id: sessionId
+      });
+    } catch (e) {
+      console.warn('Supabase registerAdminSession:', e);
+    }
+  }
+
   // ===== SUPABASE SYNC (initial load) =====
   async syncFromCloud() {
     const id = this.currentRestaurantId;
     if (!id) return;
 
     try {
-      const [{ data: cats }, { data: prods }, { data: tbls }, { data: ords }, { data: calls }] = await Promise.all([
+      const [{ data: rest }, { data: cats }, { data: prods }, { data: tbls }, { data: ords }, { data: calls }] = await Promise.all([
+        supabase.from('restaurants').select('*').eq('id', id).single(),
         supabase.from('categories').select('*').eq('restaurant_id', id).order('sort_order'),
         supabase.from('products').select('*').eq('restaurant_id', id).order('sort_order'),
         supabase.from('restaurant_tables').select('*').eq('restaurant_id', id).order('table_number'),
         supabase.from('orders').select('*, items:order_items(*)').eq('restaurant_id', id).order('created_at', { ascending: false }),
         supabase.from('service_calls').select('*').eq('restaurant_id', id).order('created_at', { ascending: false }),
       ]);
+
+      if (rest) {
+        const all = this.getAllRestaurants();
+        this.saveAllRestaurants(all.map(r => r.id === id ? { ...r, ...rest } : r));
+
+        const localSession = localStorage.getItem('admin_session_id');
+        if (localSession && rest.active_sessions && !rest.active_sessions.includes(localSession)) {
+          // Bu oturum atılmış!
+          localStorage.removeItem('app_admin_session');
+          localStorage.removeItem('admin_session_id');
+          window.location.href = '/';
+        }
+      }
 
       if (cats && cats.length > 0) this.set('categories', cats);
       if (prods && prods.length > 0) this.set('products', prods);
@@ -616,8 +669,23 @@ class RestaurantStore {
     if (!id) return;
 
     supabase.channel(`rt_${id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'service_calls', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'restaurants', filter: `id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${id}` }, (payload) => {
+        this.syncFromCloud();
+        if (window.location.pathname.startsWith('/admin') || new URLSearchParams(window.location.search).get('admin') === 'true') {
+          playNotificationSound('order', `Masa ${(payload.new as any).table_number} Yeni Sipariş Gönderdi!`);
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'service_calls', filter: `restaurant_id=eq.${id}` }, (payload) => {
+        this.syncFromCloud();
+        if (window.location.pathname.startsWith('/admin') || new URLSearchParams(window.location.search).get('admin') === 'true') {
+          playNotificationSound('call', `Masa ${(payload.new as any).table_number} Çağrı Yaptı!`);
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'service_calls', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'service_calls', filter: `restaurant_id=eq.${id}` }, () => this.syncFromCloud())
       .subscribe();
   }
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 import { X, Trash2, Plus, Minus, Send, ShoppingBag, CreditCard, Banknote } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -26,6 +27,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onClearCart,
   onSubmitOrder,
 }) => {
+  const { t, tDynamic } = useLanguage();
   const [orderNotes, setOrderNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'credit_card'>('credit_card');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,8 +74,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">Masa {tableNumber} Siparişi</h3>
-              <p className="text-xs text-slate-500">{cartItems.length} farklı çeşit ürün</p>
+              <h3 className="font-bold text-slate-900 text-base">{t('Masa')} {tableNumber} {t('Siparişi', 'Siparişi')}</h3>
+              <p className="text-xs text-slate-500">{cartItems.length} {t('çeşit ürün', 'çeşit ürün')}</p>
             </div>
           </div>
 
@@ -82,7 +84,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <button
                 onClick={onClearCart}
                 className="text-xs text-rose-500 hover:text-rose-700 p-2 rounded-lg hover:bg-rose-50 font-medium transition-colors"
-                title="Sepeti Temizle"
+                title={t("Sepeti Temizle", "Sepeti Temizle")}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -103,9 +105,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                 <ShoppingBag className="w-8 h-8 text-slate-300" />
               </div>
-              <p className="font-semibold text-slate-700 text-base">Sepetiniz Boş</p>
+              <p className="font-semibold text-slate-700 text-base">{t('Sepetiniz boş')}</p>
               <p className="text-xs text-slate-400 mt-1 max-w-xs">
-                Menüden lezzetli ürünler seçerek masanız için anında sipariş oluşturabilirsiniz.
+                {t('Masaya özel sipariş vermek için ürün ekleyin.')}
               </p>
             </div>
           ) : (
@@ -116,12 +118,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               >
                 <img
                   src={item.product.image_url}
-                  alt={item.product.name}
+                  alt={tDynamic(item.product.name)}
                   className="w-14 h-14 rounded-xl object-cover bg-slate-200 flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
                   <h4 className="font-semibold text-slate-900 text-xs truncate">
-                    {item.product.name}
+                    {tDynamic(item.product.name)}
                   </h4>
                   <div className="text-orange-600 font-bold text-xs mt-0.5">
                     {(item.product.price * item.quantity).toFixed(2)} {currency}
@@ -189,7 +191,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
-                  <span>Kredi / Banka Kartı</span>
+                  <span>{t('Kredi Kartı')}ı</span>
                 </button>
                 <button
                   type="button"

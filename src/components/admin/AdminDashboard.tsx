@@ -38,6 +38,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenCustomerMenu,
   onLogout,
 }) => {
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   const [activeTab, setActiveTab] = useState<AdminTab>('live_orders');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -101,13 +107,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       icon: ChefHat,
       badge: activeOrdersCount + activeCallsCount > 0 ? `${activeOrdersCount + activeCallsCount}` : null,
       badgeColor: activeCallsCount > 0 ? 'bg-rose-500' : 'bg-amber-500',
-    },
-    {
-      id: 'pos' as AdminTab,
-      label: 'Manuel Masa Satışı & POS',
-      icon: ShoppingCart,
-      badge: 'YENİ',
-      badgeColor: 'bg-emerald-600',
     },
     {
       id: 'menu' as AdminTab,
@@ -230,7 +229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 md:ml-72 bg-slate-50 min-h-screen">
+        <main className="flex-1 flex flex-col min-w-0">
           {/* Top Header Mobile Toggle */}
           <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
             <div className="flex items-center gap-2">
@@ -242,15 +241,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </button>
           </div>
   
-          <div className="p-4 md:p-8 max-w-7xl mx-auto mt-16 md:mt-0">
-            {isTimed && daysLeft <= 3 && (
-              <div className="bg-red-500 text-white p-4 rounded-2xl mb-6 flex items-center justify-between shadow-lg">
+          {isTimed && daysLeft <= 3 && (
+            <div className="p-4 md:p-8 pb-0 max-w-7xl mx-auto mt-16 md:mt-0 w-full">
+              <div className="bg-red-500 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg">
                 <div className="font-bold flex items-center gap-2">
                   <X className="w-5 h-5 bg-white text-red-500 rounded-full" />
                   DİKKAT: Abonelik sürenizin dolmasına {daysLeft} gün kaldı. Lütfen sürenizi uzatın.
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
         {/* Top Header Bar */}
         <header className="hidden md:flex sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 items-center justify-between">
@@ -260,7 +260,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 Restoran: {restaurant.name}
               </span>
               <h2 className="text-base sm:text-lg font-extrabold text-slate-900">
-                {navItems.find((n) => n.id === activeTab)?.label}
+                {navItems.find((n) => n.id === activeTab)?.label || (activeTab === 'pos' ? 'Manuel Masa Satışı & POS' : '')}
               </h2>
             </div>
           </div>

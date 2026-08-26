@@ -8,6 +8,8 @@ import {
   Order 
 } from '../../types';
 import { store } from '../../lib/store';
+import { useLanguage } from '../../lib/i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { CategoryNav } from './CategoryNav';
 import { ProductCard } from './ProductCard';
 import { ProductDetailModal } from './ProductDetailModal';
@@ -35,6 +37,7 @@ interface CustomerMenuProps {
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({
   initialTableNumber = 1,
 }) => {
+  const { t, tDynamic } = useLanguage();
   const [restaurant, setRestaurant] = useState<Restaurant>(store.getRestaurant());
   const [tables, setTables] = useState<RestaurantTable[]>(store.getTables());
   const [categories, setCategories] = useState<Category[]>(store.getCategories());
@@ -184,8 +187,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
             {/* Sabit Masa Etiketi */}
             <div className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 text-white text-xs font-bold shadow-lg">
               <QrCode className="w-3.5 h-3.5 text-orange-400" />
-              <span>Masa {currentTableNumber}</span>
+              <span>{t('Masa')} {currentTableNumber}</span>
             </div>
+          </div>
+
+          {/* Language Switcher */}
+          <div className="absolute top-3 right-3 z-20">
+            <LanguageSwitcher />
           </div>
 
           {/* Restaurant Profile Card in Cover */}
@@ -248,7 +256,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Yiyecek veya içecek ara..."
+              placeholder={t('Ürün ara...', 'Yiyecek veya içecek ara...')}
               className="w-full bg-white text-xs pl-9 pr-4 py-2.5 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 shadow-2xs"
             />
             {searchQuery && (

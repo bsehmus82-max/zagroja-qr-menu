@@ -13,9 +13,11 @@ import {
   Sparkles,
   FolderPlus,
   DollarSign,
-  Image as ImageIcon
+  Image as ImageIcon,
+  UploadCloud
 } from 'lucide-react';
 import { getCategoryIcon } from '../customer/CategoryNav';
+import { uploadImage } from '../../lib/supabase';
 
 interface MenuManagerProps {
   categories: Category[];
@@ -415,34 +417,55 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Açıklama / İçerik
+                  İçindekiler / Açıklama (Malzemeler, Gramaj, vb.)
                 </label>
                 <textarea
                   rows={2}
                   value={prodForm.description}
                   onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                  placeholder="Malzemeler, porsiyon detayları, sunum şekli vb."
+                  placeholder="Örn: 150g dana eti, cheddar, karamelize soğan, patates..."
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Ürün Görsel URL'si (Unsplash veya Doğrudan Link)
+                  Ürün Görseli (Dosya Yükle veya URL Gir)
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  <label className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200 rounded-xl cursor-pointer transition-colors text-xs font-bold shrink-0">
+                    <UploadCloud className="w-4 h-4" />
+                    <span>Yükle</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        alert('Görsel yükleniyor, lütfen bekleyin...');
+                        const url = await uploadImage(file);
+                        if (url) {
+                          setProdForm({ ...prodForm, image_url: url });
+                          alert('Görsel başarıyla yüklendi!');
+                        } else {
+                          alert('Yükleme başarısız oldu.');
+                        }
+                      }}
+                    />
+                  </label>
                   <input
                     type="url"
                     value={prodForm.image_url}
                     onChange={(e) => setProdForm({ ...prodForm, image_url: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
+                    placeholder="veya https://..."
                     className="flex-1 text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                   {prodForm.image_url && (
                     <img
                       src={prodForm.image_url}
                       alt="Önizleme"
-                      className="w-10 h-10 rounded-xl object-cover border border-slate-200"
+                      className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
                     />
                   )}
                 </div>

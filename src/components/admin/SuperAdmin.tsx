@@ -110,7 +110,7 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
           <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
               <Shield className="w-6 h-6 text-blue-600" />
-              Zagroja SaaS Platform
+              Dijital Menü Yönetimi
             </h1>
             <p className="text-slate-500">Müşteri İşletme Yönetimi</p>
           </div>

@@ -5,6 +5,7 @@ import { AdminLogin } from './components/admin/AdminLogin';
 import { SetupWizard } from './components/admin/SetupWizard';
 import { SuperAdmin } from './components/admin/SuperAdmin';
 import { store, SUPER_ADMIN_SESSION_KEY } from './lib/store';
+import { LanguageProvider } from './lib/i18n';
 
 export function App() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(
@@ -118,8 +119,10 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <CustomerMenu initialTableNumber={validTable} />
-    </div>
+    <LanguageProvider>
+      <div className="min-h-screen bg-slate-100 font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+        <CustomerMenu initialTableNumber={validTable} />
+      </div>
+    </LanguageProvider>
   );
 }

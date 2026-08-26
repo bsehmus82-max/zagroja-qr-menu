@@ -1,5 +1,6 @@
 import React from 'react';
 import { Product } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 import { Plus, Ban, Flame } from 'lucide-react';
 
 interface ProductCardProps {
@@ -15,6 +16,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onOpenDetail,
   onQuickAdd,
 }) => {
+  const { t, tDynamic } = useLanguage();
   return (
     <div
       onClick={() => onOpenDetail(product)}
@@ -26,7 +28,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
         <img
           src={product.image_url}
-          alt={product.name}
+          alt={tDynamic(product.name)}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"
           onError={(e) => {

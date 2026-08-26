@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BellRing, Receipt, Wifi, CheckCircle2, CreditCard, Banknote, X } from 'lucide-react';
+import { useLanguage } from '../../lib/i18n';
 
 interface ServiceButtonsProps {
   tableNumber: number;
@@ -16,6 +17,7 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
   onOpenWifi,
   hasWifi = true,
 }) => {
+  const { t } = useLanguage();
   const [showBillModal, setShowBillModal] = useState(false);
   const [waiterCalled, setWaiterCalled] = useState(false);
   const [billRequested, setBillRequested] = useState(false);
@@ -40,19 +42,15 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
         <button
           onClick={handleWaiterClick}
           disabled={waiterCalled}
-          className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
-            waiterCalled
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'hover:bg-slate-800 active:scale-95 text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center p-2 rounded-xl transition-all hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {waiterCalled ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 mb-1" />
+            <CheckCircle2 className="w-5 h-5 text-green-400 mb-1" />
           ) : (
             <BellRing className="w-5 h-5 text-amber-400 mb-1 animate-pulse-subtle" />
           )}
           <span className="text-[11px] font-semibold">
-            {waiterCalled ? 'Garson Geliyor' : 'Garson Çağır'}
+            {waiterCalled ? t('Lütfen Bekleyiniz...') : t('Garson Çağır')}
           </span>
         </button>
 
@@ -60,19 +58,15 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
         <button
           onClick={() => setShowBillModal(true)}
           disabled={billRequested}
-          className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-center transition-all ${
-            billRequested
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'hover:bg-slate-800 active:scale-95 text-slate-200'
-          }`}
+          className="flex flex-col items-center justify-center p-2 rounded-xl transition-all hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {billRequested ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 mb-1" />
+            <CheckCircle2 className="w-5 h-5 text-green-400 mb-1" />
           ) : (
-            <Receipt className="w-5 h-5 text-orange-400 mb-1" />
+            <Receipt className="w-5 h-5 text-blue-400 mb-1" />
           )}
           <span className="text-[11px] font-semibold">
-            {billRequested ? 'Hesap İstendi' : 'Hesap İste'}
+            {billRequested ? t('Lütfen Bekleyiniz...') : t('Hesap İste')}
           </span>
         </button>
 
@@ -121,7 +115,7 @@ export const ServiceButtons: React.FC<ServiceButtonsProps> = ({
                 className="p-3.5 rounded-2xl border-2 border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 flex flex-col items-center text-slate-800 transition-all active:scale-95"
               >
                 <Banknote className="w-6 h-6 text-emerald-500 mb-1.5" />
-                <span className="text-xs font-bold">Nakit Ödeme</span>
+                <span className="text-xs font-bold">{t('Nakit')} Ödeme</span>
                 <span className="text-[10px] text-slate-400 mt-0.5">Masa Başında</span>
               </button>
             </div>

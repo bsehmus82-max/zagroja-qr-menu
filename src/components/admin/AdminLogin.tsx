@@ -28,14 +28,20 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
           return;
         }
 
-        // Başarılı giriş
-        localStorage.setItem('app_admin_session', JSON.stringify({ 
-          id: rest.id, 
-          username: rest.owner_username 
-        }));
+        const sessionId = crypto.randomUUID();
+        localStorage.setItem('admin_session_id', sessionId);
         
-        setIsLoading(false);
-        onSuccess();
+        localStorage.setItem('app_admin_session', JSON.stringify({
+          restaurantId: rest.id,
+          username: rest.owner_username,
+          loginTime: new Date().toISOString()
+        }));
+
+        store.setCurrentRestaurant(rest.id);
+        store.registerAdminSession(rest.id, sessionId).then(() => {
+          setIsLoading(false);
+          onSuccess();
+        });
       } else {
         setIsLoading(false);
         setError('Hatalı kullanıcı adı veya şifre girdiniz.');
@@ -57,7 +63,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) =
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-white">İşletme Girişi</h2>
           <p className="text-xs text-slate-400 mt-1">
-            Zagroja SaaS Dijital Menü Platformu
+            Sistem SaaS Dijital Menü Platformu
           </p>
         </div>
 

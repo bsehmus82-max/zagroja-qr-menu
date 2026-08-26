@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Product } from '../../types';
+import { useLanguage } from '../../lib/i18n';
 import { X, Plus, Minus, Clock, Flame, ShoppingBag, Ban } from 'lucide-react';
 
 interface ProductDetailModalProps {
@@ -15,6 +16,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   onClose,
   onAddToCart,
 }) => {
+  const { t, tDynamic } = useLanguage();
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
 
@@ -44,7 +46,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         <div className="relative h-64 sm:h-72 w-full overflow-hidden bg-slate-100 flex-shrink-0">
           <img
             src={product.image_url}
-            alt={product.name}
+            alt={tDynamic(product.name)}
             className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).src =
@@ -103,7 +105,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Örn: Az şekerli olsun, sosu ayrı gelsin, acısız olsun vb."
+                placeholder={t('Örn: Az pişmiş, buzsuz...')}
                 rows={2}
                 className="w-full text-xs p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-slate-50/50 resize-none"
               />
@@ -141,7 +143,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
             >
               <span className="flex items-center gap-2">
                 <ShoppingBag className="w-4 h-4" />
-                Sepete Ekle
+                {t('Sepete Ekle')}
               </span>
               <span>{(product.price * quantity).toFixed(2)} {currency}</span>
             </button>
