@@ -63,6 +63,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     return () => unsubscribe();
   }, []);
 
+  // Subscription Check
+  const isTimed = restaurant.subscription_type === 'timed' && restaurant.subscription_expires_at;
+  const daysLeft = isTimed 
+    ? Math.ceil((new Date(restaurant.subscription_expires_at!).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : 999;
+  
+  const isSuspended = !restaurant.is_active || daysLeft < 0;
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-red-500 text-white w-20 h-20 flex items-center justify-center rounded-full mb-6">
+          <X className="w-10 h-10" />
+        </div>
+        <h1 className="text-3xl font-black text-white mb-2">Hesap Askıya Alındı</h1>
+        <p className="text-slate-400 max-w-md mx-auto mb-8">
+          Abonelik süreniz dolmuş veya işletme hesabınız yönetici tarafından kısıtlanmış. Lütfen sistem yöneticisi ile iletişime geçiniz.
+        </p>
+        <button onClick={onLogout} className="px-6 py-3 bg-slate-800 hover:bg-slate-700 transition-colors text-white rounded-xl font-bold">
+          Güvenli Çıkış Yap
+        </button>
+      </div>
+    );
+  }
+
   const activeOrdersCount = orders.filter(
     (o) => o.status === 'pending' || o.status === 'preparing'
   ).length;
@@ -204,18 +229,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Top Header Bar */}
-        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden p-2 rounded-xl bg-slate-100 text-slate-700"
-            >
-              <MenuIcon className="w-5 h-5" />
+        {/* Main Content Area */}
+        <main className="flex-1 md:ml-72 bg-slate-50 min-h-screen">
+          {/* Top Header Mobile Toggle */}
+          <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 z-30 flex items-center justify-between px-4">
+            <div className="flex items-center gap-2">
+              <img src={restaurant.logo_url} alt="Logo" className="w-8 h-8 rounded-lg object-cover" />
+              <span className="font-bold text-slate-800">{restaurant.name}</span>
+            </div>
+            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-600">
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
             </button>
+          </div>
+  
+          <div className="p-4 md:p-8 max-w-7xl mx-auto mt-16 md:mt-0">
+            {isTimed && daysLeft <= 3 && (
+              <div className="bg-red-500 text-white p-4 rounded-2xl mb-6 flex items-center justify-between shadow-lg">
+                <div className="font-bold flex items-center gap-2">
+                  <X className="w-5 h-5 bg-white text-red-500 rounded-full" />
+                  DİKKAT: Abonelik sürenizin dolmasına {daysLeft} gün kaldı. Lütfen sürenizi uzatın.
+                </div>
+              </div>
+            )}
 
+        {/* Top Header Bar */}
+        <header className="hidden md:flex sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 items-center justify-between">
+          <div className="flex items-center gap-3">
             <div>
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 Restoran: {restaurant.name}
