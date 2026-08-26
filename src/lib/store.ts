@@ -117,7 +117,10 @@ class RestaurantStore {
   private constructor() {
     if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
       this.channel = new BroadcastChannel('qr_menu_sync');
-      this.channel.onmessage = () => this.notify();
+      this.channel.onmessage = () => {
+        // MUST NOT rebroadcast when receiving from another tab!
+        this.notify(false);
+      };
     }
   }
 
@@ -141,9 +144,17 @@ class RestaurantStore {
     return () => this.listeners.delete(listener);
   }
 
-  private notify() {
-    this.listeners.forEach(l => l());
-    if (this.channel) this.channel.postMessage({ ts: Date.now() });
+  private notify(broadcast: boolean = true) {
+    this.listeners.forEach(l => {
+      try { l(); } catch (e) { console.error('Listener error', e); }
+    });
+    if (broadcast && this.channel) {
+      try {
+        this.channel.postMessage({ ts: Date.now() });
+      } catch (e) {
+        console.warn('Channel post error', e);
+      }
+    }
   }
 
   // LocalStorage key prefixed by restaurant_id for tenant isolation
@@ -186,6 +197,29 @@ class RestaurantStore {
 
   getRestaurantBySlug(slug: string): Restaurant | null {
     return this.getAllRestaurants().find(r => r.slug === slug) || null;
+  }
+
+  async loadRestaurantBySlug(slug: string): Promise<Restaurant | null> {
+    let rest = this.getRestaurantBySlug(slug);
+    if (!rest) {
+      try {
+        const { data } = await supabase.from('restaurants').select('*').eq('slug', slug).single();
+        if (data) {
+          rest = data as Restaurant;
+          const all = this.getAllRestaurants();
+          if (!all.some(r => r.id === data.id)) {
+            this.saveAllRestaurants([...all, rest]);
+          }
+        }
+      } catch (e) {
+        console.warn('loadRestaurantBySlug error:', e);
+      }
+    }
+    if (rest) {
+      this.setCurrentRestaurant(rest.id);
+      await this.syncFromCloud();
+    }
+    return rest;
   }
 
   getRestaurantByUsername(username: string): Restaurant | null {

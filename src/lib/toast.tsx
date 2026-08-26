@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { CheckCircle2, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -66,8 +66,10 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const warning = useCallback((m: string) => toast(m, 'warning'), [toast]);
   const info    = useCallback((m: string) => toast(m, 'info'),    [toast]);
 
-  // Register singleton
-  _registerToast(toast);
+  React.useEffect(() => {
+    _registerToast(toast);
+    return () => { _registerToast(() => {}); };
+  }, [toast]);
 
   return (
     <Ctx.Provider value={{ toast, success, error, warning, info }}>

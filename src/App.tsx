@@ -30,28 +30,41 @@ export function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return Boolean(localStorage.getItem('app_admin_session'));
   });
+  const [loadingTenant, setLoadingTenant] = useState<boolean>(true);
 
   // Fetch tenant info on load
   useEffect(() => {
-    // Determine active tenant context
-    const storedSession = localStorage.getItem('app_admin_session');
-    if (storedSession) {
-      // If logged in, ensure store context is set to this user's restaurant
-      const user = JSON.parse(storedSession);
-      const userRest = store.getRestaurantByUsername(user.username);
-      if (userRest) {
-        store.setCurrentRestaurant(userRest.id);
-        store.syncFromCloud();
+    const init = async () => {
+      const storedSession = localStorage.getItem('app_admin_session');
+      if (storedSession) {
+        try {
+          const user = JSON.parse(storedSession);
+          let userRest = store.getRestaurantByUsername(user.username);
+          if (!userRest && user.slug) {
+            userRest = await store.loadRestaurantBySlug(user.slug);
+          }
+          if (userRest) {
+            store.setCurrentRestaurant(userRest.id);
+            await store.syncFromCloud();
+          }
+        } catch (e) {
+          console.warn('Session init error:', e);
+        }
+      } else if (pathInfo.restaurantSlug) {
+        await store.loadRestaurantBySlug(pathInfo.restaurantSlug);
       }
-    } else if (pathInfo.restaurantSlug) {
-      // Customer view
-      const targetRest = store.getRestaurantBySlug(pathInfo.restaurantSlug);
-      if (targetRest) {
-        store.setCurrentRestaurant(targetRest.id);
-        store.syncFromCloud();
-      }
-    }
-  }, []);
+      setLoadingTenant(false);
+    };
+
+    init();
+
+    const unsubscribe = store.subscribe(() => {
+      // Trigger re-render when store updates
+      setLoadingTenant(false);
+    });
+
+    return () => unsubscribe();
+  }, [pathInfo.restaurantSlug]);
 
   const handleLoginSuccess = () => {
     setIsAdminAuthenticated(true);
