@@ -95,7 +95,8 @@ export function App() {
     return <PasswordResetScreen token={pathInfo.resetToken} onComplete={() => { window.location.href = '/'; }} />;
   }
 
-  if (pathInfo.isSuperAdminPath || isSuperAdmin) {
+  // Sadece süper admin yolundaysa (/?panel=super veya /super) Süper Admin panelini aç
+  if (pathInfo.isSuperAdminPath) {
     return (
       <SuperAdmin
         onLogout={() => {
@@ -107,55 +108,57 @@ export function App() {
     );
   }
 
-  if (isAdminView) {
-    if (isAdminAuthenticated) {
-      const rest = store.getRestaurant();
-      
-      // If restaurant hasn't completed setup wizard, show it
-      if (rest && !rest.setup_completed) {
-        return <SetupWizard restaurant={rest} onComplete={() => window.location.reload()} />;
-      }
+  // Müşteri QR menüsü linki varsa (örn: ?r=slug veya /m/slug)
+  if (pathInfo.restaurantSlug && !pathInfo.isAdminPath) {
+    const currentRest = store.getRestaurant();
+    const validTable = pathInfo.tableNumber > 0 ? pathInfo.tableNumber : 1;
 
+    if (!currentRest || !currentRest.setup_completed) {
       return (
-        <AdminDashboard
-          onOpenCustomerMenu={(tableNum = 1) => {
-            window.open(`/?r=${rest.slug}&table=${tableNum}`, '_blank');
-          }}
-          onLogout={handleLogout}
-        />
+        <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-sm w-full">
+            <h1 className="text-xl font-bold text-slate-800 mb-2">QR Menü</h1>
+            <p className="text-slate-500">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
+          </div>
+        </div>
       );
     }
+
     return (
-      <AdminLogin
-        onSuccess={handleLoginSuccess}
-        onCancel={() => {
-          setIsAdminView(false);
-          window.location.href = `/`;
+      <LanguageProvider>
+        <div className="min-h-screen bg-slate-100 font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <CustomerMenu initialTableNumber={validTable} />
+        </div>
+      </LanguageProvider>
+    );
+  }
+
+  // İşletme Yönetim Paneli veya İşletme Girişi
+  if (isAdminAuthenticated) {
+    const rest = store.getRestaurant();
+    
+    // If restaurant hasn't completed setup wizard, show it
+    if (rest && !rest.setup_completed) {
+      return <SetupWizard restaurant={rest} onComplete={() => window.location.reload()} />;
+    }
+
+    return (
+      <AdminDashboard
+        onOpenCustomerMenu={(tableNum = 1) => {
+          window.open(`/?r=${rest.slug}&table=${tableNum}`, '_blank');
         }}
+        onLogout={handleLogout}
       />
     );
   }
 
-  // Pure customer view
-  const currentRest = store.getRestaurant();
-  const validTable = pathInfo.tableNumber > 0 ? pathInfo.tableNumber : 1;
-
-  if (!currentRest || !currentRest.setup_completed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-        <div className="bg-white p-8 rounded-2xl shadow-sm text-center max-w-sm w-full">
-          <h1 className="text-xl font-bold text-slate-800 mb-2">QR Menü</h1>
-          <p className="text-slate-500">İşletme kurulumu henüz tamamlanmadı veya bulunamadı.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <LanguageProvider>
-      <div className="min-h-screen bg-slate-100 font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-        <CustomerMenu initialTableNumber={validTable} />
-      </div>
-    </LanguageProvider>
+    <AdminLogin
+      onSuccess={handleLoginSuccess}
+      onCancel={() => {
+        setIsAdminView(false);
+        window.location.href = `/`;
+      }}
+    />
   );
 }
