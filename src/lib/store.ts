@@ -702,8 +702,13 @@ class RestaurantStore {
         }
       }
 
-      if (cats && cats.length > 0) this.set('categories', cats);
-      if (prods && prods.length > 0) this.set('products', prods);
+      if (!cats || cats.length <= 2) {
+        // Auto-upgrade to full 13 categories template with real prices
+        await this.loadFullDefaultMenu(id);
+      } else {
+        if (cats && cats.length > 0) this.set('categories', cats);
+        if (prods && prods.length > 0) this.set('products', prods);
+      }
       if (tbls && tbls.length > 0) this.set('tables', tbls);
       if (ords) this.set('orders', ords);
       if (calls) this.set('service_calls', calls);
