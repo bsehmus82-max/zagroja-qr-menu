@@ -170,7 +170,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 type="text"
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder="Örn: Servis hızlı olursa seviniriz, peçete rica ederiz."
+                placeholder="Sipariş ve servis notunuz..."
                 className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500 bg-white"
               />
             </div>

@@ -15,12 +15,10 @@ export function App() {
 
     const isSuperAdmin = 
       params.get('zagroja') === 'hq' ||
-      params.get('panel') === 'super' ||
-      path.startsWith('/zagroja') ||
-      path.startsWith('/super');
+      path === '/zagroja-hq';
 
     const resetToken = params.get('reset');
-    const restaurantSlug = path.startsWith('/m/') ? path.replace('/m/', '').split('/')[0] : params.get('r');
+    const restaurantSlug = params.get('r');
     const tableNumber = parseInt(params.get('table') || '0', 10);
     const isAdminParam = params.get('admin') === 'true';
 

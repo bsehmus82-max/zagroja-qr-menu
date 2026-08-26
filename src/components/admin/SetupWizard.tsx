@@ -71,7 +71,7 @@ export const SetupWizard = ({ restaurant, onComplete }: { restaurant: Restaurant
                   required
                   value={form.name}
                   onChange={e => setForm({...form, name: e.target.value})}
-                  placeholder="Örn: Cafe Aria"
+                  placeholder="İşletme Adı"
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-orange-400 outline-none"
                 />
                 <p className="text-xs text-slate-500 mt-2">Müşterileriniz QR kodu okuttuğunda bu ismi görecekler.</p>

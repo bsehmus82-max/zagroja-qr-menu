@@ -332,7 +332,7 @@ export const ManualPosScreen: React.FC<ManualPosScreenProps> = ({
               <textarea
                 value={orderNotes}
                 onChange={(e) => setOrderNotes(e.target.value)}
-                placeholder="Örn: Az pişmiş, buzsuz..."
+                placeholder="Sipariş notu..."
                 rows={2}
                 className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-orange-500 outline-none resize-none"
               />

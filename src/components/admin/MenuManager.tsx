@@ -196,7 +196,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
             onClick={handleLoadDefaultTemplate}
             disabled={loadingTemplate}
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition-colors flex items-center gap-1.5"
-            title="Tüm hazır kategorileri ve örnek ürünleri tek tıkla yükler"
+            title="Standart hazır kategorileri yükler"
           >
             {loadingTemplate ? (
               <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
@@ -416,7 +416,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   required
                   value={prodForm.name}
                   onChange={(e) => setProdForm({ ...prodForm, name: e.target.value })}
-                  placeholder="Örn: Double Cheese Gurme Burger"
+                  placeholder="Ürün Adı"
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                 />
               </div>
@@ -462,7 +462,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   rows={2}
                   value={prodForm.description}
                   onChange={(e) => setProdForm({ ...prodForm, description: e.target.value })}
-                  placeholder="Örn: 150g dana eti, cheddar, karamelize soğan, patates..."
+                  placeholder="Malzemeler, porsiyon ve detaylar..."
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                 />
               </div>
@@ -599,7 +599,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                   required
                   value={newCatName}
                   onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="Örn: Makarna & Risotto"
+                  placeholder="Kategori Adı"
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                 />
               </div>

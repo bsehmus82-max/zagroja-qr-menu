@@ -156,18 +156,18 @@ export const TableManager: React.FC<TableManagerProps> = ({
               value={newTableName}
               onChange={(e) => setNewTableName(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
-              placeholder="Örn: Bahçe 1"
+              placeholder="Masa Adı"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Bölüm / Kategori</label>
+            <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Bölüm / Alan</label>
             <input
               type="text"
               required
               value={newSection}
               onChange={(e) => setNewSection(e.target.value)}
               className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all text-sm font-medium"
-              placeholder="Örn: Teras, Salon"
+              placeholder="Bölüm Adı"
             />
           </div>
           <div className="flex gap-2">
@@ -197,7 +197,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
           <div>
             <h3 className="text-lg font-bold text-slate-900">Henüz Tanımlı Masa Yok</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Mekanınızdaki masaları isimlendirerek (Örn: Masa 1, Bahçe 1, Teras VIP) hemen ekleyin ve özel baskı QR kodlarını anında oluşturun.
+              Mekanınızdaki masaları isimlendirerek hemen ekleyin ve özel baskı QR kodlarını anında oluşturun.
             </p>
           </div>
           <button
@@ -378,7 +378,7 @@ export const TableManager: React.FC<TableManagerProps> = ({
                   required
                   value={newTableName}
                   onChange={(e) => setNewTableName(e.target.value)}
-                  placeholder="Örn: Masa 5, Bahçe 2, Teras VIP"
+                  placeholder="Masa Adı"
                   className="w-full text-xs p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 outline-none"
                 />
               </div>

@@ -204,6 +204,7 @@ class ZagrojaStore {
     slug: string;
     owner_username: string;
     owner_password?: string;
+    system_type?: import('../types').ZagrojaSystemType;
     subscription_type?: 'unlimited' | 'timed';
     subscription_days?: number;
     max_tables?: number;
@@ -213,6 +214,7 @@ class ZagrojaStore {
       id,
       name: data.name.trim(),
       slug: data.slug.toLowerCase().trim(),
+      system_type: data.system_type || 'qr_menu',
       owner_username: data.owner_username.trim(),
       owner_password: data.owner_password || '123456',
       subscription_type: data.subscription_type || 'unlimited',
