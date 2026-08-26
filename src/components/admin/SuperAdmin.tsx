@@ -56,8 +56,8 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
     Boolean(localStorage.getItem(SUPER_ADMIN_SESSION_KEY))
   );
 
-  // Active View Tab: 'restaurants' | 'support' | 'database'
-  const [activeView, setActiveView] = useState<'restaurants' | 'support' | 'database'>('restaurants');
+  // Active View Tab: 'restaurants' | 'support'
+  const [activeView, setActiveView] = useState<'restaurants' | 'support'>('restaurants');
 
   // Restaurants State
   const [restaurants, setRestaurants] = useState<Restaurant[]>(store.getAllRestaurants());
@@ -457,18 +457,6 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
               </span>
             )}
           </button>
-
-          <button
-            onClick={() => setActiveView('database')}
-            className={`flex-1 min-w-[160px] py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              activeView === 'database'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Database className="w-4 h-4" />
-            <span>Bulut Veritabanı (Supabase)</span>
-          </button>
         </div>
 
         {/* ========================================================================= */}
@@ -843,76 +831,6 @@ export const SuperAdmin = ({ onLogout }: { onLogout: () => void }) => {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* VIEW 3: CLOUD DATABASE (SUPABASE) CONFIGURATION */}
-        {/* ========================================================================= */}
-        {activeView === 'database' && (
-          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6 animate-fade-in">
-            <div className="border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                  <Database className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-extrabold text-base text-slate-900">Supabase Bulut Veritabanı Entegrasyonu</h3>
-                  <p className="text-xs text-slate-500">Tüm cihazların (telefon, tablet, bilgisayar) tek merkezden senkronize çalışması için bulut bilgileri</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 max-w-2xl">
-              <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 block">Supabase Project URL</label>
-                <input
-                  type="text"
-                  value={dbConfig.url}
-                  onChange={(e) => setDbConfig({ ...dbConfig, url: e.target.value })}
-                  placeholder="https://xyzcompany.supabase.co"
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-700 mb-1.5 block">Supabase Anon Key (Public Key)</label>
-                <input
-                  type="password"
-                  value={dbConfig.key}
-                  onChange={(e) => setDbConfig({ ...dbConfig, key: e.target.value })}
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
-
-              {dbTestResult && (
-                <div className={`p-4 rounded-2xl text-xs font-bold ${dbTestResult.success ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
-                  {dbTestResult.msg}
-                </div>
-              )}
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleTestAndSaveDb}
-                  disabled={isTestingDb}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-md transition-all flex items-center gap-2"
-                >
-                  <Server className="w-4 h-4" />
-                  <span>{isTestingDb ? 'Bağlantı Kontrol Ediliyor...' : 'Bağlantıyı Test Et & Aktif Et'}</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-xs text-slate-600 space-y-1.5 max-w-2xl">
-              <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-blue-600" />
-                <span>Neden Bulut Veritabanı?</span>
-              </span>
-              <p>
-                Supabase bulut projeniz aktif olduğunda telefonunuzdan, tabletinizden veya işletmelerin cihazlarından eklenen her veri anında tek bir merkezi veritabanına kaydedilir ve hiçbir cihazda veri kaybı yaşanmaz.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
