@@ -16,7 +16,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Çıtır Tavuk Sepeti',
+        name: 'Çıtır Tavuk Sepeti & Soslar',
         description: 'Özel baharatlarla panelenmiş çıtır tavuk bonfile parçaları, patates kızartması, çıtır soğan halkası, ballı hardal ve sarımsaklı mayonez sos.',
         price: 280,
         image_url: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?w=600&auto=format&fit=crop&q=80',
@@ -27,8 +27,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     ],
   },
   {
-    name: 'Kahvaltılar & Başlangıçlar',
-    icon: 'Coffee',
+    name: 'Kahvaltılık & Başlangıçlar',
+    icon: 'Egg',
     sort_order: 2,
     template_products: [
       {
@@ -57,6 +57,15 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 420,
         preparation_time_minutes: 10,
         sort_order: 3,
+      },
+      {
+        name: 'Kaşarlı & Sucuklu Tost',
+        description: 'Köy tereyağı ile kızarmış tost ekmeği, bol kaşar peyniri ve kasap sucuk, domates ve zeytin ile.',
+        price: 160,
+        image_url: 'https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=600&auto=format&fit=crop&q=80',
+        calories: 480,
+        preparation_time_minutes: 8,
+        sort_order: 4,
       }
     ]
   },
@@ -66,8 +75,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     sort_order: 3,
     template_products: [
       {
-        name: 'Zeytinyağlı Humus & Pastırma',
-        description: 'Tahin, sızma zeytinyağı, kimyon, nohut püresi ve fırınlanmış sıcak çemenli pastırma ile.',
+        name: 'Sıcak Tereyağlı Pastırmalı Humus',
+        description: 'Tahin, sızma zeytinyağı, kimyon, nohut püresi ve tereyağında fırınlanmış sıcak çemenli pastırma ile.',
         price: 220,
         image_url: 'https://images.unsplash.com/photo-1577906096429-f73c2c312435?w=600&auto=format&fit=crop&q=80',
         calories: 380,
@@ -75,7 +84,7 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Süzme Yoğurtlu Atom & Haydari Tabağı',
+        name: 'Süzme Yoğurtlu Atom & Haydari',
         description: 'Tereyağında kızartılmış acı Arnavut biberli süzme yoğurt ve naneli cevizli taze haydari.',
         price: 180,
         image_url: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=600&auto=format&fit=crop&q=80',
@@ -84,19 +93,28 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 2,
       },
       {
-        name: 'Güveçte Tereyağlı Kaşarlı Mantar',
+        name: 'Güveçte Kaşarlı Mantar',
         description: 'Taze kültür mantarı, sarımsak, tereyağı ve fırınlanmış uzayan kaşar peyniri.',
         price: 210,
         image_url: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80',
         calories: 340,
         preparation_time_minutes: 12,
         sort_order: 3,
+      },
+      {
+        name: 'Çıtır Paçanga Böreği (2 Adet)',
+        description: 'Yufkaya sarılı çemenli pastırma, kaşar peyniri, domates ve yeşil biber.',
+        price: 190,
+        image_url: 'https://images.unsplash.com/photo-1608897013039-887f21d8c804?w=600&auto=format&fit=crop&q=80',
+        calories: 420,
+        preparation_time_minutes: 10,
+        sort_order: 4,
       }
     ]
   },
   {
     name: 'Ana Yemekler & Izgaralar',
-    icon: 'Utensils',
+    icon: 'UtensilsCrossed',
     sort_order: 4,
     template_products: [
       {
@@ -125,6 +143,15 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 810,
         preparation_time_minutes: 20,
         sort_order: 3,
+      },
+      {
+        name: 'Karışık Izgara Ziyafet Tabağı',
+        description: 'Kasap köfte, tavuk pirzola, kuzu şiş, ızgara sucuk, pilav, közlenmiş sebzeler ve lavaş.',
+        price: 580,
+        image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&auto=format&fit=crop&q=80',
+        calories: 1100,
+        preparation_time_minutes: 22,
+        sort_order: 4,
       }
     ]
   },
@@ -143,13 +170,22 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Çıtır Tavuk Dürüm',
-        description: 'Özel panelenmiş tavuk parçaları, cheddar, iceberg marul, patates ve ranch sos.',
-        price: 240,
+        name: 'Çıtır Tavuk Burger',
+        description: 'Özel baharatlarla panelenmiş tavuk göğsü, cheddar, marul, kornişon turşu ve ballı hardal sos.',
+        price: 260,
         image_url: 'https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&auto=format&fit=crop&q=80',
-        calories: 610,
-        preparation_time_minutes: 12,
+        calories: 650,
+        preparation_time_minutes: 14,
         sort_order: 2,
+      },
+      {
+        name: 'Çıtır Patates Kızartması',
+        description: 'Özel baharat harmanlı çıtır parmak patates, ketçap ve mayonez ile.',
+        price: 120,
+        image_url: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=600&auto=format&fit=crop&q=80',
+        calories: 380,
+        preparation_time_minutes: 8,
+        sort_order: 3,
       }
     ]
   },
@@ -168,13 +204,31 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
+        name: 'Fettuccine Alfredo (Tavuklu)',
+        description: 'Jülyen tavuk bonfile, sote mantar, taze sarımsak, krema sos ve parmesan peyniri.',
+        price: 290,
+        image_url: 'https://images.unsplash.com/photo-1645112411341-6c4fd023714a?w=600&auto=format&fit=crop&q=80',
+        calories: 680,
+        preparation_time_minutes: 15,
+        sort_order: 2,
+      },
+      {
         name: 'Karışık Taş Fırın Pizza',
-        description: 'Mozzarella, sucuk, sosis, mantar, mısır, yeşil biber ve siyah zeytin.',
+        description: 'Mozzarella, kasap sucuk, sosis, kültür mantarı, mısır, yeşil biber ve siyah zeytin.',
         price: 340,
         image_url: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&auto=format&fit=crop&q=80',
         calories: 890,
         preparation_time_minutes: 18,
-        sort_order: 2,
+        sort_order: 3,
+      },
+      {
+        name: 'Pizza Margherita',
+        description: 'Özel İtalyan domates sosu, taze mozzarella peyniri, zeytinyağı ve taze fesleğen yaprakları.',
+        price: 280,
+        image_url: 'https://images.unsplash.com/photo-1604382355076-af4b0eb60143?w=600&auto=format&fit=crop&q=80',
+        calories: 720,
+        preparation_time_minutes: 15,
+        sort_order: 4,
       }
     ]
   },
@@ -200,6 +254,15 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 360,
         preparation_time_minutes: 8,
         sort_order: 2,
+      },
+      {
+        name: 'Çıtır Hellim Salata',
+        description: 'Tava kızarmış hellim peyniri, çeri domates, salatalık, taze nane ve balzamik sos.',
+        price: 250,
+        image_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&auto=format&fit=crop&q=80',
+        calories: 390,
+        preparation_time_minutes: 8,
+        sort_order: 3,
       }
     ]
   },
@@ -225,6 +288,15 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 550,
         preparation_time_minutes: 10,
         sort_order: 2,
+      },
+      {
+        name: 'Karamelli Fıstıklı Trileçe',
+        description: 'Üç sütlü hafif ıslak balkan keki, yoğun karamel kaplama ve Antep fıstığı ile.',
+        price: 170,
+        image_url: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=600&auto=format&fit=crop&q=80',
+        calories: 380,
+        preparation_time_minutes: 3,
+        sort_order: 3,
       }
     ]
   },
@@ -234,8 +306,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     sort_order: 9,
     template_products: [
       {
-        name: 'Özel Karışım Gurme Nargile (Love 66 & Lady Killer)',
-        description: 'Kavun, çarkıfelek meyvesi, karpuz, nane ve buz aromalı premium tütün, buzlu marpuç ile servis edilir.',
+        name: 'Love 66 (Özel Karışım Nargile)',
+        description: 'Kavun, karpuz, çarkıfelek meyvesi ve nane aromalı premium tütün, buzlu marpuç ile servis edilir.',
         price: 380,
         image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
         calories: 0,
@@ -243,22 +315,31 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Klasik Çift Elma & Nane Nargile',
-        description: 'Geleneksel Al Fakher anasonlu çift elma ve ferahlatıcı nane lezzeti.',
+        name: 'Lady Killer (Tropikal Meyve Karışımı)',
+        description: 'Mango, kavun, orman meyveleri ve hafif nane esintisi ile ferahlatıcı nargile.',
+        price: 380,
+        image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 10,
+        sort_order: 2,
+      },
+      {
+        name: 'Klasik Al Fakher Çift Elma & Nane',
+        description: 'Geleneksel anasonlu çift elma ve yoğun ferahlatıcı nane lezzeti.',
         price: 340,
         image_url: 'https://images.unsplash.com/photo-1510076857177-7470076d4198?w=600&auto=format&fit=crop&q=80',
         calories: 0,
         preparation_time_minutes: 8,
-        sort_order: 2,
+        sort_order: 3,
       },
       {
         name: 'Buzlu Marpuç & Başlık Yenileme',
-        description: 'Nargilenizi soğutmak için dondurulmuş buzlu marpuç ilavesi.',
+        description: 'Nargilenizi dondurucu ferahlığa ulaştıran buzlu marpuç takviyesi.',
         price: 90,
         image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
         calories: 0,
         preparation_time_minutes: 3,
-        sort_order: 3,
+        sort_order: 4,
       }
     ]
   },
@@ -277,13 +358,31 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Blue Lagoon & Orman Meyveli Mocktail',
+        name: 'Blue Lagoon Tropikal Mocktail',
         description: 'Mavi turunç şurubu, böğürtlen püresi, limon suyu ve sprite ile tropikal ferahlık.',
         price: 175,
         image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
         calories: 145,
         preparation_time_minutes: 5,
         sort_order: 2,
+      },
+      {
+        name: 'Taze Sıkma Ev Yapımı Limonata',
+        description: 'Taze limon suyu, nane yaprakları ve kırık buz ile doğal ev yapımı limonata.',
+        price: 95,
+        image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
+        calories: 110,
+        preparation_time_minutes: 3,
+        sort_order: 3,
+      },
+      {
+        name: 'Taze Sıkma Portakal Suyu',
+        description: '%100 doğal günlük sıkılmış portakal suyu.',
+        price: 110,
+        image_url: 'https://images.unsplash.com/photo-1613478223719-2ab802602423?w=600&auto=format&fit=crop&q=80',
+        calories: 120,
+        preparation_time_minutes: 3,
+        sort_order: 4,
       }
     ]
   },
@@ -293,31 +392,67 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     sort_order: 11,
     template_products: [
       {
-        name: 'Fıçı Bira (50cl Soğuk Bardak)',
-        description: 'Buz gibi fıçı bira, tuzlu fıstık eşliğinde.',
-        price: 180,
+        name: 'Efes Pilsen Fıçı Bira (50cl)',
+        description: 'Buz gibi soğuk fıçı bira, tuzlu fıstık eşliğinde servis edilir.',
+        price: 170,
         image_url: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&auto=format&fit=crop&q=80',
         calories: 210,
         preparation_time_minutes: 2,
         sort_order: 1,
       },
       {
-        name: 'Aperol Spritz / Gin Tonic',
-        description: 'Prosecco, Aperol, portakal dilimi ve soda ile İtalyan klasiği kokteyl.',
+        name: 'Tuborg Gold Şişe (50cl)',
+        description: '%100 malt soğuk şişe bira.',
+        price: 175,
+        image_url: 'https://images.unsplash.com/photo-1535958636474-b021ee887b13?w=600&auto=format&fit=crop&q=80',
+        calories: 215,
+        preparation_time_minutes: 2,
+        sort_order: 2,
+      },
+      {
+        name: 'Corona Extra (33cl Dilim Limon ile)',
+        description: 'Meksika birası, taze misket limon dilimi ile buzlu servis.',
+        price: 210,
+        image_url: 'https://images.unsplash.com/photo-1608270199042-3a81f33f6797?w=600&auto=format&fit=crop&q=80',
+        calories: 148,
+        preparation_time_minutes: 2,
+        sort_order: 3,
+      },
+      {
+        name: 'Aperol Spritz',
+        description: 'Prosecco, Aperol likörü, portakal dilimi ve soda ile İtalyan klasiği kokteyl.',
         price: 320,
         image_url: 'https://images.unsplash.com/photo-1560512823-829485b8bf24?w=600&auto=format&fit=crop&q=80',
         calories: 190,
         preparation_time_minutes: 5,
-        sort_order: 2,
+        sort_order: 4,
       },
       {
-        name: 'Kırmızı / Beyaz Kadeh Şarap (Özel Seçim)',
-        description: 'Kupaj yerli rezerve kadeh şarap, kuru meyve ve peynir tabağı eşlikçisi ile.',
+        name: 'Gin Tonic',
+        description: 'Premium cin, aromatik tonik, salatalık dilimi ve ardıç tohumları ile.',
+        price: 290,
+        image_url: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&auto=format&fit=crop&q=80',
+        calories: 160,
+        preparation_time_minutes: 4,
+        sort_order: 5,
+      },
+      {
+        name: 'Kadeh Kırmızı / Beyaz Şarap',
+        description: 'Özel rezerve kadeh şarap, kuru meyve ve peynir eşlikçisi ile.',
         price: 240,
         image_url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&auto=format&fit=crop&q=80',
         calories: 130,
         preparation_time_minutes: 3,
-        sort_order: 3,
+        sort_order: 6,
+      },
+      {
+        name: 'Yeni Rakı (Duble)',
+        description: 'Klasik Yeni Rakı duble kadeh, kavun ve beyaz peynir mezesi ile.',
+        price: 260,
+        image_url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&auto=format&fit=crop&q=80',
+        calories: 180,
+        preparation_time_minutes: 3,
+        sort_order: 7,
       }
     ]
   },
@@ -327,8 +462,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     sort_order: 12,
     template_products: [
       {
-        name: 'Geleneksel Demleme Çay',
-        description: 'Rize yaylalarından taze demlenmiş bardak çay.',
+        name: 'Geleneksel Demleme Bardak Çay',
+        description: 'Taze demlenmiş bergamot aromalı bardak çay.',
         price: 35,
         image_url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600&auto=format&fit=crop&q=80',
         calories: 5,
@@ -336,8 +471,8 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         sort_order: 1,
       },
       {
-        name: 'Türk Kahvesi (Tek / Çift)',
-        description: 'Geleneksel közde pişmiş köpüklü Türk kahvesi, lokum ve su ile.',
+        name: 'Közde Türk Kahvesi',
+        description: 'Geleneksel közde pişmiş bol köpüklü Türk kahvesi, lokum ve su ile.',
         price: 70,
         image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80',
         calories: 20,
@@ -352,6 +487,24 @@ export const defaultMenuTemplate: DefaultCategory[] = [
         calories: 140,
         preparation_time_minutes: 3,
         sort_order: 3,
+      },
+      {
+        name: 'Filtre Kahve (Sade / Sütlü)',
+        description: 'Taze çekilmiş Guatemala & Colombia harmanı demlenmiş filtre kahve.',
+        price: 90,
+        image_url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=600&auto=format&fit=crop&q=80',
+        calories: 10,
+        preparation_time_minutes: 3,
+        sort_order: 4,
+      },
+      {
+        name: 'Sıcak Çikolata & Sahlep',
+        description: 'Yoğun çikolatalı sıcak içecek veya tarçınlı geleneksel sahlep.',
+        price: 110,
+        image_url: 'https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=600&auto=format&fit=crop&q=80',
+        calories: 230,
+        preparation_time_minutes: 3,
+        sort_order: 5,
       }
     ]
   },
@@ -361,31 +514,94 @@ export const defaultMenuTemplate: DefaultCategory[] = [
     sort_order: 13,
     template_products: [
       {
-        name: 'Ev Yapımı Nane-Limonata',
-        description: 'Taze sıkılmış limon, taze nane yaprakları ve buz ile servis edilir.',
-        price: 95,
-        image_url: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&auto=format&fit=crop&q=80',
-        calories: 110,
-        preparation_time_minutes: 3,
+        name: 'Coca-Cola (330ml Kutu)',
+        description: 'Orijinal tat soğuk kutu kola.',
+        price: 65,
+        image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80',
+        calories: 140,
+        preparation_time_minutes: 1,
         sort_order: 1,
       },
       {
-        name: 'Ice Caramel Latte',
-        description: 'Espresso, soğuk süt, buz ve karamel şurubu.',
-        price: 125,
-        image_url: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=600&auto=format&fit=crop&q=80',
-        calories: 180,
-        preparation_time_minutes: 3,
+        name: 'Coca-Cola Zero Sugar (330ml Kutu)',
+        description: 'Şekersiz kalorisiz kutu kola.',
+        price: 65,
+        image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 1,
         sort_order: 2,
       },
       {
-        name: 'Kutu Meşrubatlar (Kola / Fanta / Sprite)',
-        description: '330ml kutu soğuk içecek.',
+        name: 'Fanta Portakal (330ml Kutu)',
+        description: 'Ferahlatıcı portakal aromalı gazlı içecek.',
         price: 65,
         image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80',
         calories: 140,
         preparation_time_minutes: 1,
         sort_order: 3,
+      },
+      {
+        name: 'Sprite Gazoz (330ml Kutu)',
+        description: 'Limon ve misket limonu aromalı gazoz.',
+        price: 65,
+        image_url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&auto=format&fit=crop&q=80',
+        calories: 130,
+        preparation_time_minutes: 1,
+        sort_order: 4,
+      },
+      {
+        name: 'Fuse Tea Soğuk Çay (Şeftali / Limon / Mango)',
+        description: '330ml kutu ferahlatıcı soğuk çay.',
+        price: 65,
+        image_url: 'https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&auto=format&fit=crop&q=80',
+        calories: 90,
+        preparation_time_minutes: 1,
+        sort_order: 5,
+      },
+      {
+        name: 'Taze Yayık Ayran (300ml)',
+        description: 'Geleneksel köpüklü soğuk yayık ayranı.',
+        price: 45,
+        image_url: 'https://images.unsplash.com/photo-1541529086526-db283c563270?w=600&auto=format&fit=crop&q=80',
+        calories: 110,
+        preparation_time_minutes: 1,
+        sort_order: 6,
+      },
+      {
+        name: 'Sade / Meyveli Maden Suyu (200ml Cam Şişe)',
+        description: 'Doğal mineralli maden suyu veya limon/elma aromalı soda.',
+        price: 35,
+        image_url: 'https://images.unsplash.com/photo-1559839914-ba2bf8c20bb6?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 1,
+        sort_order: 7,
+      },
+      {
+        name: 'Red Bull Enerji İçeceği (250ml)',
+        description: 'Klasik veya şekersiz kutu enerji içeceği.',
+        price: 95,
+        image_url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&auto=format&fit=crop&q=80',
+        calories: 115,
+        preparation_time_minutes: 1,
+        sort_order: 8,
+      },
+      {
+        name: 'Doğal Kaynak Suyu (330ml Cam Şişe)',
+        description: 'Cam şişede doğal kaynak suyu.',
+        price: 25,
+        image_url: 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&auto=format&fit=crop&q=80',
+        calories: 0,
+        preparation_time_minutes: 1,
+        sort_order: 9,
+      },
+      {
+        name: 'Ice Caramel Latte / Ice Americano',
+        description: 'Espresso, soğuk süt, buz ve karamel şurubu ile yaz lezzeti.',
+        price: 125,
+        image_url: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=600&auto=format&fit=crop&q=80',
+        calories: 180,
+        preparation_time_minutes: 3,
+        sort_order: 10,
       }
     ]
   }
@@ -398,5 +614,6 @@ export const defaultTables = (max: number = 10) => {
     section: i < 4 ? 'Salon' : i < 8 ? 'Bahçe' : 'Teras'
   }));
 };
+
 
 

@@ -449,23 +449,24 @@ class RestaurantStore {
   async addTable(table: Pick<RestaurantTable, 'table_number' | 'table_name' | 'section'>) {
     const tables = this.getTables();
     const newTable: RestaurantTable = {
-      id: `tbl_${Date.now()}`,
+      id: `tbl_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       restaurant_id: this.currentRestaurantId || '',
       table_number: table.table_number,
       table_name: table.table_name,
-      section: table.section,
+      section: table.section || 'Salon',
       qr_token: `tok_${Math.random().toString(36).substring(2, 10)}`,
       is_active: true,
     };
-    const { error } = await supabase.from('restaurant_tables').insert([newTable]);
-    
-    if (error) {
-      showToast('Masa eklenemedi: ' + error.message, 'error');
-      throw error;
-    }
 
     this.set('tables', [...tables, newTable]);
     this.notify();
+
+    try {
+      await supabase.from('restaurant_tables').insert([newTable]);
+    } catch (e) {
+      console.warn('Supabase addTable:', e);
+    }
+
     return newTable;
   }
 
