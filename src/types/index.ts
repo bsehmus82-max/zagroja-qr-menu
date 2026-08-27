@@ -23,6 +23,7 @@ export interface Business {
   wifi_password?: string;
   show_wifi?: boolean;
   table_limit?: number | null;
+  pairing_secret?: string;
   subscription_status: SubscriptionStatus;
   subscription_days: number;
   subscription_expires_at: string;

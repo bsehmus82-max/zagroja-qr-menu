@@ -1052,3 +1052,97 @@ GRANT EXECUTE ON FUNCTION public.reject_waiter_device TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_device_pairing_status TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_waiter_pin TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
+-- ============================================================
+-- GARSON QR YENİLEME VE GÜVENLİK ANAHTARI (PAIRING SECRET)
+-- ============================================================
+
+ALTER TABLE public.businesses
+ADD COLUMN IF NOT EXISTS pairing_secret TEXT DEFAULT gen_random_uuid();
+
+CREATE OR REPLACE FUNCTION public.rotate_business_pairing_secret(p_business_id UUID)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_new_secret TEXT;
+BEGIN
+    v_new_secret := encode(gen_random_bytes(12), 'hex');
+    UPDATE public.businesses
+    SET pairing_secret = v_new_secret,
+        updated_at = now()
+    WHERE id = p_business_id;
+    RETURN v_new_secret;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.request_waiter_pairing(
+    p_business_slug TEXT,
+    p_device_name TEXT DEFAULT 'Garson Cihazı',
+    p_pairing_key TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_business RECORD;
+    v_token UUID;
+    v_device_id UUID;
+BEGIN
+    SELECT * INTO v_business 
+    FROM public.businesses 
+    WHERE slug = p_business_slug;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'İşletme bulunamadı.';
+    END IF;
+
+    IF NOT public.is_business_active(v_business.id) THEN
+        RAISE EXCEPTION 'İşletme hesabı aktif değil veya askıya alınmış.';
+    END IF;
+
+    IF v_business.pairing_secret IS NOT NULL AND v_business.pairing_secret <> '' THEN
+        IF p_pairing_key IS NOT NULL AND p_pairing_key <> '' AND p_pairing_key <> v_business.pairing_secret THEN
+            RAISE EXCEPTION 'Bu QR kodun geçerlilik süresi dolmuş veya yenilenmiştir. Lütfen kasadaki güncel QR kodu okutunuz.';
+        END IF;
+    END IF;
+
+    v_token := gen_random_uuid();
+
+    INSERT INTO public.waiter_devices (
+        business_id,
+        device_name,
+        device_token,
+        status,
+        is_trusted,
+        failed_pin_attempts,
+        pin_locked_until,
+        last_active_at
+    ) VALUES (
+        v_business.id,
+        COALESCE(NULLIF(p_device_name, ''), 'Garson Telefonu'),
+        v_token,
+        'pending',
+        false,
+        0,
+        NULL,
+        now()
+    )
+    RETURNING id INTO v_device_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'device_id', v_device_id,
+        'device_token', v_token,
+        'business_id', v_business.id,
+        'business_name', v_business.name,
+        'business_slug', v_business.slug
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.rotate_business_pairing_secret TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.request_waiter_pairing TO anon, authenticated;

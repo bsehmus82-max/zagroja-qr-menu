@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 
 export const PairWaiter: React.FC = () => {
   const [businessSlug, setBusinessSlug] = useState('');
+  const [pairingKey, setPairingKey] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [deviceName, setDeviceName] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'waiting_approval' | 'approved' | 'rejected' | 'error'>('idle');
@@ -25,7 +26,9 @@ export const PairWaiter: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const bizParam = params.get('biz') || params.get('business') || '';
+    const keyParam = params.get('key') || params.get('k') || '';
     setBusinessSlug(bizParam);
+    setPairingKey(keyParam);
     setDeviceName(getDefaultDeviceName());
 
     const savedToken = localStorage.getItem('restiva_waiter_device_token');
@@ -122,6 +125,7 @@ export const PairWaiter: React.FC = () => {
       const { data, error } = await supabase.rpc('request_waiter_pairing', {
         p_business_slug: businessSlug.trim(),
         p_device_name: deviceName.trim() || getDefaultDeviceName(),
+        p_pairing_key: pairingKey.trim() || null,
       });
 
       if (error) throw error;
