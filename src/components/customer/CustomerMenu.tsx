@@ -143,7 +143,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
       <div className="w-full max-w-md min-h-screen bg-[#F8FAFC] relative pb-28 shadow-[0_0_60px_rgba(0,0,0,0.6)] border-x border-slate-800/50 flex flex-col justify-between">
         <div>
           {/* Hero Header with Banner */}
-          <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
+          <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
             <img
               src={business.banner_url || defaultBanner}
               alt={business.name}
@@ -153,28 +153,32 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
             {/* Top-Left Table Badge */}
             <div className="absolute top-3.5 left-4 z-10">
-              <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+              <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
                 <span>{tableNo ? tableNo : 'QR Menü'}</span>
               </div>
             </div>
 
-            {/* Bottom Info */}
+            {/* Bottom Info: Explicitly constrained logo squircle container */}
             <div className="absolute bottom-3.5 left-4 right-4 z-10 flex items-center gap-3">
-              <div className="w-13 h-13 rounded-2xl bg-white border-2 border-white shadow-lg overflow-hidden flex items-center justify-center shrink-0 p-1">
+              <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
                 {business.logo_url ? (
-                  <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
+                  <img
+                    src={business.logo_url}
+                    alt={business.name}
+                    className="w-full h-full max-w-full max-h-full object-contain"
+                  />
                 ) : (
-                  <span className="text-slate-900 font-black text-sm">{business.name.charAt(0)}</span>
+                  <span className="text-slate-900 font-black text-base">{business.name.charAt(0)}</span>
                 )}
               </div>
 
-              <div className="text-white min-w-0">
-                <h1 className="font-extrabold text-base tracking-tight truncate leading-tight">
+              <div className="text-white min-w-0 flex-1">
+                <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight drop-shadow-sm">
                   {business.name}
                 </h1>
                 {business.working_hours && (
-                  <p className="text-[11px] text-slate-300 truncate mt-0.5 font-medium">
+                  <p className="text-[11px] text-slate-200 truncate mt-0.5 font-medium drop-shadow-xs">
                     {business.working_hours}
                   </p>
                 )}
@@ -182,7 +186,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Quick Action Bar */}
+          {/* Quick Action Bar (Dark Rounded Card) */}
           <div className="mx-4 -mt-3.5 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
             <button
               onClick={() => setServiceModalType('waiter')}
@@ -238,7 +242,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* VIEW 1: CATEGORIES GRID (Opened initially by default) */}
+          {/* VIEW 1: CATEGORIES (1 Category Per Row, Rounded Rectangular Gourmet Banner Cards) */}
           {!isSearching && selectedCatId === null && (
             <div className="px-4 mt-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -259,32 +263,42 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                   Menüde henüz kategori bulunmuyor.
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-3">
                   {categories.map((cat) => {
                     const count = products.filter((p) => p.category_id === cat.id).length;
                     return (
                       <div
                         key={cat.id}
                         onClick={() => setSelectedCatId(cat.id)}
-                        className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer active:scale-98 group flex flex-col justify-between"
+                        className="w-full h-32 sm:h-36 rounded-2xl overflow-hidden relative shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.99] group border border-slate-200/70 bg-slate-900"
                       >
-                        <div className="h-28 w-full overflow-hidden relative bg-slate-100">
-                          <img
-                            src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'}
-                            alt={cat.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                          <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
-                            {count} Çeşit
-                          </span>
-                        </div>
+                        {/* High Quality Responsive Category Background Image */}
+                        <img
+                          src={
+                            cat.image_url ||
+                            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'
+                          }
+                          alt={cat.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
 
-                        <div className="p-3 flex items-center justify-between">
-                          <h3 className="font-extrabold text-xs text-slate-900 truncate">
-                            {cat.name}
-                          </h3>
-                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-500 group-hover:translate-x-0.5 transition" />
+                        {/* Rich Gradient Overlay for High Text Readability */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-black/10" />
+
+                        {/* Card Content: Left Category Title + Count, Right Arrow Circle */}
+                        <div className="absolute inset-0 p-4 flex items-center justify-between z-10">
+                          <div className="space-y-1.5 max-w-[75%]">
+                            <span className="inline-flex items-center gap-1 bg-orange-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                              {count} Çeşit
+                            </span>
+                            <h3 className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-sm group-hover:text-orange-300 transition-colors">
+                              {cat.name}
+                            </h3>
+                          </div>
+
+                          <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center text-white group-hover:bg-orange-500 group-hover:border-orange-500 transition-all shadow-sm">
+                            <ChevronRight className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
                         </div>
                       </div>
                     );
@@ -294,7 +308,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           )}
 
-          {/* VIEW 2: PRODUCTS INSIDE CATEGORY (Opened when category is clicked) */}
+          {/* VIEW 2: PRODUCTS INSIDE CATEGORY */}
           {(isSearching || selectedCatId !== null) && (
             <div className="mt-3 space-y-3">
               {/* Category Breadcrumb / Back Bar */}
