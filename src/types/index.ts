@@ -134,3 +134,14 @@ export interface CartItem {
   quantity: number;
   notes?: string;
 }
+
+export interface DailySummary {
+  id: string;
+  business_id: string;
+  summary_date: string;
+  total_revenue: number;
+  cash_revenue: number;
+  card_revenue: number;
+  total_orders: number;
+  created_at: string;
+}

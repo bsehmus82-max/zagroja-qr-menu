@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
-  Menu, X, Users
+  Menu, X, Users, AlertTriangle, Clock
 } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';

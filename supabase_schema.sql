@@ -537,3 +537,116 @@ GRANT EXECUTE ON FUNCTION public.generate_waiter_pairing_token TO anon, authenti
 GRANT EXECUTE ON FUNCTION public.pair_waiter_device TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.verify_waiter_pin TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
+
+-- ============================================================
+-- 11. GÜNLÜK ÖZET (DAILY_SUMMARY) & OTOMATİK CRON GÖREVLERİ
+-- ============================================================
+
+-- 1. Günlük Ciro ve Satış Özeti Tablosu
+CREATE TABLE IF NOT EXISTS public.daily_summary (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    summary_date DATE NOT NULL,
+    total_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    cash_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    card_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    total_orders INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (business_id, summary_date)
+);
+
+ALTER TABLE public.daily_summary ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow select daily_summary" ON public.daily_summary;
+CREATE POLICY "Allow select daily_summary" 
+ON public.daily_summary 
+FOR SELECT 
+USING (public.is_business_active(business_id));
+
+DROP POLICY IF EXISTS "Allow service role all daily_summary" ON public.daily_summary;
+CREATE POLICY "Allow service role all daily_summary" 
+ON public.daily_summary 
+FOR ALL 
+USING (true);
+
+-- 2. CRON 1: SÜRESİ DOLAN İŞLETMELERİ OTOMATİK ASKIYA ALMA (Her Gece 00:05)
+CREATE OR REPLACE FUNCTION public.cron_auto_suspend_expired_businesses()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE public.businesses
+    SET subscription_status = 'suspended',
+        updated_at = NOW()
+    WHERE subscription_expires_at < NOW()
+      AND subscription_status = 'active';
+END;
+$$;
+
+-- 3. CRON 2: GÜNLÜK GÜN KAPATMA VE CİRO ÖZETİ DERLEME (Her Gece 00:00)
+CREATE OR REPLACE FUNCTION public.cron_generate_daily_summary(p_target_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 day')::DATE)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    INSERT INTO public.daily_summary (
+        business_id,
+        summary_date,
+        total_revenue,
+        cash_revenue,
+        card_revenue,
+        total_orders
+    )
+    SELECT 
+        b.id AS business_id,
+        p_target_date AS summary_date,
+        COALESCE(SUM(o.total_amount), 0.00) AS total_revenue,
+        COALESCE(SUM(CASE WHEN o.payment_method = 'cash' THEN o.total_amount ELSE 0 END), 0.00) AS cash_revenue,
+        COALESCE(SUM(CASE WHEN o.payment_method = 'credit_card' THEN o.total_amount ELSE 0 END), 0.00) AS card_revenue,
+        COUNT(o.id) AS total_orders
+    FROM public.businesses b
+    LEFT JOIN public.orders o ON o.business_id = b.id 
+        AND o.status = 'paid' 
+        AND o.created_at::DATE = p_target_date
+    GROUP BY b.id
+    ON CONFLICT (business_id, summary_date) 
+    DO UPDATE SET 
+        total_revenue = EXCLUDED.total_revenue,
+        cash_revenue = EXCLUDED.cash_revenue,
+        card_revenue = EXCLUDED.card_revenue,
+        total_orders = EXCLUDED.total_orders;
+END;
+$$;
+
+-- 4. CRON 3: BİTEN AYIN CİRO DEFTERİNİ (DAILY_SUMMARY) OTOMATİK SİLME (Her Ayın 6'sı Saat 00:05)
+-- DİKKAT: Sadece daily_summary tablosundan siler. public.orders HAM verisine KESİNLİKLE DOKUNMAZ.
+-- İşletmenin durumundan (aktif/askıya alınmış) bağımsız çalışır.
+CREATE OR REPLACE FUNCTION public.cron_purge_previous_month_daily_summary()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    DELETE FROM public.daily_summary
+    WHERE summary_date < date_trunc('month', CURRENT_DATE)::DATE;
+END;
+$$;
+
+-- PG_CRON ZAMANLANMIŞ GÖREV TANIMLARI (Supabase pg_cron eklentisi aktif olduğunda)
+-- 1. Her gece 00:00 -> Günlük ciro özetini çıkar
+-- SELECT cron.schedule('generate_daily_summary_job', '0 0 * * *', 'SELECT public.cron_generate_daily_summary();');
+
+-- 2. Her gece 00:05 -> Süresi dolan işletmeleri otomatik askıya al
+-- SELECT cron.schedule('auto_suspend_expired_businesses_job', '5 0 * * *', 'SELECT public.cron_auto_suspend_expired_businesses();');
+
+-- 3. Her ayın 6'sı 00:05 (5 günlük indirme penceresi bitince) -> Eski ayın daily_summary kayıtlarını sil
+-- SELECT cron.schedule('purge_old_daily_summary_job', '5 0 6 * *', 'SELECT public.cron_purge_previous_month_daily_summary();');
+
+GRANT EXECUTE ON FUNCTION public.cron_auto_suspend_expired_businesses TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cron_generate_daily_summary TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cron_purge_previous_month_daily_summary TO anon, authenticated;
