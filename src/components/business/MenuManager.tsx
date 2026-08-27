@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Snowflake, Flame, Trash2, Edit2, 
-  RefreshCw, X, Check, Image as ImageIcon, UtensilsCrossed
+  Plus, Snowflake, Trash2, Edit2, 
+  RefreshCw, X, Check, UtensilsCrossed
 } from 'lucide-react';
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -242,7 +242,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}
@@ -255,121 +255,123 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      {/* Top Banner Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-            Menü & Çeşit Yönetimi
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Kategorilerinizi, ürünlerinizi, fiyatlarınızı düzenleyin ve tükenen ürünleri tek tıkla dondurun.
-          </p>
+      {/* Top Action Row */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+        {/* Category Navigation Bar */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          {categories.map((cat) => {
+            const isSelected = selectedCatId === cat.id;
+            const count = products.filter((p) => p.category_id === cat.id).length;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCatId(cat.id)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                  isSelected
+                    ? 'bg-orange-500 text-white shadow-xs'
+                    : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span>{cat.name}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                  isSelected ? 'bg-black/20 text-white' : 'bg-slate-200 text-slate-600'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {categories.length === 0 && (
+            <button
+              onClick={handleLoadSampleCatalog}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition flex items-center gap-1.5"
+            >
+              <UtensilsCrossed className="w-3.5 h-3.5" />
+              <span>Örnek Menü Kataloğunu Yükle</span>
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Buttons on Right */}
+        <div className="flex items-center gap-2 shrink-0">
+          {selectedCategory && (
+            <button
+              onClick={() => handleDeleteCategory(selectedCategory)}
+              className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold transition"
+              title="Seçili Kategoriyi Sil"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+
           <button
             onClick={() => setShowAddCatModal(true)}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition"
+            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition"
           >
             <Plus className="w-4 h-4" />
-            <span>Kategori Ekle</span>
+            <span>+ Kategori</span>
           </button>
 
           <button
             onClick={() => setShowAddProdModal(true)}
             disabled={!selectedCatId}
-            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-40"
+            className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-40"
           >
             <Plus className="w-4 h-4" />
-            <span>Ürün Ekle</span>
+            <span>+ Ürün</span>
           </button>
         </div>
       </div>
 
-      {/* Category Pills Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {categories.map((cat) => {
-          const isSelected = selectedCatId === cat.id;
-          const count = products.filter((p) => p.category_id === cat.id).length;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCatId(cat.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
-                isSelected
-                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <span>{cat.name}</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                isSelected ? 'bg-black/20 text-white' : 'bg-slate-100 text-slate-500'
-              }`}>
-                {count}
-              </span>
-            </button>
-          );
-        })}
-
-        {categories.length === 0 && (
-          <button
-            onClick={handleLoadSampleCatalog}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition flex items-center gap-1.5"
-          >
-            <UtensilsCrossed className="w-3.5 h-3.5" />
-            <span>Örnek Menü Şablonunu Yükle</span>
-          </button>
-        )}
-      </div>
-
-      {/* Products Content */}
+      {/* Products Grid */}
       {loading ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs font-bold">
           Menü yükleniyor...
         </div>
       ) : categories.length === 0 ? (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-16 text-center shadow-sm space-y-3">
-          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-            <UtensilsCrossed className="w-6 h-6" />
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-14 text-center shadow-xs space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+            <UtensilsCrossed className="w-5 h-5" />
           </div>
-          <h3 className="font-extrabold text-sm text-slate-800">Menünüzde Henüz Kategori Bulunmuyor</h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            Hemen yeni kategori ekleyebilir veya tek tıkla 10 hazır gastronomi kategorisini yükleyebilirsiniz.
+          <h3 className="font-extrabold text-sm text-slate-800">Menünüzde Henüz Kategori Yok</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            Hemen yeni kategori ekleyebilir veya tek tıkla 10 hazır gurme kategorisini yükleyebilirsiniz.
           </p>
           <button
             onClick={handleLoadSampleCatalog}
             className="mt-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition"
           >
-            Örnek Menü Şablonunu Dahil Et
+            Örnek Menü Kataloğunu Dahil Et
           </button>
         </div>
       ) : currentProducts.length === 0 ? (
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-12 text-center shadow-sm space-y-3">
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-xs space-y-2">
           <h3 className="font-extrabold text-sm text-slate-800">
-            {selectedCategory?.name} Kategorisinde Ürün Yok
+            {selectedCategory?.name} Kategorisinde Ürün Bulunmuyor
           </h3>
-          <p className="text-xs text-slate-500">Bu kategoriye ilk ürününüzü ekleyin.</p>
+          <p className="text-xs text-slate-400">Bu kategoriye ilk ürününüzü ekleyin.</p>
           <button
             onClick={() => setShowAddProdModal(true)}
-            className="px-4 py-2 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-sm"
+            className="px-4 py-2 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-xs"
           >
             + Ürün Ekle
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
           {currentProducts.map((prod) => (
             <div
               key={prod.id}
-              className={`bg-white border rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3 ${
+              className={`bg-white border rounded-2xl p-4 shadow-xs hover:shadow-sm transition flex flex-col justify-between space-y-3 ${
                 prod.is_frozen ? 'border-sky-300 bg-sky-50/20' : 'border-slate-200/90'
               }`}
             >
               <div>
                 <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-100">
-                  <div>
-                    <h4 className="font-extrabold text-sm text-slate-900">{prod.name}</h4>
-                    <span className="font-extrabold text-xs text-orange-600 mt-0.5 block">
+                  <div className="min-w-0">
+                    <h4 className="font-extrabold text-xs text-slate-900 truncate">{prod.name}</h4>
+                    <span className="font-black text-xs text-orange-600 mt-0.5 block">
                       {prod.price.toFixed(2)} ₺
                     </span>
                   </div>
@@ -383,16 +385,18 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                   </button>
                 </div>
 
-                <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                  {prod.description || 'Açıklama bulunmuyor.'}
-                </p>
+                {prod.description && (
+                  <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
+                    {prod.description}
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                 <button
                   onClick={() => toggleFreezeProduct(prod)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  className={`w-full py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     prod.is_frozen
                       ? 'bg-sky-100 text-sky-800 hover:bg-sky-200'
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -410,7 +414,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       {/* Add Category Modal */}
       {showAddCatModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-800">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-sm text-slate-900">Yeni Kategori Ekle</h3>
               <button onClick={() => setShowAddCatModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
@@ -420,7 +424,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
             <form onSubmit={handleAddCategory} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Adı</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Adı</label>
                 <input
                   type="text"
                   required
@@ -432,7 +436,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Görsel URL (Opsiyonel)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Görsel URL (Opsiyonel)</label>
                 <input
                   type="url"
                   value={newCatImage}
@@ -465,7 +469,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       {/* Add Product Modal */}
       {showAddProdModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-800">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-extrabold text-sm text-slate-900">
                 {selectedCategory?.name} Kategorisine Ürün Ekle
@@ -477,7 +481,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
             <form onSubmit={handleAddProduct} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Ürün Adı</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Adı</label>
                 <input
                   type="text"
                   required
@@ -489,7 +493,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Fiyat (₺)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Fiyat (₺)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -502,12 +506,12 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Ürün Açıklaması</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Açıklaması (Opsiyonel)</label>
                 <textarea
                   rows={2}
                   value={newProdDesc}
                   onChange={(e) => setNewProdDesc(e.target.value)}
-                  placeholder="İçerik, gramaj, servis detayları..."
+                  placeholder="İçerik ve porsiyon detayları..."
                   className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none resize-none"
                 />
               </div>

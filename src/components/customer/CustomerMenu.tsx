@@ -135,64 +135,66 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 antialiased pb-28">
-      {/* Mobile Container (Centered) */}
-      <div className="max-w-md mx-auto bg-slate-50 min-h-screen shadow-2xl relative">
+      {/* Mobile Container */}
+      <div className="max-w-md mx-auto bg-slate-50 min-h-screen shadow-xl relative">
         {/* Hero Header with Banner */}
-        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-900">
+        <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-slate-900">
           <img
             src={business.banner_url || defaultBanner}
             alt={business.name}
-            className="w-full h-full object-cover opacity-70"
+            className="w-full h-full object-cover opacity-75"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17] via-black/40 to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17] via-black/30 to-black/50" />
 
           {/* Top-Left Table Badge */}
-          <div className="absolute top-4 left-4 z-10">
-            <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-extrabold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+          <div className="absolute top-3.5 left-4 z-10">
+            <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-              <span>{tableNo ? tableNo : 'Dijital Menü'}</span>
+              <span>{tableNo ? tableNo : 'QR Menü'}</span>
             </div>
           </div>
 
-          {/* Bottom Info: Logo + Restaurant Name + Tagline */}
-          <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
+          {/* Bottom Info */}
+          <div className="absolute bottom-3.5 left-4 right-4 z-10 flex items-center gap-3">
+            <div className="w-13 h-13 rounded-2xl bg-white border-2 border-white shadow-lg overflow-hidden flex items-center justify-center shrink-0 p-1">
               {business.logo_url ? (
                 <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
               ) : (
-                <span className="text-slate-900 font-extrabold text-base">{business.name.charAt(0)}</span>
+                <span className="text-slate-900 font-black text-sm">{business.name.charAt(0)}</span>
               )}
             </div>
 
             <div className="text-white min-w-0">
-              <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight">
+              <h1 className="font-extrabold text-base tracking-tight truncate leading-tight">
                 {business.name}
               </h1>
-              <p className="text-[11px] text-slate-300 truncate mt-0.5 font-medium">
-                {business.working_hours ? `${business.working_hours}` : 'Özenle hazırlanan gurme lezzetler ve eşsiz tatlar.'}
-              </p>
+              {business.working_hours && (
+                <p className="text-[11px] text-slate-300 truncate mt-0.5 font-medium">
+                  {business.working_hours}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Quick Action Bar (Reference UI Dark Rounded Card) */}
-        <div className="mx-4 -mt-4 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-3 flex items-center justify-around shadow-xl border border-slate-800">
+        {/* Quick Action Bar (Dark Rounded Card) */}
+        <div className="mx-4 -mt-3.5 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
           <button
             onClick={() => setServiceModalType('waiter')}
-            className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
+            className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
           >
-            <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-orange-400">
-              <Hand className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
+              <Hand className="w-3.5 h-3.5" />
             </div>
             <span className="text-[10px] font-bold">Garson Çağır</span>
           </button>
 
           <button
             onClick={() => setServiceModalType('bill')}
-            className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
+            className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
           >
-            <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-orange-400">
-              <Banknote className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
+              <Banknote className="w-3.5 h-3.5" />
             </div>
             <span className="text-[10px] font-bold">Hesap İste</span>
           </button>
@@ -200,17 +202,17 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           {business.wifi_ssid && (
             <button
               onClick={() => setServiceModalType('wifi')}
-              className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
+              className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
             >
-              <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-sky-400">
-                <Wifi className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-sky-400">
+                <Wifi className="w-3.5 h-3.5" />
               </div>
               <span className="text-[10px] font-bold">Wi-Fi Bilgisi</span>
             </button>
           )}
         </div>
 
-        {/* Active Order Status Tracker (If customer placed order) */}
+        {/* Active Order Tracker */}
         {activeOrders.length > 0 && (
           <div className="mx-4 mt-3">
             <OrderStatusTracker orders={activeOrders} />
@@ -219,7 +221,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
         {/* Search Bar */}
         <div className="mx-4 mt-3">
-          <div className="bg-white border border-slate-200/90 rounded-2xl px-4 py-2.5 shadow-sm flex items-center gap-2.5">
+          <div className="bg-white border border-slate-200/90 rounded-2xl px-3.5 py-2.5 shadow-xs flex items-center gap-2">
             <Search className="w-4 h-4 text-slate-400 shrink-0" />
             <input
               type="text"
@@ -231,13 +233,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           </div>
         </div>
 
-        {/* Category Pills Row */}
+        {/* Category Navigation Pills */}
         <div className="px-4 mt-3 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
           <button
             onClick={() => setSelectedCatId('all')}
-            className={`px-4 py-2 rounded-full text-xs font-extrabold transition shrink-0 flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
               selectedCatId === 'all'
-                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
@@ -251,9 +253,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <button
                 key={cat.id}
                 onClick={() => setSelectedCatId(cat.id)}
-                className={`px-4 py-2 rounded-full text-xs font-extrabold transition shrink-0 flex items-center gap-1.5 ${
+                className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
                   isSelected
-                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                    ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
                     : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
@@ -263,24 +265,24 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           })}
         </div>
 
-        {/* Product Items List (Exact Reference Layout) */}
-        <div className="px-4 mt-3 space-y-3">
+        {/* Product Items List */}
+        <div className="px-4 mt-3 space-y-2.5">
           {loading ? (
-            <div className="py-16 text-center text-xs text-slate-400 font-medium">
-              Menü hazırlanıyor...
+            <div className="py-16 text-center text-xs text-slate-400 font-bold">
+              Menü yükleniyor...
             </div>
           ) : currentProducts.length === 0 ? (
-            <div className="py-16 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-8">
+            <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
               Aradığınız kriterlere uygun ürün bulunamadı.
             </div>
           ) : (
-            currentProducts.map((prod, idx) => (
+            currentProducts.map((prod) => (
               <div
                 key={prod.id}
-                className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-sm hover:shadow-md transition flex items-center gap-3.5 relative overflow-hidden"
+                className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
               >
-                {/* Product Image on Left */}
-                <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                {/* Image on Left */}
+                <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
                   <img
                     src={
                       categories.find((c) => c.id === prod.category_id)?.image_url ||
@@ -289,39 +291,36 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     alt={prod.name}
                     className="w-full h-full object-cover"
                   />
-                  {idx < 2 && (
-                    <span className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm">
-                      Popüler
-                    </span>
-                  )}
                   {prod.is_frozen && (
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white text-[10px] font-bold">
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
                       Tükendi
                     </div>
                   )}
                 </div>
 
-                {/* Product Info in Center */}
+                {/* Info in Center */}
                 <div className="flex-1 min-w-0">
                   <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
                     {prod.name}
                   </h3>
-                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
-                    {prod.description || 'Özenle seçilmiş malzemelerle taze olarak hazırlanmaktadır.'}
-                  </p>
-                  <div className="mt-1.5 flex items-baseline gap-1.5">
-                    <span className="font-black text-sm text-orange-600">
+                  {prod.description && (
+                    <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
+                      {prod.description}
+                    </p>
+                  )}
+                  <div className="mt-1 flex items-baseline">
+                    <span className="font-black text-xs sm:text-sm text-orange-600">
                       {prod.price.toFixed(2)} ₺
                     </span>
                   </div>
                 </div>
 
-                {/* Add to Cart Button on Right */}
+                {/* Add to Cart Button */}
                 <div>
                   <button
                     onClick={() => addToCart(prod)}
                     disabled={prod.is_frozen}
-                    className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-extrabold text-sm transition active:scale-90 shadow-sm disabled:opacity-40 disabled:pointer-events-none shrink-0"
+                    className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
                     title="Sepete Ekle"
                   >
                     +
@@ -332,7 +331,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           )}
         </div>
 
-        {/* Floating Bottom Cart Bar */}
+        {/* Floating Cart Button */}
         {totalCartCount > 0 && (
           <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40">
             <button
@@ -340,7 +339,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 px-5 rounded-2xl shadow-xl shadow-orange-500/35 flex items-center justify-between transition active:scale-[0.98] font-bold text-xs"
             >
               <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-black/20 flex items-center justify-center text-xs font-black">
+                <span className="w-5 h-5 rounded-lg bg-black/20 flex items-center justify-center text-xs font-black">
                   {totalCartCount}
                 </span>
                 <span>Siparişi İncele / Tamamla</span>
@@ -354,7 +353,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           </div>
         )}
 
-        {/* Cart Drawer Modal */}
+        {/* Cart Drawer */}
         <CartDrawer
           business={business}
           tableNo={tableNo}
@@ -368,7 +367,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           }}
         />
 
-        {/* Service Action Modal (Waiter, Bill, Wifi) */}
+        {/* Service Action Modal */}
         <ServiceActionsModal
           business={business}
           tableNo={tableNo}

@@ -33,7 +33,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   );
 
   // Wi-Fi State & Toggle
-  const [showWifi, setShowWifi] = useState<boolean>(business.show_wifi ?? true);
+  const [showWifi, setShowWifi] = useState<boolean>(business.show_wifi ?? (business.wifi_ssid ? true : false));
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
 
@@ -110,7 +110,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Lütfen geçerli bir görsel formatı (PNG, JPG, WEBP) seçiniz.');
+      toast.error('Lütfen geçerli bir görsel seçiniz (PNG, JPG, WEBP).');
       return;
     }
 
@@ -142,7 +142,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
         const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
         setLogoUrl(optimizedBase64);
-        toast.success('Logo başarıyla yüklendi!');
+        toast.success('Logo yüklendi!');
       };
       img.src = event.target?.result as string;
     };
@@ -177,7 +177,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       if (!error && data) {
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('İşletme ayarları başarıyla kaydedildi!');
+        toast.success('Ayarlar kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
         toast.error('Ayarlar kaydedilirken bir hata oluştu.');
@@ -193,14 +193,14 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     setPassSuccess(false);
 
     if (newPassword.length < 6) {
-      setPassError('Yeni şifreniz en az 6 karakter olmalıdır.');
-      toast.warning('Yeni şifreniz en az 6 karakter olmalıdır.');
+      setPassError('Yeni şifre en az 6 karakter olmalıdır.');
+      toast.warning('Yeni şifre en az 6 karakter olmalıdır.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPassError('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
-      toast.error('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
+      setPassError('Şifreler birbiriyle eşleşmiyor.');
+      toast.error('Şifreler birbiriyle eşleşmiyor.');
       return;
     }
 
@@ -225,45 +225,40 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         setPassSuccess(true);
         setNewPassword('');
         setConfirmPassword('');
-        toast.success('Giriş şifreniz kalıcı olarak güncellendi!');
+        toast.success('Giriş şifreniz güncellendi!');
         setTimeout(() => setPassSuccess(false), 3000);
       }
     } catch {
-      setPassError('Şifre güncellenirken bir hata oluştu.');
-      toast.error('Şifre güncellenirken bir hata oluştu.');
+      setPassError('Şifre güncellenirken hata oluştu.');
+      toast.error('Şifre güncellenirken hata oluştu.');
     } finally {
       setSavingPass(false);
     }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Top Header */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-4 max-w-4xl">
+      {/* Top Save Bar */}
+      <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
         <div>
-          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
-            İşletme & Wi-Fi Ayarları
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Logonuzu, çalışma saatlerinizi, Wi-Fi görünürlüğünü ve şifrenizi buradan yönetebilirsiniz.
-          </p>
+          <h3 className="font-extrabold text-xs text-slate-900">İşletme Bilgileri & Yapılandırma</h3>
         </div>
 
         <button
           type="button"
           onClick={handleSaveGeneral}
           disabled={saving}
-          className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-50"
+          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-50"
         >
           {savedSuccess ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           <span>{savedSuccess ? 'Kaydedildi' : saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</span>
         </button>
       </div>
 
-      {/* Dual Logo Field: Frameless Pure Logo */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+      {/* Dual Logo Field */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-extrabold text-slate-900">İşletme Logosu</span>
+          <span className="text-xs font-bold text-slate-800">İşletme Logosu</span>
 
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
@@ -274,7 +269,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               }`}
             >
               <Upload className="w-3 h-3" />
-              Fotoğraf Yükle
+              Fotoğraf
             </button>
             <button
               type="button"
@@ -289,22 +284,22 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
+        <div className="flex items-center gap-4 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
           {logoUrl ? (
             <div className="relative group shrink-0">
-              <img src={logoUrl} alt="Logo" className="w-16 h-16 object-contain rounded-xl bg-white p-1 border border-slate-200 shadow-sm" />
+              <img src={logoUrl} alt="Logo" className="w-14 h-14 object-contain rounded-xl bg-white p-1 border border-slate-200 shadow-xs" />
               <button
                 type="button"
                 onClick={() => setLogoUrl('')}
-                className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition"
-                title="Logoyu Kaldır"
+                className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-md transition"
+                title="Kaldır"
               >
                 <Trash2 className="w-3 h-3" />
               </button>
             </div>
           ) : (
-            <div className="w-14 h-14 flex items-center justify-center text-slate-400 shrink-0">
-              <Camera className="w-6 h-6" />
+            <div className="w-12 h-12 flex items-center justify-center text-slate-400 shrink-0">
+              <Camera className="w-5 h-5" />
             </div>
           )}
 
@@ -319,10 +314,10 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               />
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border border-dashed border-slate-300 hover:border-orange-500 bg-white rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-600 hover:text-orange-600"
+                className="border border-dashed border-slate-300 hover:border-orange-500 bg-white rounded-xl p-2.5 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-600 hover:text-orange-600"
               >
                 <Upload className="w-4 h-4 text-orange-500" />
-                <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
+                <span>{logoUrl ? 'Logoyu Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
               </div>
             </div>
           ) : (
@@ -340,38 +335,38 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* Working Schedule Card */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-orange-500" />
-            <h3 className="font-extrabold text-xs text-slate-900">Çalışma Günleri & Saatleri</h3>
+            <h3 className="font-bold text-xs text-slate-900">Çalışma Günleri & Saatleri</h3>
           </div>
           <span className="text-xs font-bold text-orange-600 font-mono">{workingHoursDisplay}</span>
         </div>
 
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-3">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-slate-700">Haftalık Çalışma Günleri</span>
+              <span className="text-xs font-bold text-slate-700">Haftalık Günler</span>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('all')}
-                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-sm"
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200"
                 >
                   Her Gün
                 </button>
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('weekdays')}
-                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-sm"
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200"
                 >
                   Hafta İçi
                 </button>
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('mon_sat')}
-                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 shadow-sm"
+                  className="text-[10px] px-2.5 py-1 rounded-lg bg-white hover:bg-slate-100 text-slate-700 font-bold border border-slate-200"
                 >
                   Pzt - Cmt
                 </button>
@@ -386,9 +381,9 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                     key={day}
                     type="button"
                     onClick={() => toggleDay(day)}
-                    className={`py-2 rounded-xl text-xs font-bold transition border text-center ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition border text-center ${
                       isSelected
-                        ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+                        ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
                         : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900'
                     }`}
                   >
@@ -403,26 +398,26 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             {!is24Hours ? (
               <div className="grid grid-cols-2 gap-3 mb-2">
                 <div>
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Açılış Saati</span>
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Açılış</span>
                   <input
                     type="time"
                     value={openTime}
                     onChange={(e) => setOpenTime(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none font-bold"
+                    className="w-full bg-white border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none font-bold"
                   />
                 </div>
                 <div>
-                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Kapanış Saati</span>
+                  <span className="block text-[10px] font-bold text-slate-500 mb-1">Kapanış</span>
                   <input
                     type="time"
                     value={closeTime}
                     onChange={(e) => setCloseTime(e.target.value)}
-                    className="w-full bg-white border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none font-bold"
+                    className="w-full bg-white border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none font-bold"
                   />
                 </div>
               </div>
             ) : (
-              <div className="w-full bg-orange-50 border border-orange-200 rounded-xl py-2.5 px-3 text-xs text-orange-800 font-bold mb-2 text-center">
+              <div className="w-full bg-orange-50 border border-orange-200 rounded-xl py-2 px-3 text-xs text-orange-800 font-bold mb-2 text-center">
                 24 Saat Açık Hizmet (Haftanın 7 Günü)
               </div>
             )}
@@ -438,7 +433,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                   key={preset.val}
                   type="button"
                   onClick={() => applyPresetHours(preset.val)}
-                  className="py-1.5 px-1 rounded-xl bg-white hover:bg-slate-100 text-[10px] font-bold text-slate-600 border border-slate-200 transition truncate text-center shadow-sm"
+                  className="py-1 px-1 rounded-xl bg-white hover:bg-slate-100 text-[10px] font-bold text-slate-600 border border-slate-200 transition truncate text-center"
                 >
                   {preset.label}
                 </button>
@@ -448,11 +443,11 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
       </div>
 
-      {/* Contact & Wi-Fi Settings */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Contact Info */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3.5">
-          <h3 className="font-extrabold text-xs text-slate-900">İletişim & Açık Adres</h3>
+      {/* Contact & Wi-Fi */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        {/* Contact */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
+          <h3 className="font-bold text-xs text-slate-900">İletişim & Açık Adres</h3>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -481,11 +476,11 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           </div>
         </div>
 
-        {/* Wi-Fi Info with Toggle */}
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3.5">
+        {/* Wi-Fi */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-extrabold text-xs text-slate-900 flex items-center gap-1.5">
+              <h3 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
                 <Wifi className="w-4 h-4 text-orange-500" />
                 Müşteri Wi-Fi Bilgileri
               </h3>
@@ -499,12 +494,12 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 onChange={(e) => setShowWifi(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+              <div className="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
             </label>
           </div>
 
           {showWifi ? (
-            <div className="space-y-3 pt-1 animate-in fade-in">
+            <div className="space-y-2.5 pt-1 animate-in fade-in">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Wi-Fi Ağ Adı (SSID)
@@ -533,39 +528,34 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             </div>
           ) : (
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center text-xs text-slate-500">
-              Wi-Fi bilgisi müşteri QR menüsünde gizlenmiştir.
+              Wi-Fi bilgisi müşteri menüsünde gizlidir.
             </div>
           )}
         </div>
       </div>
 
       {/* Password Change Form */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-3">
         <div className="flex items-center gap-2">
           <Lock className="w-4 h-4 text-orange-500" />
-          <div>
-            <h3 className="font-extrabold text-xs text-slate-900">Kalıcı Giriş Şifresi Belirle</h3>
-            <p className="text-xs text-slate-500">
-              Geçici şifrenizi istediğiniz zaman kendi belirlediğiniz kalıcı şifreyle değiştirebilirsiniz.
-            </p>
-          </div>
+          <h3 className="font-bold text-xs text-slate-900">Kalıcı Giriş Şifresi Belirle</h3>
         </div>
 
         {passError && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-semibold">
+          <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-rose-700 text-xs font-semibold">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{passError}</span>
           </div>
         )}
 
         {passSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+          <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-emerald-700 text-xs font-semibold">
             <Check className="w-4 h-4 shrink-0" />
-            <span>Giriş şifreniz başarıyla güncellendi!</span>
+            <span>Giriş şifreniz güncellendi!</span>
           </div>
         )}
 
-        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               Yeni Şifre
@@ -598,7 +588,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Şifreyi tekrar giriniz"
+              placeholder="Tekrar girin"
               className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none font-bold"
             />
           </div>

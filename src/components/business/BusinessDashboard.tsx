@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
   Menu, X
 } from 'lucide-react';
-import { Business, Table } from '../../types';
+import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { MenuManager } from './MenuManager';
 import { TableManager } from './TableManager';
@@ -38,7 +38,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const isFirstTime = !business.phone && !business.address;
   const [showOnboarding, setShowOnboarding] = useState(isFirstTime);
 
-  // Fetch Table Count for the Sidebar Badge
+  // Fetch Table Count for Sidebar Badge
   useEffect(() => {
     const fetchTableCount = async () => {
       const { data } = await supabase
@@ -68,13 +68,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const navItems = [
     {
       id: 'orders' as const,
-      label: 'Canlı Sipariş & Servis',
+      label: 'Canlı Siparişler',
       icon: ChefHat,
       badge: null,
     },
     {
       id: 'menu' as const,
-      label: 'Menü & Çeşit Yönetimi',
+      label: 'Menü & Ürünler',
       icon: UtensilsCrossed,
       badge: null,
     },
@@ -82,7 +82,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       id: 'tables' as const,
       label: 'Masa & QR Kodlar',
       icon: QrCode,
-      badge: `${tableCount} Masa`,
+      badge: tableCount > 0 ? `${tableCount} Masa` : null,
     },
     {
       id: 'pos' as const,
@@ -92,13 +92,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     },
     {
       id: 'turnover' as const,
-      label: 'Gün Sonu & Kasa Analizi',
+      label: 'Gün Sonu & Ciro',
       icon: TrendingUp,
       badge: null,
     },
     {
       id: 'settings' as const,
-      label: 'İşletme & Wi-Fi Ayarları',
+      label: 'İşletme & Wi-Fi',
       icon: Settings,
       badge: null,
     },
@@ -114,30 +114,30 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     switch (activeTab) {
       case 'orders': return 'Canlı Sipariş & Servis';
       case 'menu': return 'Menü & Çeşit Yönetimi';
-      case 'tables': return 'Masa & QR Kod Yönetimi';
-      case 'pos': return 'Kasa / POS Sipariş Masası';
+      case 'tables': return 'Masa & QR Kodlar';
+      case 'pos': return 'Kasa / Hızlı POS Satışı';
       case 'turnover': return 'Gün Sonu & Kasa Analizi';
       case 'settings': return 'İşletme & Wi-Fi Ayarları';
-      case 'support': return 'Canlı Destek ve Duyurular';
+      case 'support': return 'Canlı Destek & Bildirimler';
       default: return '';
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row">
-      {/* Mobile Top Header */}
+      {/* Mobile Top Bar */}
       <div className="md:hidden bg-[#0B0F17] text-white p-4 flex items-center justify-between sticky top-0 z-40 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center p-1 overflow-hidden shrink-0">
             {business.logo_url ? (
               <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
             ) : (
-              <span className="text-slate-900 font-extrabold text-xs">{business.name.charAt(0)}</span>
+              <span className="text-slate-900 font-black text-xs">{business.name.charAt(0)}</span>
             )}
           </div>
           <div>
-            <h1 className="font-extrabold text-xs tracking-wide uppercase">{business.name}</h1>
-            <p className="text-[10px] text-slate-400">YÖNETİM PANELİ</p>
+            <h1 className="font-extrabold text-xs tracking-wide uppercase truncate max-w-[140px]">{business.name}</h1>
+            <p className="text-[9px] text-slate-400 font-semibold tracking-wider">YÖNETİM PANELİ</p>
           </div>
         </div>
         <button
@@ -148,9 +148,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </button>
       </div>
 
-      {/* Left Sidebar (Deep Slate/Navy with Vibrant Orange Pill) */}
+      {/* Left Sidebar */}
       <aside className={`
-        fixed md:sticky top-0 left-0 h-screen w-64 bg-[#0B0F17] text-slate-300 flex flex-col justify-between p-4 z-50 transition-transform duration-300
+        fixed md:sticky top-0 left-0 h-screen w-60 bg-[#0B0F17] text-slate-300 flex flex-col justify-between p-4 z-50 transition-transform duration-300
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
       `}>
         <div className="space-y-6">
@@ -160,19 +160,19 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               {business.logo_url ? (
                 <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
               ) : (
-                <span className="text-slate-900 font-extrabold text-sm">{business.name.charAt(0)}</span>
+                <span className="text-slate-900 font-black text-sm">{business.name.charAt(0)}</span>
               )}
             </div>
-            <div>
-              <h2 className="font-extrabold text-sm text-white tracking-wide uppercase truncate max-w-[130px]">
+            <div className="min-w-0">
+              <h2 className="font-extrabold text-sm text-white tracking-wide uppercase truncate max-w-[125px]">
                 {business.name}
               </h2>
               <p className="text-[10px] text-slate-400 font-medium tracking-wider">YÖNETİM PANELİ</p>
             </div>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="space-y-1.5">
+          {/* Nav Items */}
+          <nav className="space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -183,9 +183,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     setActiveTab(item.id);
                     setIsMobileMenuOpen(false);
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-semibold transition ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                     isActive
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/25'
+                      ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
@@ -195,7 +195,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                   </div>
 
                   {item.badge && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-lg font-bold ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${
                       isActive ? 'bg-black/20 text-white' : 'bg-slate-800 text-slate-300'
                     }`}>
                       {item.badge}
@@ -207,21 +207,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </nav>
         </div>
 
-        {/* Sidebar Footer */}
-        <div className="space-y-2 pt-4 border-t border-slate-800/80">
-          <a
-            href={menuLiveUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full py-2.5 px-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-slate-200 text-xs font-semibold transition flex items-center justify-center gap-2"
-          >
-            <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
-            <span>Müşteri Menüsünü Önizle</span>
-          </a>
-
+        {/* Sidebar Footer: Clean and minimal */}
+        <div className="pt-4 border-t border-slate-800/80 space-y-1">
           <button
             onClick={onLogout}
-            className="w-full py-2 px-3 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition flex items-center justify-center gap-1.5"
+            className="w-full py-2.5 px-3 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition flex items-center justify-center gap-2"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Oturumu Kapat</span>
@@ -229,14 +219,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </div>
       </aside>
 
-      {/* Main Content Area (Clean Off-White) */}
+      {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Top Header Bar on Light Background */}
-        <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-6 py-4 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+        {/* Top Header Bar */}
+        <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-              RESTORAN: {business.name}
-            </span>
             <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
               {getPageTitle()}
             </h1>
@@ -250,16 +237,16 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               href={menuLiveUrl}
               target="_blank"
               rel="noreferrer"
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 shadow-sm transition"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white shadow-sm transition"
             >
-              <QrCode className="w-3.5 h-3.5 text-orange-500" />
-              <span>Müşteri QR Menüsüne Geç</span>
+              <QrCode className="w-3.5 h-3.5 text-orange-400" />
+              <span>Müşteri Menüsünü Aç</span>
               <ExternalLink className="w-3 h-3 text-slate-400" />
             </a>
           </div>
         </header>
 
-        {/* Tab Body */}
+        {/* Content Body */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {activeTab === 'orders' && <LiveOrders business={business} onNavigatePos={() => setActiveTab('pos')} />}
           {activeTab === 'pos' && <ManualPos business={business} />}
