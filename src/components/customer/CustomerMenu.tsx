@@ -60,38 +60,70 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     localStorage.setItem('menu_lang', newLang);
   };
 
-  // Load Menu Data
-  useEffect(() => {
-    const fetchMenu = async () => {
-      setLoading(true);
-      try {
-        const [catsRes, prodsRes] = await Promise.all([
-          supabase
-            .from('categories')
-            .select('*')
-            .eq('business_id', business.id)
-            .eq('is_active', true)
-            .order('order_index', { ascending: true }),
-          supabase
-            .from('products')
-            .select('*')
-            .eq('business_id', business.id)
-            .eq('is_active', true)
-            .order('order_index', { ascending: true }),
-        ]);
+  // Load Menu Data with Instant Realtime Sync
+  const fetchMenu = async () => {
+    try {
+      const [catsRes, prodsRes] = await Promise.all([
+        supabase
+          .from('categories')
+          .select('*')
+          .eq('business_id', business.id)
+          .eq('is_active', true)
+          .order('order_index', { ascending: true }),
+        supabase
+          .from('products')
+          .select('*')
+          .eq('business_id', business.id)
+          .eq('is_active', true)
+          .order('order_index', { ascending: true }),
+      ]);
 
-        if (catsRes.data) {
-          setCategories(catsRes.data as Category[]);
-        }
-        if (prodsRes.data) {
-          setProducts(prodsRes.data as Product[]);
-        }
-      } finally {
-        setLoading(false);
+      if (catsRes.data) {
+        setCategories(catsRes.data as Category[]);
       }
-    };
+      if (prodsRes.data) {
+        setProducts(prodsRes.data as Product[]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchMenu();
+
+    // Realtime Postgres Changes listener for instant menu updates
+    const channel = supabase
+      .channel(`menu_sync_${business.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'products',
+          filter: `business_id=eq.${business.id}`,
+        },
+        () => {
+          fetchMenu();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'categories',
+          filter: `business_id=eq.${business.id}`,
+        },
+        () => {
+          fetchMenu();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [business.id]);
 
   // Load Active Orders for tracking
@@ -152,12 +184,17 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const isSearching = searchTerm.trim().length > 0;
   const hasActiveOrders = activeOrders.length > 0;
 
+  // Filter and Sort: Sold-out (is_frozen) products automatically drop to the bottom!
   const currentProducts = products
     .filter((p) => (isSearching ? true : selectedCatId ? p.category_id === selectedCatId : true))
     .filter((p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    )
+    .sort((a, b) => {
+      if (a.is_frozen === b.is_frozen) return (a.order_index || 0) - (b.order_index || 0);
+      return a.is_frozen ? 1 : -1; // Frozen products drop to bottom!
+    });
 
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
@@ -421,7 +458,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 </div>
               )}
 
-              {/* Products List */}
+              {/* Products List (Sold Out Products Automatically Dropped to Bottom) */}
               <div className="px-4 space-y-2.5">
                 {loading ? (
                   <div className="py-16 text-center text-xs text-slate-400 font-bold">
@@ -441,7 +478,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                       <div
                         key={prod.id}
                         onClick={() => setSelectedProductForDetail(prod)}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs hover:shadow-sm transition flex items-center justify-between gap-3 overflow-hidden relative cursor-pointer active:scale-[0.99] group"
+                        className={`bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs hover:shadow-sm transition flex items-center justify-between gap-3 overflow-hidden relative cursor-pointer active:scale-[0.99] group ${
+                          prod.is_frozen ? 'opacity-70 bg-slate-50/80' : ''
+                        }`}
                       >
                         {/* Food Thumbnail on Left (Strictly Constrained 80x80px with right vignette) */}
                         <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-200/60 shadow-xs">
@@ -451,13 +490,15 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                               'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
                             }
                             alt={prod.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                              prod.is_frozen ? 'grayscale' : ''
+                            }`}
                           />
                           {/* Right Vignette on Food Image */}
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
 
                           {prod.is_frozen && (
-                            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold">
+                            <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-black tracking-wider">
                               {t.soldOut}
                             </div>
                           )}
@@ -465,16 +506,25 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
                         {/* Info in Center: Product Name + Translated Description + Price */}
                         <div className="flex-1 min-w-0 pr-1">
-                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate leading-snug group-hover:text-orange-600 transition-colors">
-                            {prod.name}
-                          </h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate leading-snug group-hover:text-orange-600 transition-colors">
+                              {prod.name}
+                            </h3>
+                            {prod.is_frozen && (
+                              <span className="text-[9px] font-extrabold bg-red-100 text-red-700 px-1.5 py-0.5 rounded-md shrink-0">
+                                {t.soldOut}
+                              </span>
+                            )}
+                          </div>
                           {translatedDesc && (
                             <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
                               {translatedDesc}
                             </p>
                           )}
                           <div className="mt-1 flex items-baseline">
-                            <span className="font-black text-xs sm:text-sm text-orange-600">
+                            <span className={`font-black text-xs sm:text-sm ${
+                              prod.is_frozen ? 'text-slate-400 line-through' : 'text-orange-600'
+                            }`}>
                               {prod.price.toFixed(2)} ₺
                             </span>
                           </div>
@@ -482,7 +532,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
                         {/* Action Buttons on Right: Quantity Stepper or Plus Button */}
                         <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                          {qtyInCart > 0 ? (
+                          {prod.is_frozen ? (
+                            <span className="text-[10px] font-black text-slate-400 bg-slate-100 px-2 py-1.5 rounded-xl border border-slate-200">
+                              {t.soldOut}
+                            </span>
+                          ) : qtyInCart > 0 ? (
                             <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
                               <button
                                 onClick={() => updateCartQty(prod.id, -1)}
@@ -505,8 +559,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                           ) : (
                             <button
                               onClick={() => addToCart(prod, 1)}
-                              disabled={prod.is_frozen}
-                              className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-orange-600 text-white flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none"
+                              className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-orange-600 text-white flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs"
                               title={t.addToCart}
                             >
                               +

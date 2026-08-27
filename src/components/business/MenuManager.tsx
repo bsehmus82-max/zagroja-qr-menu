@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Plus, Snowflake, Trash2, Edit2, 
-  RefreshCw, X, Check, UtensilsCrossed
+  Plus, Trash2, Edit3, 
+  ChevronLeft, ChevronRight, Check, X,
+  Eye, EyeOff, Layers, Sparkles, Smartphone, ArrowRight
 } from 'lucide-react';
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { DEFAULT_CATEGORIES } from '../../data/defaultCatalog';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common/ConfirmModal';
+import { CustomerMenu } from '../customer/CustomerMenu';
 
 interface MenuManagerProps {
   business: Business;
@@ -15,21 +17,27 @@ interface MenuManagerProps {
 
 export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const toast = useToast();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Live Phone Preview Toggle
+  const [showLivePreview, setShowLivePreview] = useState(false);
+
   // Modals
-  const [showAddCatModal, setShowAddCatModal] = useState(false);
+  const [showCategoryManagerModal, setShowCategoryManagerModal] = useState(false);
+  const [showEditProductModal, setShowEditProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
   const [showAddProdModal, setShowAddProdModal] = useState(false);
-  const [newCatName, setNewCatName] = useState('');
-  const [newCatImage, setNewCatImage] = useState('');
   const [newProdName, setNewProdName] = useState('');
   const [newProdDesc, setNewProdDesc] = useState('');
   const [newProdPrice, setNewProdPrice] = useState<number | ''>('');
 
-  // In-app Confirm Modal State
+  // Confirm Modal
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -45,7 +53,6 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   });
 
   const loadMenuData = async () => {
-    setLoading(true);
     try {
       const [catsRes, prodsRes] = await Promise.all([
         supabase
@@ -62,7 +69,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
       if (catsRes.data) {
         setCategories(catsRes.data as Category[]);
-        if (catsRes.data.length > 0 && !selectedCatId) {
+        if (catsRes.data.length > 0 && (!selectedCatId || !catsRes.data.some(c => c.id === selectedCatId))) {
           setSelectedCatId(catsRes.data[0].id);
         }
       }
@@ -78,54 +85,106 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
     loadMenuData();
   }, [business.id]);
 
-  const handleAddCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
-
-    const { data, error } = await supabase
-      .from('categories')
-      .insert([
-        {
-          business_id: business.id,
-          name: newCatName.trim(),
-          image_url: newCatImage.trim() || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80',
-          order_index: categories.length,
-          is_active: true,
-        },
-      ])
-      .select()
-      .single();
-
-    if (!error && data) {
-      setCategories((prev) => [...prev, data as Category]);
-      setSelectedCatId(data.id);
-      setNewCatName('');
-      setNewCatImage('');
-      setShowAddCatModal(false);
-      toast.success(`${data.name} kategorisi eklendi.`);
-    } else {
-      toast.error('Kategori eklenirken bir hata oluştu.');
+  // Scroll Category Navigation Bar horizontally
+  const scrollCategories = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const offset = direction === 'left' ? -220 : 220;
+      scrollContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
     }
   };
 
+  // Toggle Sold Out (Tükendi / Satışta) Instantly
+  const handleToggleSoldOut = async (prod: Product) => {
+    const nextState = !prod.is_frozen;
+
+    // Instant local state update
+    setProducts((prev) =>
+      prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: nextState } : p))
+    );
+
+    const { error } = await supabase
+      .from('products')
+      .update({ is_frozen: nextState })
+      .eq('id', prod.id);
+
+    if (error) {
+      // Revert if error
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: !nextState } : p))
+      );
+      toast.error('Durum güncellenirken hata oluştu.');
+    } else {
+      toast.info(nextState ? `${prod.name} tükendi olarak işaretlendi.` : `${prod.name} tekrar satışa açıldı.`);
+    }
+  };
+
+  // Open Edit Product Modal
+  const openEditProduct = (prod: Product) => {
+    setEditingProduct(prod);
+    setShowEditProductModal(true);
+  };
+
+  // Save Edited Product Instantly
+  const handleSaveProductEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct || !editingProduct.name.trim()) return;
+
+    const updatedPrice = Number(editingProduct.price) || 0;
+
+    // Instant local update
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === editingProduct.id
+          ? {
+              ...p,
+              name: editingProduct.name.trim(),
+              description: editingProduct.description?.trim() || '',
+              price: updatedPrice,
+              category_id: editingProduct.category_id,
+            }
+          : p
+      )
+    );
+
+    setShowEditProductModal(false);
+
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: editingProduct.name.trim(),
+        description: editingProduct.description?.trim() || '',
+        price: updatedPrice,
+        category_id: editingProduct.category_id,
+      })
+      .eq('id', editingProduct.id);
+
+    if (error) {
+      toast.error('Ürün kaydedilirken hata oluştu.');
+      loadMenuData();
+    } else {
+      toast.success(`${editingProduct.name} başarıyla güncellendi.`);
+    }
+  };
+
+  // Add Product to Selected Category
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProdName.trim() || !newProdPrice || !selectedCatId) return;
+    if (!selectedCatId || !newProdName.trim() || newProdPrice === '') return;
+
+    const payload = {
+      business_id: business.id,
+      category_id: selectedCatId,
+      name: newProdName.trim(),
+      description: newProdDesc.trim(),
+      price: Number(newProdPrice),
+      is_frozen: false,
+      is_active: true,
+      order_index: products.filter((p) => p.category_id === selectedCatId).length,
+    };
 
     const { data, error } = await supabase
       .from('products')
-      .insert([
-        {
-          business_id: business.id,
-          category_id: selectedCatId,
-          name: newProdName.trim(),
-          description: newProdDesc.trim(),
-          price: Number(newProdPrice),
-          is_frozen: false,
-          is_active: true,
-          order_index: products.filter((p) => p.category_id === selectedCatId).length,
-        },
-      ])
+      .insert([payload])
       .select()
       .single();
 
@@ -135,110 +194,104 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       setNewProdDesc('');
       setNewProdPrice('');
       setShowAddProdModal(false);
-      toast.success(`${data.name} ürünü eklendi.`);
+      toast.success(`${payload.name} menüye eklendi.`);
     } else {
       toast.error('Ürün eklenirken bir hata oluştu.');
     }
   };
 
-  const toggleFreezeProduct = async (prod: Product) => {
-    const nextState = !prod.is_frozen;
-    const { error } = await supabase
-      .from('products')
-      .update({ is_frozen: nextState })
-      .eq('id', prod.id);
-
-    if (!error) {
-      setProducts((prev) =>
-        prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: nextState } : p))
-      );
-      toast.info(nextState ? `${prod.name} donduruldu (tükendi).` : `${prod.name} tekrar satışa açıldı.`);
-    }
-  };
-
+  // Delete Product
   const handleDeleteProduct = (prod: Product) => {
     setConfirmConfig({
       isOpen: true,
       title: `${prod.name} Silinsin mi?`,
-      message: 'Bu ürünü menüden silmek istediğinize emin misiniz?',
+      message: 'Bu ürünü menüden tamamen silmek istediğinize emin misiniz?',
       type: 'danger',
       action: async () => {
-        const { error } = await supabase.from('products').delete().eq('id', prod.id);
-        if (!error) {
-          setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-          toast.success(`${prod.name} silindi.`);
+        setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+        await supabase.from('products').delete().eq('id', prod.id);
+        toast.success(`${prod.name} silindi.`);
+      },
+    });
+  };
+
+  // Toggle Standard Category in Category Manager Modal
+  const handleToggleCategory = async (catTemplate: (typeof DEFAULT_CATEGORIES)[0]) => {
+    const existingCat = categories.find(
+      (c) => c.name.toLowerCase() === catTemplate.name.toLowerCase()
+    );
+
+    if (existingCat) {
+      // Toggle active status or delete
+      const nextActive = !existingCat.is_active;
+      setCategories((prev) =>
+        prev.map((c) => (c.id === existingCat.id ? { ...c, is_active: nextActive } : c))
+      );
+
+      await supabase
+        .from('categories')
+        .update({ is_active: nextActive })
+        .eq('id', existingCat.id);
+
+      toast.info(
+        nextActive
+          ? `${existingCat.name} menüde gösteriliyor.`
+          : `${existingCat.name} menüden gizlendi.`
+      );
+    } else {
+      // Create new category and its products
+      const { data: newCat, error } = await supabase
+        .from('categories')
+        .insert([
+          {
+            business_id: business.id,
+            name: catTemplate.name,
+            image_url: catTemplate.image_url,
+            order_index: categories.length,
+            is_active: true,
+          },
+        ])
+        .select()
+        .single();
+
+      if (!error && newCat) {
+        const cat = newCat as Category;
+        setCategories((prev) => [...prev, cat]);
+        if (!selectedCatId) setSelectedCatId(cat.id);
+
+        const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
+          business_id: business.id,
+          category_id: cat.id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          is_frozen: false,
+          is_active: true,
+          order_index: pIdx,
+        }));
+
+        const { data: newProds } = await supabase
+          .from('products')
+          .insert(prodsToInsert)
+          .select();
+
+        if (newProds) {
+          setProducts((prev) => [...prev, ...(newProds as Product[])]);
         }
-      },
-    });
+
+        toast.success(`${cat.name} ve ürünleri menüye eklendi.`);
+      }
+    }
   };
 
-  const handleDeleteCategory = (cat: Category) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: `${cat.name} Kategorisi Silinsin mi?`,
-      message: 'Bu kategoriyi ve içindeki tüm ürünleri silmek istediğinize emin misiniz?',
-      type: 'danger',
-      action: async () => {
-        await supabase.from('products').delete().eq('category_id', cat.id);
-        await supabase.from('categories').delete().eq('id', cat.id);
-        setCategories((prev) => prev.filter((c) => c.id !== cat.id));
-        setProducts((prev) => prev.filter((p) => p.category_id !== cat.id));
-        setSelectedCatId(categories.find((c) => c.id !== cat.id)?.id || null);
-        toast.success(`${cat.name} kategorisi silindi.`);
-      },
+  const activeCategories = categories.filter((c) => c.is_active);
+  const currentProducts = products
+    .filter((p) => p.category_id === selectedCatId)
+    .sort((a, b) => {
+      if (a.is_frozen === b.is_frozen) return (a.order_index || 0) - (b.order_index || 0);
+      return a.is_frozen ? 1 : -1;
     });
-  };
 
-  const handleLoadSampleCatalog = () => {
-    setConfirmConfig({
-      isOpen: true,
-      title: '16 Kategori Menü Kataloğu Yüklensin mi?',
-      message: 'Menünüze 16 standart gurme kategori ve zengin ürün içerikleri eklenecektir.',
-      type: 'info',
-      action: async () => {
-        setLoading(true);
-        try {
-          for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-            const catTemplate = DEFAULT_CATEGORIES[i];
-            const { data: catData, error: catError } = await supabase
-              .from('categories')
-              .insert([
-                {
-                  business_id: business.id,
-                  name: catTemplate.name,
-                  image_url: catTemplate.image_url,
-                  order_index: categories.length + i,
-                  is_active: true,
-                },
-              ])
-              .select()
-              .single();
-
-            if (!catError && catData) {
-              const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
-                business_id: business.id,
-                category_id: catData.id,
-                name: p.name,
-                description: p.description,
-                price: p.price,
-                is_frozen: false,
-                is_active: true,
-                order_index: pIdx,
-              }));
-
-              await supabase.from('products').insert(prodsToInsert);
-            }
-          }
-          await loadMenuData();
-          toast.success('Örnek menü kataloğu başarıyla yüklendi!');
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
-  const currentProducts = products.filter((p) => p.category_id === selectedCatId);
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
 
   return (
@@ -255,240 +308,317 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
       />
 
-      {/* Top Action Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        {/* Category Navigation Bar */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-          {categories.map((cat) => {
-            const isSelected = selectedCatId === cat.id;
-            const count = products.filter((p) => p.category_id === cat.id).length;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCatId(cat.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
-                  isSelected
-                    ? 'bg-orange-500 text-white shadow-xs'
-                    : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <span>{cat.name}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                  isSelected ? 'bg-black/20 text-white' : 'bg-slate-200 text-slate-600'
-                }`}>
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-
-          {categories.length === 0 && (
-            <button
-              onClick={handleLoadSampleCatalog}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition flex items-center gap-1.5"
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5" />
-              <span>Örnek Menü Kataloğunu Yükle</span>
-            </button>
-          )}
-        </div>
-
-        {/* Buttons on Right */}
-        <div className="flex items-center gap-2 shrink-0">
-          {selectedCategory && (
-            <button
-              onClick={() => handleDeleteCategory(selectedCategory)}
-              className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl border border-rose-200 text-xs font-bold transition"
-              title="Seçili Kategoriyi Sil"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowAddCatModal(true)}
-            className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Kategori</span>
-          </button>
-
-          <button
-            onClick={() => setShowAddProdModal(true)}
-            disabled={!selectedCatId}
-            className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-40"
-          >
-            <Plus className="w-4 h-4" />
-            <span>+ Ürün</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Products Grid */}
-      {loading ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs font-bold">
-          Menü yükleniyor...
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-14 text-center shadow-xs space-y-3">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-            <UtensilsCrossed className="w-5 h-5" />
-          </div>
-          <h3 className="font-extrabold text-sm text-slate-800">Menünüzde Henüz Kategori Yok</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Hemen yeni kategori ekleyebilir veya tek tıkla 10 hazır gurme kategorisini yükleyebilirsiniz.
-          </p>
-          <button
-            onClick={handleLoadSampleCatalog}
-            className="mt-2 px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition"
-          >
-            Örnek Menü Kataloğunu Dahil Et
-          </button>
-        </div>
-      ) : currentProducts.length === 0 ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center shadow-xs space-y-2">
-          <h3 className="font-extrabold text-sm text-slate-800">
-            {selectedCategory?.name} Kategorisinde Ürün Bulunmuyor
-          </h3>
-          <p className="text-xs text-slate-400">Bu kategoriye ilk ürününüzü ekleyin.</p>
-          <button
-            onClick={() => setShowAddProdModal(true)}
-            className="px-4 py-2 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-xs"
-          >
-            + Ürün Ekle
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
-          {currentProducts.map((prod) => (
-            <div
-              key={prod.id}
-              className={`bg-white border rounded-2xl p-4 shadow-xs hover:shadow-sm transition flex flex-col justify-between space-y-3 ${
-                prod.is_frozen ? 'border-sky-300 bg-sky-50/20' : 'border-slate-200/90'
-              }`}
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 pb-2 border-b border-slate-100">
-                  <div className="min-w-0">
-                    <h4 className="font-extrabold text-xs text-slate-900 truncate">{prod.name}</h4>
-                    <span className="font-black text-xs text-orange-600 mt-0.5 block">
-                      {prod.price.toFixed(2)} ₺
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => handleDeleteProduct(prod)}
-                    className="p-1 text-slate-400 hover:text-rose-500 rounded-lg transition"
-                    title="Ürünü Sil"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {prod.description && (
-                  <p className="text-xs text-slate-500 mt-2 line-clamp-2 leading-relaxed">
-                    {prod.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <button
-                  onClick={() => toggleFreezeProduct(prod)}
-                  className={`w-full py-1.5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                    prod.is_frozen
-                      ? 'bg-sky-100 text-sky-800 hover:bg-sky-200'
-                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  }`}
-                >
-                  <Snowflake className="w-3.5 h-3.5 text-sky-500" />
-                  <span>{prod.is_frozen ? 'Donduruldu (Tükendi)' : 'Satışta (Aktif)'}</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Add Category Modal */}
-      {showAddCatModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-extrabold text-sm text-slate-900">Yeni Kategori Ekle</h3>
-              <button onClick={() => setShowAddCatModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCategory} className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Adı</label>
-                <input
-                  type="text"
-                  required
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  placeholder="Örn: Sıcak Kahveler, Tatlılar"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori Görsel URL (Opsiyonel)</label>
-                <input
-                  type="url"
-                  value={newCatImage}
-                  onChange={(e) => setNewCatImage(e.target.value)}
-                  placeholder="https://... /category.jpg"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
+      {/* Main Grid: Management Panel Left, Optional Live Preview Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <div className={`${showLivePreview ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} space-y-4`}>
+          {/* Top Bar: Left Category Scroller, Right Manager & Live Preview Buttons */}
+          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              {/* Category Carousel with Left / Right Chevron Controls */}
+              <div className="flex items-center gap-1 min-w-0 flex-1">
                 <button
                   type="button"
-                  onClick={() => setShowAddCatModal(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold"
+                  onClick={() => scrollCategories('left')}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shrink-0"
+                  title="Sola Kaydır"
                 >
-                  İptal
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20"
+
+                <div
+                  ref={scrollContainerRef}
+                  className="flex items-center gap-1.5 overflow-x-auto scrollbar-none scroll-smooth px-1 py-0.5"
                 >
-                  Kategoriyi Oluştur
+                  {activeCategories.map((cat) => {
+                    const isSelected = selectedCatId === cat.id;
+                    const count = products.filter((p) => p.category_id === cat.id).length;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCatId(cat.id)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
+                            : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        <span className="truncate max-w-[140px]">{cat.name}</span>
+                        <span
+                          className={`text-[10px] font-black px-1.5 py-0.2 rounded-md ${
+                            isSelected ? 'bg-black/20 text-white' : 'bg-slate-200 text-slate-600'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('right')}
+                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shrink-0"
+                  title="Sağa Kaydır"
+                >
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </form>
+
+              {/* Action Buttons: Kategori Yönetimi & Ürün Ekle & Canlı Önizleme */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => setShowCategoryManagerModal(true)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-xs"
+                >
+                  <Layers className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Kategoriler ({categories.length})</span>
+                </button>
+
+                {selectedCatId && (
+                  <button
+                    onClick={() => setShowAddProdModal(true)}
+                    className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1 transition active:scale-95 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Ürün Ekle</span>
+                  </button>
+                )}
+
+                {/* Toggle Live Phone Preview */}
+                <button
+                  onClick={() => setShowLivePreview(!showLivePreview)}
+                  className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 border ${
+                    showLivePreview
+                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                  }`}
+                  title="Canlı Menü Önizlemesi"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
+                  <span className="hidden sm:inline">Önizleme</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Selected Category Header & Product Cards */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <h2 className="font-black text-sm text-slate-900">
+                  {selectedCategory?.name || 'Kategori Seçiniz'}
+                </h2>
+                <span className="text-[11px] font-bold text-slate-400">
+                  ({currentProducts.length} Ürün)
+                </span>
+              </div>
+            </div>
+
+            {/* Products Grid */}
+            {currentProducts.length === 0 ? (
+              <div className="py-12 text-center text-xs text-slate-400 font-medium">
+                Bu kategoride henüz ürün bulunmuyor. Sağ üstteki &quot;+ Ürün Ekle&quot; butonuna basarak ekleyebilirsiniz.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {currentProducts.map((prod) => (
+                  <div
+                    key={prod.id}
+                    className={`p-3.5 rounded-2xl border transition flex flex-col justify-between gap-3 ${
+                      prod.is_frozen
+                        ? 'bg-slate-50/90 border-slate-200 opacity-80'
+                        : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                    }`}
+                  >
+                    {/* Top Row: Name, Price & Action Buttons */}
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                            {prod.name}
+                          </h3>
+                          <span className={`font-black text-xs ${
+                            prod.is_frozen ? 'text-slate-400 line-through' : 'text-orange-600'
+                          }`}>
+                            {prod.price.toFixed(2)} ₺
+                          </span>
+                        </div>
+
+                        {/* Edit & Delete Buttons */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            onClick={() => openEditProduct(prod)}
+                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                            title="Düzenle"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(prod)}
+                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                            title="Sil"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {prod.description && (
+                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                          {prod.description}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Bottom Row: Pure Text "Tükendi Olarak İşaretle" / "Satışa Aç" Button */}
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                        prod.is_frozen
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-emerald-100 text-emerald-800'
+                      }`}>
+                        {prod.is_frozen ? 'Tükendi (Menüde En Altta)' : 'Satışta (Aktif)'}
+                      </span>
+
+                      <button
+                        onClick={() => handleToggleSoldOut(prod)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition active:scale-95 ${
+                          prod.is_frozen
+                            ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
+                            : 'bg-slate-50 hover:bg-amber-50 border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-800'
+                        }`}
+                      >
+                        {prod.is_frozen ? 'Satışa Aç' : 'Tükendi Olarak İşaretle'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Add Product Modal */}
-      {showAddProdModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="font-extrabold text-sm text-slate-900">
-                {selectedCategory?.name} Kategorisine Ürün Ekle
-              </h3>
-              <button onClick={() => setShowAddProdModal(false)} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg">
+        {/* Live Phone Mockup Preview on Right */}
+        {showLivePreview && (
+          <div className="lg:col-span-5 xl:col-span-4 sticky top-4 max-h-[85vh] overflow-hidden rounded-3xl border-4 border-slate-900 shadow-2xl bg-black">
+            <div className="bg-slate-900 text-white text-[10px] font-bold px-4 py-2 flex items-center justify-between">
+              <span>Canlı Müşteri QR Menü Önizlemesi</span>
+              <button
+                onClick={() => setShowLivePreview(false)}
+                className="p-1 text-slate-400 hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[calc(85vh-36px)]">
+              <CustomerMenu business={business} initialTable="Önizleme Masası" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* MASTER CATEGORY SELECTOR / MANAGER MODAL */}
+      {showCategoryManagerModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h3 className="font-black text-base text-slate-900">Kategori Yönetimi</h3>
+                <p className="text-xs text-slate-500">
+                  16 hazır restoran kategorisini tek tıkla menünüze ekleyin veya gizleyin.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCategoryManagerModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleAddProduct} className="space-y-3">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+              {DEFAULT_CATEGORIES.map((catTemplate, index) => {
+                const existing = categories.find(
+                  (c) => c.name.toLowerCase() === catTemplate.name.toLowerCase()
+                );
+                const isInstalled = !!existing;
+                const isActive = existing?.is_active ?? false;
+
+                return (
+                  <div
+                    key={catTemplate.name}
+                    className="p-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between gap-3 hover:bg-white transition"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src={catTemplate.image_url}
+                        alt={catTemplate.name}
+                        className="w-11 h-11 rounded-xl object-cover shrink-0 border border-slate-200"
+                      />
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs text-slate-900 truncate">
+                          {index + 1}. {catTemplate.name}
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          {catTemplate.products.length} Hazır Lezzet İçeriği
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Toggle Button */}
+                    <button
+                      onClick={() => handleToggleCategory(catTemplate)}
+                      className={`px-3 py-1.5 rounded-xl font-black text-xs transition active:scale-95 shrink-0 ${
+                        !isInstalled
+                          ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                          : isActive
+                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                      }`}
+                    >
+                      {!isInstalled ? '+ Menüye Ekle' : isActive ? 'Menüde Aktif' : 'Gizlendi (Aç)'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-3 flex justify-end">
+              <button
+                onClick={() => setShowCategoryManagerModal(false)}
+                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition"
+              >
+                Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PRODUCT MODAL */}
+      {showEditProductModal && editingProduct && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-black text-sm text-slate-900">Ürünü Düzenle</h3>
+              <button
+                onClick={() => setShowEditProductModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveProductEdit} className="space-y-3.5">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Adı</label>
                 <input
                   type="text"
+                  value={editingProduct.name}
+                  onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
                   required
-                  value={newProdName}
-                  onChange={(e) => setNewProdName(e.target.value)}
-                  placeholder="Örn: Double Espresso, San Sebastian"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -496,23 +626,121 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Fiyat (₺)</label>
                 <input
                   type="number"
-                  step="0.01"
+                  step="0.5"
+                  value={editingProduct.price}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, price: Number(e.target.value) })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-orange-600 focus:outline-none focus:border-orange-500"
                   required
-                  value={newProdPrice}
-                  onChange={(e) => setNewProdPrice(e.target.value ? Number(e.target.value) : '')}
-                  placeholder="Örn: 120.00"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Açıklaması (Opsiyonel)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori</label>
+                <select
+                  value={editingProduct.category_id}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, category_id: e.target.value })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Malzeme & Servis Açıklaması
+                </label>
                 <textarea
-                  rows={2}
+                  value={editingProduct.description || ''}
+                  onChange={(e) =>
+                    setEditingProduct({ ...editingProduct, description: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500 leading-relaxed"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProductModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition shadow-sm"
+                >
+                  Değişiklikleri Kaydet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ADD PRODUCT MODAL */}
+      {showAddProdModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-black text-sm text-slate-900">
+                {selectedCategory?.name} Kategorisine Yeni Ürün Ekle
+              </h3>
+              <button
+                onClick={() => setShowAddProdModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddProduct} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Adı</label>
+                <input
+                  type="text"
+                  placeholder="Örn: Özel Soslu Tavuk Wrap"
+                  value={newProdName}
+                  onChange={(e) => setNewProdName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Fiyat (₺)</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="185.00"
+                  value={newProdPrice}
+                  onChange={(e) =>
+                    setNewProdPrice(e.target.value === '' ? '' : Number(e.target.value))
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-orange-600 focus:outline-none focus:border-orange-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Malzeme & Servis Açıklaması
+                </label>
+                <textarea
+                  placeholder="Örn: Marine edilmiş tavuk bonfile, kaşar peyniri, patates tava ile..."
                   value={newProdDesc}
                   onChange={(e) => setNewProdDesc(e.target.value)}
-                  placeholder="İçerik ve porsiyon detayları..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none resize-none"
+                  rows={3}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500 leading-relaxed"
                 />
               </div>
 
@@ -520,13 +748,13 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 <button
                   type="button"
                   onClick={() => setShowAddProdModal(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-xs font-bold"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                 >
                   İptal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-500/20"
+                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition shadow-sm"
                 >
                   Ürünü Ekle
                 </button>
