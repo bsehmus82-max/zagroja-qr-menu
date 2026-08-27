@@ -1,8 +1,8 @@
-﻿import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { 
   Palette, Wifi, Phone, Lock, 
   Check, Save, KeyRound, AlertCircle, Eye, EyeOff, 
-  Image as ImageIcon, Upload, Link2, Trash2, Camera
+  Image as ImageIcon, Upload, Link2, Trash2, Camera, Calendar
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
@@ -12,6 +12,8 @@ interface BusinessSettingsProps {
   business: Business;
   onUpdate: (updated: Business) => void;
 }
+
+const ALL_DAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
 export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, onUpdate }) => {
   const toast = useToast();
@@ -23,8 +25,14 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
   
-  // Working Hours State
-  const [workingHours, setWorkingHours] = useState(business.working_hours || '09:00 - 00:00');
+  // Working Schedule State
+  const [selectedDays, setSelectedDays] = useState<string[]>(ALL_DAYS);
+  const [openTime, setOpenTime] = useState('09:00');
+  const [closeTime, setCloseTime] = useState('00:00');
+  const [is24Hours, setIs24Hours] = useState(
+    business.working_hours?.toLowerCase().includes('24 saat') || false
+  );
+
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
 
@@ -38,6 +46,63 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // When 24 Hours is toggled ON, automatically select all 7 days
+  useEffect(() => {
+    if (is24Hours) {
+      setSelectedDays(ALL_DAYS);
+    }
+  }, [is24Hours]);
+
+  const toggleDay = (day: string) => {
+    if (is24Hours) {
+      toast.info('24 Saat Açık işletmelerde çalışma günleri otomatik olarak "Her Gün"dür.');
+      return;
+    }
+    setSelectedDays((prev) =>
+      prev.includes(day) ? (prev.length > 1 ? prev.filter((d) => d !== day) : prev) : [...prev, day]
+    );
+  };
+
+  const getDaysSummary = () => {
+    if (selectedDays.length === 7) return 'Her Gün';
+    if (
+      selectedDays.length === 5 &&
+      ['Pzt', 'Sal', 'Çar', 'Per', 'Cum'].every((d) => selectedDays.includes(d))
+    ) {
+      return 'Hafta İçi';
+    }
+    if (
+      selectedDays.length === 6 &&
+      ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'].every((d) => selectedDays.includes(d))
+    ) {
+      return 'Pzt - Cmt';
+    }
+    return selectedDays.join(', ');
+  };
+
+  const workingHoursDisplay = `${getDaysSummary()}: ${is24Hours ? '24 Saat Açık' : `${openTime} - ${closeTime}`}`;
+
+  const applyPresetHours = (preset: string) => {
+    if (preset === '24') {
+      setIs24Hours(true);
+      setSelectedDays(ALL_DAYS);
+    } else {
+      setIs24Hours(false);
+      const [start, end] = preset.split('-');
+      setOpenTime(start);
+      setCloseTime(end);
+    }
+  };
+
+  const applyDaysPreset = (type: 'all' | 'weekdays' | 'mon_sat') => {
+    if (is24Hours && type !== 'all') {
+      setIs24Hours(false);
+    }
+    if (type === 'all') setSelectedDays(ALL_DAYS);
+    if (type === 'weekdays') setSelectedDays(['Pzt', 'Sal', 'Çar', 'Per', 'Cum']);
+    if (type === 'mon_sat') setSelectedDays(['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']);
+  };
 
   const templates: { id: TemplateId; name: string; desc: string; accentColor: string; bgTone: string }[] = [
     {
@@ -139,7 +204,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         logo_url: logoUrl.trim() || null,
         phone: phone.trim(),
         address: address.trim(),
-        working_hours: workingHours.trim(),
+        working_hours: workingHoursDisplay,
         wifi_ssid: wifiSsid.trim(),
         wifi_password: wifiPassword.trim(),
         updated_at: new Date().toISOString(),
@@ -155,7 +220,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       if (!error && data) {
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('İşletme ayarları ve logo başarıyla kaydedildi!');
+        toast.success('İşletme ayarları ve çalışma saatleri başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
         toast.error('Ayarlar kaydedilirken bir hata oluştu.');
@@ -221,7 +286,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div>
           <h2 className="text-base font-bold text-white">İşletme Ayarları & Görsel Tema</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Logonuzu (fotoğraf veya link), çalışma saatlerinizi, temanızı ve şifrenizi buradan yönetebilirsiniz.
+            Logonuzu, haftalık çalışma günlerinizi, saatlerinizi, temanızı ve şifrenizi buradan yönetebilirsiniz.
           </p>
         </div>
 
@@ -326,6 +391,117 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
       </div>
 
+      {/* Working Schedule Card: Days & Hours */}
+      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-indigo-400" />
+            <h3 className="font-bold text-xs text-white">Çalışma Günleri & Saatleri</h3>
+          </div>
+          <span className="text-[11px] font-bold text-indigo-400">{workingHoursDisplay}</span>
+        </div>
+
+        <div className="bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638] space-y-3">
+          {/* Days Selector */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-medium text-slate-300">Haftalık Çalışma Günleri</span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => applyDaysPreset('all')}
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                >
+                  Her Gün
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDaysPreset('weekdays')}
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                >
+                  Hafta İçi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyDaysPreset('mon_sat')}
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                >
+                  Pzt - Cmt
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1.5">
+              {ALL_DAYS.map((day) => {
+                const isSelected = selectedDays.includes(day);
+                return (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => toggleDay(day)}
+                    className={`py-2 rounded-xl text-xs font-semibold transition border text-center ${
+                      isSelected
+                        ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
+                        : 'bg-[#111622] border-[#1E2638] text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Time pickers or 24h info */}
+          <div className="pt-2 border-t border-[#1E2638]">
+            {!is24Hours ? (
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                <div>
+                  <span className="block text-[10px] text-slate-400 mb-1">Açılış Saati</span>
+                  <input
+                    type="time"
+                    value={openTime}
+                    onChange={(e) => setOpenTime(e.target.value)}
+                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <span className="block text-[10px] text-slate-400 mb-1">Kapanış Saati</span>
+                  <input
+                    type="time"
+                    value={closeTime}
+                    onChange={(e) => setCloseTime(e.target.value)}
+                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="w-full bg-[#111622] border border-indigo-500/30 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
+                ✨ 24 Saat Açık Hizmet (Tüm Hafta Aktif)
+              </div>
+            )}
+
+            <div className="grid grid-cols-4 gap-1.5">
+              {[
+                { label: '09:00 - 00:00', val: '09:00-00:00' },
+                { label: '08:00 - 22:00', val: '08:00-22:00' },
+                { label: '11:00 - 02:00', val: '11:00-02:00' },
+                { label: '24 Saat Açık', val: '24' },
+              ].map((preset) => (
+                <button
+                  key={preset.val}
+                  type="button"
+                  onClick={() => applyPresetHours(preset.val)}
+                  className="py-1.5 px-1 rounded-xl bg-[#111622] hover:bg-[#182030] text-[10px] text-slate-400 hover:text-slate-200 border border-[#1E2638] transition truncate text-center"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 6 Luxury Themes Selector */}
       <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2">
@@ -378,7 +554,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-bold text-xs text-white">İletişim & Çalışma Saatleri</h3>
+            <h3 className="font-bold text-xs text-white">İletişim & Adres</h3>
           </div>
 
           <div>
@@ -392,32 +568,6 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               placeholder="0 (212) 000 00 00"
               className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
             />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1 flex items-center justify-between">
-              <span>Çalışma Saatleri</span>
-              <span className="text-[10px] text-indigo-400 font-semibold">{workingHours}</span>
-            </label>
-            <input
-              type="text"
-              value={workingHours}
-              onChange={(e) => setWorkingHours(e.target.value)}
-              placeholder="09:00 - 00:00 veya 24 Saat Açık"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none mb-1.5"
-            />
-            <div className="grid grid-cols-4 gap-1">
-              {['09:00 - 00:00', '08:00 - 22:00', '11:00 - 02:00', '24 Saat Açık'].map((h) => (
-                <button
-                  key={h}
-                  type="button"
-                  onClick={() => setWorkingHours(h)}
-                  className="py-1 px-1 rounded-lg bg-[#0B0E14] hover:bg-[#182030] text-[10px] text-slate-400 hover:text-slate-200 border border-[#1E2638] transition truncate text-center"
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div>
