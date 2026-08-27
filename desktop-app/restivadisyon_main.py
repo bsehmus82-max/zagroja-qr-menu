@@ -453,10 +453,10 @@ def main():
     # 4. Give web server a brief moment to bind
     time.sleep(0.3)
 
-    # 5. Launch Native Webview2 Window (Connecting to Local Embedded Server)
+    # 5. Launch Native Webview2 Window (Directly to Business POS Panel)
     webview.create_window(
         title="RestivAdisyon - POS & Adisyon Yönetim Sistemi",
-        url=f"http://127.0.0.1:{WEB_SERVER_PORT}",
+        url=f"http://127.0.0.1:{WEB_SERVER_PORT}/?mode=business",
         width=1320,
         height=880,
         resizable=True,

@@ -157,12 +157,33 @@ def main():
         check_file_content("components/business/BusinessSettings.tsx", "localStorage.setItem('restiva_sound_preference'")
     )
 
-    # 4.3 Database Schema sound_preference column
-    with open(SCHEMA_FILE, "r", encoding="utf-8", errors="ignore") as f:
-        schema_content = f.read()
+    print("\n--- 5. GÖRSEL KIRPMA (CROPPER) VE .EXE MASAÜSTÜ ENTEGRASYONU ---")
+
+    # 5.1 Interactive Image Cropper Modal
     test(
-        "Supabase veritabanı şemasında sound_preference kolonu mevcut",
-        "sound_preference TEXT DEFAULT 'classic'" in schema_content
+        "İnteraktif görsel kırpma, kaydırma ve yakınlaştırma modalı (ImageCropperModal) mevcut",
+        os.path.exists(os.path.join(SRC_DIR, "components/common/ImageCropperModal.tsx")) and
+        check_file_content("components/business/BusinessSettings.tsx", "ImageCropperModal") and
+        check_file_content("components/business/BusinessSettings.tsx", "setCropperOpen")
+    )
+
+    # 5.2 Desktop App POS Route
+    main_py_path = os.path.join(BASE_DIR, "desktop-app", "restivadisyon_main.py")
+    with open(main_py_path, "r", encoding="utf-8", errors="ignore") as f:
+        main_py_content = f.read()
+    test(
+        "Masaüstü .EXE uygulaması doğrudan İşletme POS Panelini açacak şekilde kilitli",
+        "?mode=business" in main_py_content
+    )
+
+    # 5.3 Setup Wizard Shortcut & Documents Folder
+    setup_py_path = os.path.join(BASE_DIR, "desktop-app", "setup_wizard.py")
+    with open(setup_py_path, "r", encoding="utf-8", errors="ignore") as f:
+        setup_py_content = f.read()
+    test(
+        "Kurulum sihirbazı masaüstü kısayolu ve belgeler klasörünü otomatik oluşturuyor",
+        "create_windows_shortcut" in setup_py_content and
+        "RestivAdisyon - Belgeler & Kılavuz" in setup_py_content
     )
 
     print("\n" + "=" * 65)

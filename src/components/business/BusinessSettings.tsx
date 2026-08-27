@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wifi, Lock, Check, Save, KeyRound, 
   AlertCircle, Eye, EyeOff, Upload, Link2, Trash2, 
-  Camera, Calendar, Settings, Volume2, Play, Radio
+  Camera, Calendar, Settings, Volume2, Play, Radio, Crop
 } from 'lucide-react';
 import { Business, SoundPresetKey } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 import { sound, SOUND_PRESETS } from '../../lib/audio';
+import { ImageCropperModal } from '../common/ImageCropperModal';
 
 interface BusinessSettingsProps {
   business: Business;
@@ -64,6 +65,11 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
   // Sound Preference state
   const [soundPreference, setSoundPreference] = useState<SoundPresetKey>(() => business.sound_preference || sound.getPreferredSound());
+
+  // Image Cropper State
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageUrl, setCropperImageUrl] = useState('');
+  const [cropperMode, setCropperMode] = useState<'logo' | 'banner'>('logo');
 
   // Password Change state
   const [newPassword, setNewPassword] = useState('');
@@ -133,7 +139,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     if (type === 'mon_sat') setSelectedDays(['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']);
   };
 
-  // Image Upload Handler
+  // Image Upload Handler (Opens Cropper Modal)
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -145,40 +151,17 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 400;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
-        setLogoUrl(optimizedBase64);
-        toast.success('Logo yüklendi!');
-      };
-      img.src = event.target?.result as string;
+      if (event.target?.result) {
+        setCropperImageUrl(event.target.result as string);
+        setCropperMode('logo');
+        setCropperOpen(true);
+      }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
-  // Banner / Cover Photo Upload Handler (Auto compressed via Canvas)
+  // Banner / Cover Photo Upload Handler (Opens Cropper Modal)
   const handleBannerFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -190,37 +173,24 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 1200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-
-        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-        setBannerUrl(optimizedBase64);
-        toast.success('Kapak fotoğrafı yüklendi!');
-      };
-      img.src = event.target?.result as string;
+      if (event.target?.result) {
+        setCropperImageUrl(event.target.result as string);
+        setCropperMode('banner');
+        setCropperOpen(true);
+      }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = (croppedDataUrl: string) => {
+    if (cropperMode === 'logo') {
+      setLogoUrl(croppedDataUrl);
+      toast.success('Logo kırpıldı ve önizlemeye eklendi!');
+    } else {
+      setBannerUrl(croppedDataUrl);
+      toast.success('Kapak görseli kırpıldı ve önizlemeye eklendi!');
+    }
   };
 
   const handleSaveGeneral = async (e: React.FormEvent) => {
@@ -379,6 +349,18 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               >
                 <Trash2 className="w-3 h-3" />
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCropperImageUrl(logoUrl);
+                  setCropperMode('logo');
+                  setCropperOpen(true);
+                }}
+                className="absolute -bottom-1.5 -right-1.5 bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-full shadow-md transition"
+                title="Logoyu Kırp & Ayarla"
+              >
+                <Crop className="w-3 h-3" />
+              </button>
             </div>
           ) : (
             <div className="w-12 h-12 flex items-center justify-center text-slate-400 shrink-0">
@@ -400,7 +382,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 className="border border-dashed border-slate-300 hover:border-orange-500 bg-white rounded-xl p-2.5 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs font-semibold text-slate-600 hover:text-orange-600"
               >
                 <Upload className="w-4 h-4 text-orange-500" />
-                <span>{logoUrl ? 'Logoyu Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
+                <span>{logoUrl ? 'Logoyu Değiştir & Kırp' : 'Cihazdan Fotoğraf Seç & Kırp'}</span>
               </div>
             </div>
           ) : (
@@ -469,6 +451,19 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 title="Kapak Fotoğrafını Kaldır"
               >
                 <Trash2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCropperImageUrl(bannerUrl);
+                  setCropperMode('banner');
+                  setCropperOpen(true);
+                }}
+                className="absolute top-2 left-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-md transition flex items-center gap-1"
+                title="Görseli Ayarla / Kırp"
+              >
+                <Crop className="w-3.5 h-3.5" />
+                <span>Görseli Ayarla / Kırp</span>
               </button>
             </div>
           ) : (
@@ -925,13 +920,22 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-1.5 sm:col-span-2">
             <span className="text-orange-400 font-bold text-[11px] block">Nasıl Kurulur? (Sıfır Ek Maliyet):</span>
             <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
-              <li>Masaüstü bilgisayarınızda <strong className="text-white">RestivaAdisyonYazici.exe</strong> programını çalıştırın.</li>
-              <li>Termal yazıcınızı (Epson, Xprinter, Bixolon vb.) seçip <strong className="text-emerald-400">&quot;Bağlantıyı Başlat&quot;</strong> butonuna basın.</li>
-              <li>Artık QR menüden sipariş geldiğinde program sesi çalar ve fişi saniyesinde basar!</li>
+              <li>Masaüstü bilgisayarınızda <strong className="text-white">RestivAdisyon.exe</strong> masaüstü yazılımını çalıştırın.</li>
+              <li>Sistem arka planda termal yazıcınızı (Epson, Xprinter, Bixolon vb.) ve Supabase kanalını otomatik bağlar.</li>
+              <li>QR menüden sipariş geldiğinde program seçtiğiniz bildirim sesini çalar ve fişi saniyesinde basar!</li>
             </ul>
           </div>
         </div>
       </div>
+
+      {/* Interactive Image Cropper & Positioning Modal */}
+      <ImageCropperModal
+        isOpen={cropperOpen}
+        imageUrl={cropperImageUrl}
+        mode={cropperMode}
+        onClose={() => setCropperOpen(false)}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };
