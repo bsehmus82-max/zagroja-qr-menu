@@ -146,7 +146,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
         const stillActive = allOrders.filter((o) => ['pending', 'preparing', 'served'].includes(o.status));
         const newlyPaidOrders = allOrders.filter((o) => o.status === 'paid');
 
-        // Check for Status Changes and trigger Native Notifications for Customer
+        // Check for Status Changes and trigger Native Notifications for Customer (Food preparation only)
         allOrders.forEach((order) => {
           const prevStatus = prevOrderStatusRef.current[order.id];
           if (prevStatus && prevStatus !== order.status) {
@@ -160,22 +160,22 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 title: 'Siparişiniz Masanızda! 🍽️',
                 body: 'Siparişiniz servis edildi. Afiyet olsun!',
               });
-            } else if (order.status === 'paid') {
-              sendNativeNotification({
-                title: 'Hesabınız Ödendi ✨',
-                body: 'Bizi tercih ettiğiniz için teşekkür ederiz. İyi günler dileriz!',
-              });
             }
           }
           prevOrderStatusRef.current[order.id] = order.status;
         });
 
-        // If all orders were paid by admin in dashboard, close session and forget device!
+        // If all orders were paid by admin in dashboard, close session and disconnect device immediately!
         if (newlyPaidOrders.length > 0 && stillActive.length === 0) {
           setShowPaidSessionModal(true);
           localStorage.removeItem('my_active_orders');
           localStorage.removeItem('cart');
+          localStorage.removeItem(`tbl_session_${business.id}`);
+          setCart([]);
           setActiveOrders([]);
+          setShowCart(false);
+          setServiceModalType(null);
+          prevOrderStatusRef.current = {};
         } else {
           setActiveOrders(stillActive);
         }
@@ -183,12 +183,15 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     };
 
     fetchMyActiveOrders();
-    const interval = setInterval(fetchMyActiveOrders, 5000);
+    const interval = setInterval(fetchMyActiveOrders, 4000);
     return () => clearInterval(interval);
-  }, []);
+  }, [business.id]);
 
   const handleClosePaidSession = () => {
     setShowPaidSessionModal(false);
+    setCart([]);
+    setActiveOrders([]);
+    setShowCart(false);
     fetchMenu();
   };
 
