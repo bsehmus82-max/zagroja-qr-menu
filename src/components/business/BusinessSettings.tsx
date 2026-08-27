@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wifi, Lock, Check, Save, KeyRound, 
   AlertCircle, Eye, EyeOff, Upload, Link2, Trash2, 
@@ -81,7 +81,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     return selectedDays.join(', ');
   };
 
-  const workingHoursDisplay = `${getDaysSummary()}: ${is24Hours ? '24 Saat Açık' : `${openTime} - ${closeTime}`}`;
+  const workingHoursDisplay = is24Hours ? 'Her Gün: 7/24 Açık' : `${getDaysSummary()}: ${openTime} - ${closeTime}`;
 
   const applyPresetHours = (preset: string) => {
     if (preset === '24') {

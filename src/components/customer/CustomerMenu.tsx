@@ -8,7 +8,10 @@ import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusTracker } from './OrderStatusTracker';
-import { Language, translations, getCategoryTitle } from '../../lib/translations';
+import { 
+  Language, translations, getCategoryTitle, 
+  getTranslatedWorkingHours, getTranslatedDescription 
+} from '../../lib/translations';
 
 interface CustomerMenuProps {
   business: Business;
@@ -149,6 +152,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
+  const displayWorkingHours = getTranslatedWorkingHours(business.working_hours, lang);
 
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-800 antialiased flex justify-center selection:bg-orange-500 selection:text-white">
@@ -240,9 +244,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight text-slate-900 drop-shadow-xs">
                   {business.name}
                 </h1>
-                {business.working_hours && (
+                {displayWorkingHours && (
                   <p className="text-[11px] text-slate-600 truncate mt-0.5 font-semibold">
-                    {business.working_hours}
+                    {displayWorkingHours}
                   </p>
                 )}
               </div>
@@ -415,58 +419,61 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     {isSearching ? t.noItemsFound : t.noCategoryItems}
                   </div>
                 ) : (
-                  currentProducts.map((prod) => (
-                    <div
-                      key={prod.id}
-                      className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
-                    >
-                      {/* Image on Left */}
-                      <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
-                        <img
-                          src={
-                            categories.find((c) => c.id === prod.category_id)?.image_url ||
-                            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
-                          }
-                          alt={prod.name}
-                          className="w-full h-full object-cover"
-                        />
-                        {prod.is_frozen && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
-                            {t.soldOut}
-                          </div>
-                        )}
-                      </div>
+                  currentProducts.map((prod) => {
+                    const translatedDesc = getTranslatedDescription(prod.description, lang);
+                    return (
+                      <div
+                        key={prod.id}
+                        className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
+                      >
+                        {/* Image on Left */}
+                        <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                          <img
+                            src={
+                              categories.find((c) => c.id === prod.category_id)?.image_url ||
+                              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                            }
+                            alt={prod.name}
+                            className="w-full h-full object-cover"
+                          />
+                          {prod.is_frozen && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
+                              {t.soldOut}
+                            </div>
+                          )}
+                        </div>
 
-                      {/* Info in Center */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
-                          {prod.name}
-                        </h3>
-                        {prod.description && (
-                          <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
-                            {prod.description}
-                          </p>
-                        )}
-                        <div className="mt-1 flex items-baseline">
-                          <span className="font-black text-xs sm:text-sm text-orange-600">
-                            {prod.price.toFixed(2)} ₺
-                          </span>
+                        {/* Info in Center: Product Name (Original) + Translated Description */}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                            {prod.name}
+                          </h3>
+                          {translatedDesc && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
+                              {translatedDesc}
+                            </p>
+                          )}
+                          <div className="mt-1 flex items-baseline">
+                            <span className="font-black text-xs sm:text-sm text-orange-600">
+                              {prod.price.toFixed(2)} ₺
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Add to Cart Button */}
+                        <div>
+                          <button
+                            onClick={() => addToCart(prod)}
+                            disabled={prod.is_frozen}
+                            className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
+                            title={t.addToCart}
+                          >
+                            +
+                          </button>
                         </div>
                       </div>
-
-                      {/* Add to Cart Button */}
-                      <div>
-                        <button
-                          onClick={() => addToCart(prod)}
-                          disabled={prod.is_frozen}
-                          className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
-                          title={t.addToCart}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

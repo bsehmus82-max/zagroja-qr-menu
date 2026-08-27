@@ -196,35 +196,44 @@ export const translations = {
 };
 
 const categoryTranslations: Record<string, { en: string; ru: string }> = {
-  'serpme & kahvaltılıklar': { en: 'Breakfast & Platters', ru: 'Завтраки и сеты' },
+  'serpme & kahvaltılıklar': { en: 'Breakfast & Brunch', ru: 'Завтраки и сеты' },
   'kahvaltılıklar': { en: 'Breakfast', ru: 'Завтраки' },
   'kahvaltı': { en: 'Breakfast', ru: 'Завтрак' },
-  'sıcak & soğuk kahveler': { en: 'Hot & Cold Coffees', ru: 'Горячий и холодный кофе' },
-  'kahveler': { en: 'Coffees', ru: 'Кофе' },
-  'kahve': { en: 'Coffee', ru: 'Кофе' },
-  'gurme burgerler': { en: 'Gourmet Burgers', ru: 'Бургеры для гурманов' },
-  'burgerler': { en: 'Burgers', ru: 'Бургеры' },
-  'burger': { en: 'Burger', ru: 'Бургер' },
-  'taş fırın pizzalar': { en: 'Stone Oven Pizzas', ru: 'Пиццы из каменной печи' },
-  'pizzalar': { en: 'Pizzas', ru: 'Пицца' },
-  'pizza': { en: 'Pizza', ru: 'Пицца' },
+  'ızgara & kebap çeşitleri': { en: 'Grills & Kebabs', ru: 'Гриль и кебабы' },
   'ızgaralar & ana yemekler': { en: 'Grills & Main Courses', ru: 'Гриль и основные блюда' },
   'ana yemekler': { en: 'Main Courses', ru: 'Основные блюда' },
   'ızgaralar': { en: 'Grills', ru: 'Гриль' },
+  'kebaplar': { en: 'Kebabs', ru: 'Кебабы' },
+  'taş fırın & pizzalar': { en: 'Stone Oven & Pizzas', ru: 'Пиццы из каменной печи' },
+  'taş fırın pizzalar': { en: 'Stone Oven Pizzas', ru: 'Пиццы из каменной печи' },
+  'pizzalar': { en: 'Pizzas', ru: 'Пицца' },
+  'pizza': { en: 'Pizza', ru: 'Пицца' },
+  'gurme burgerler': { en: 'Gourmet Burgers', ru: 'Бургеры для гурманов' },
+  'burgerler': { en: 'Burgers', ru: 'Бургеры' },
+  'burger': { en: 'Burger', ru: 'Бургер' },
+  'makarnalar & salatalar': { en: 'Pastas & Salads', ru: 'Паста и салаты' },
+  'makarnalar': { en: 'Pastas', ru: 'Паста' },
+  'salatalar': { en: 'Fresh Salads', ru: 'Салаты' },
+  'taze mezeler & başlangıçlar': { en: 'Fresh Mezes & Starters', ru: 'Свежие мезе и закуски' },
   'çıtır atıştırmalıklar & mezeler': { en: 'Crispy Snacks & Appetizers', ru: 'Закуски и снеки' },
+  'mezeler': { en: 'Appetizers & Mezes', ru: 'Мезе и закуски' },
   'atıştırmalıklar': { en: 'Snacks & Bites', ru: 'Закуски' },
-  'mezeler': { en: 'Appetizers & Mezes', ru: 'Закуски' },
   'tatlılar & pastalar': { en: 'Desserts & Cakes', ru: 'Десерты и выпечка' },
   'tatlılar': { en: 'Desserts', ru: 'Десерты' },
-  'pastalar': { en: 'Cakes', ru: 'Торты и пирожные' },
+  'pastalar': { en: 'Cakes', ru: 'Торты и десерты' },
+  'sıcak kahveler & çaylar': { en: 'Hot Coffees & Teas', ru: 'Горячий кофе и чай' },
+  'sıcak & soğuk kahveler': { en: 'Hot & Cold Coffees', ru: 'Горячий и холодный кофе' },
+  'kahveler': { en: 'Coffees', ru: 'Кофе' },
+  'kahve': { en: 'Coffee', ru: 'Кофе' },
+  'çaylar': { en: 'Teas', ru: 'Чай' },
+  'soğuk içecekler & meşrubatlar': { en: 'Cold Drinks & Beverages', ru: 'Холодные напитки' },
   'meşrubat & soğuk içecekler': { en: 'Cold Drinks & Beverages', ru: 'Холодные напитки' },
   'soğuk içecekler': { en: 'Cold Beverages', ru: 'Холодные напитки' },
   'sıcak içecekler': { en: 'Hot Beverages', ru: 'Горячие напитки' },
   'içecekler': { en: 'Beverages', ru: 'Напитки' },
-  'makarnalar': { en: 'Pastas', ru: 'Паста' },
-  'salatalar': { en: 'Fresh Salads', ru: 'Салаты' },
+  'taze meyve suları & mocktailler': { en: 'Fresh Juices & Mocktails', ru: 'Свежие соки и моктейли' },
+  'taze meyve suları': { en: 'Fresh Juices', ru: 'Свежие соки' },
   'çorbalar': { en: 'Soups', ru: 'Супы' },
-  'çaylar': { en: 'Teas', ru: 'Чай' },
   'sandviçler': { en: 'Sandwiches', ru: 'Сэндвичи' },
   'dürüm & wrapler': { en: 'Wraps & Rolls', ru: 'Роллы и врапы' },
   'döneler': { en: 'Doner Kebabs', ru: 'Донеры' },
@@ -239,4 +248,153 @@ export function getCategoryTitle(catName: string, lang: Language): string {
     return match[lang];
   }
   return catName;
+}
+
+export function getTranslatedWorkingHours(hoursStr: string | undefined, lang: Language): string {
+  if (!hoursStr) return '';
+  if (lang === 'tr') {
+    return hoursStr
+      .replace(/24 saat/gi, '7/24 Açık')
+      .replace(/24 saat açık/gi, '7/24 Açık');
+  }
+
+  let result = hoursStr;
+
+  if (lang === 'en') {
+    if (result.toLowerCase().includes('24 saat') || result.toLowerCase().includes('7/24')) {
+      return 'Open 24/7 (Every Day)';
+    }
+    result = result
+      .replace(/her gün/gi, 'Every Day')
+      .replace(/hafta içi/gi, 'Weekdays')
+      .replace(/pzt/gi, 'Mon')
+      .replace(/sal/gi, 'Tue')
+      .replace(/çar/gi, 'Wed')
+      .replace(/per/gi, 'Thu')
+      .replace(/cum/gi, 'Fri')
+      .replace(/cmt/gi, 'Sat')
+      .replace(/paz/gi, 'Sun');
+    return result;
+  }
+
+  if (lang === 'ru') {
+    if (result.toLowerCase().includes('24 saat') || result.toLowerCase().includes('7/24')) {
+      return 'Открыто 24/7 (Каждый день)';
+    }
+    result = result
+      .replace(/her gün/gi, 'Каждый день')
+      .replace(/hafta içi/gi, 'Будни')
+      .replace(/pzt/gi, 'Пн')
+      .replace(/sal/gi, 'Вт')
+      .replace(/çar/gi, 'Ср')
+      .replace(/per/gi, 'Чт')
+      .replace(/cum/gi, 'Пт')
+      .replace(/cmt/gi, 'Сб')
+      .replace(/paz/gi, 'Вс');
+    return result;
+  }
+
+  return hoursStr;
+}
+
+// Common descriptions translator for gourmet catalog
+const descriptionMap: Record<string, { en: string; ru: string }> = {
+  'Ezine beyaz peynir, eski kaşar, van otlu peynir, petek bal & kaymak, ev reçelleri, siyah & yeşil zeytin, sahanda tereyağlı yumurta, pişi ve sınırsız demlik çay ile': {
+    en: 'Ezine white cheese, aged kashar, Van herb cheese, honeycomb & clotted cream, homemade jams, olives, fried eggs in butter, pişi and unlimited brewed tea',
+    ru: 'Сыр Эзине, выдержанный кашар, сыр с травами, мед в сотах и каймак, домашнее варенье, оливки, яичница на сливочном масле, пиши и чай без ограничений',
+  },
+  'Köy domatesi, tatlı köy biberi, kasap sucuk ve taze kaşar eritmesi ile bakır tavada': {
+    en: 'Village tomatoes, sweet peppers, butcher soujouk, and melted kashar cheese served in a copper pan',
+    ru: 'Деревенские томаты, сладкий перец, суджук и расплавленный кашар в медной сковороде',
+  },
+  '4 adet taze kızartılmış pişi, tulum peyniri ve böğürtlen reçeli eşliğinde': {
+    en: '4 pieces of freshly fried Turkish pişi, served with tulum cheese and blackberry jam',
+    ru: '4 шт. свежеобжаренных турецких пышек пиши, сыр тулум и ежевичное варенье',
+  },
+  '200 gr zırh kıyması kasap köfte, közlenmiş domates ve biber, tırnak pide, sumaklı soğan ve tereyağlı pilav ile': {
+    en: '200g hand-minced butcher meatballs, roasted tomatoes & peppers, flatbread, sumac onions and buttered rice',
+    ru: '200 г рубленых котлет кёфте на углях, запеченные томаты и перец, лаваш, лук с сумахом и рис на масле',
+  },
+  'Meşe kömüründe ızgara dana bonfile dilimleri, fırınlanmış patates püresi ve biberiye sosu ile': {
+    en: 'Charcoal-grilled beef tenderloin slices, baked mashed potatoes and rosemary sauce',
+    ru: 'Ломтики говяжьей вырезки на углях, запеченное картофельное пюре и розмариновый соус',
+  },
+  'Taze kekik ve zeytinyağı ile dinlendirilmiş kuzu but eti, köz sebzeler ve lavaş eşliğinde': {
+    en: 'Marinated lamb leg with fresh thyme and olive oil, served with grilled vegetables and lavash',
+    ru: 'Нежное мясо ягненка с тимьяном и оливковым маслом, запеченные овощи и лаваш',
+  },
+  'Marine edilmiş ızgara tavuk kalça, taze mantar kreması sosu ve fırınlanmış bebek patates ile': {
+    en: 'Marinated grilled chicken thigh, fresh creamy mushroom sauce, and roasted baby potatoes',
+    ru: 'Маринованное куриное филе на гриле, сливочно-грибной соус и молодой картофель',
+  },
+  'İtalyan domates sosu, manda mozzarellası, taze fesleğen yaprakları ve sızma zeytinyağı': {
+    en: 'Italian tomato sauce, buffalo mozzarella, fresh basil leaves, and extra virgin olive oil',
+    ru: 'Итальянский томатный соус, моцарелла из молока буйволицы, свежий базилик и оливковое масло',
+  },
+  'Trüf kreması, mozzarella, kültür ve kestane mantarları, taze kekik yaprakları': {
+    en: 'Truffle cream, mozzarella, button and chestnut mushrooms, fresh thyme leaves',
+    ru: 'Трюфельный крем, моцарелла, шампиньоны и каштановые грибы, свежий тимьян',
+  },
+  'Özel domates sos, mozzarella, dana sucuk, mantar, köz biber, mısır ve siyah zeytin': {
+    en: 'Special tomato sauce, mozzarella, beef soujouk, mushrooms, roasted peppers, corn, and black olives',
+    ru: 'Фирменный томатный соус, моцарелла, говяжий суджук, грибы, сладкий перец, кукуруза и маслины',
+  },
+  '2x90 gr dana eti, trüflü mayonez, karamelize soğan, eritilmiş cheddar peyniri, çıtır baharatlı patates tava ile': {
+    en: '2x90g smash beef patties, truffle mayo, caramelized onions, melted cheddar cheese, served with seasoned fries',
+    ru: '2x90 г котлеты из говядины, трюфельный майонез, карамелизированный лук, чеддер и картофель фри',
+  },
+  '180 gr dana köfte, dana füme eti, füme barbekü sos, çıtır soğan halkası, patates kızartması ile': {
+    en: '180g beef patty, smoked beef, smoked BBQ sauce, crispy onion rings, served with fries',
+    ru: '180 г говяжья котлета, копченая говядина, соус барбекю, луковые кольца и картофель фри',
+  },
+  'Özel marinasyonlu panelenmiş çıtır tavuk fileto, coleslaw salata, ballı hardal sos': {
+    en: 'Specially marinated crispy breaded chicken fillet, coleslaw salad, honey mustard sauce',
+    ru: 'Хрустящее куриное филе в панировке, салат коулслоу, медово-горчичный соус',
+  },
+  'Taze el yapımı fettuccine, ızgara tavuk dilimleri, mantar, krema ve rendelenmiş parmesan': {
+    en: 'Fresh handmade fettuccine, grilled chicken slices, mushrooms, cream, and grated parmesan',
+    ru: 'Свежая домашняя феттуччине, курица на гриле, грибы, сливочный соус и пармезан',
+  },
+  'Acılı İtalyan domates sosu, sarımsak, taze fesleğen, dilimlenmiş siyah zeytin ve parmesan': {
+    en: 'Spicy Italian tomato sauce, garlic, fresh basil, sliced black olives, and parmesan',
+    ru: 'Острый итальянский томатный соус, чеснок, свежий базилик, маслины и пармезан',
+  },
+  'Taze marul yaprakları, ızgara tavuk göğsü, kruton ekmek, parmesan rendesi ve özel sezar sos': {
+    en: 'Fresh romaine lettuce, grilled chicken breast, croutons, grated parmesan, and signature caesar dressing',
+    ru: 'Листья салата романо, куриная грудка на гриле, крутоны, пармезан и соус цезарь',
+  },
+  'İpeksi yumuşak dokulu fırınlanmış peynir keki, sıcak eritilmiş Belçika sütlü çikolatası eşliğinde': {
+    en: 'Silky smooth baked Basque cheesecake, served with warm melted Belgian milk chocolate',
+    ru: 'Нежнейший чизкейк Сан-Себастьян с теплым бельгийским молочным шоколадом',
+  },
+  'Hakiki bitter çikolatalı akışkan sufle, Maraş kesme dondurması ile': {
+    en: 'Authentic dark chocolate molten lava souffle, served with traditional Maraş ice cream',
+    ru: 'Горячее шоколадное суфле с жидким центром из бельгийского шоколада и мороженым',
+  },
+  'Gaziantep sade yağlı çıtır baklava, yanında manda kaymağı ile': {
+    en: 'Authentic Gaziantep crispy pistachio baklava, served with buffalo clotted cream',
+    ru: 'Традиционная хрустящая пахлава с фисташками и каймаком',
+  },
+  'Çifte kavrulmuş taze çekim kahve, lokum ve damla sakızlı su ile': {
+    en: 'Double roasted freshly ground Turkish coffee, served with Turkish delight and mastic water',
+    ru: 'Свежемолотый турецкий кофе двойной обжарки с лукумом',
+  },
+  'Sıkma limon suyu, taze nane yaprakları ve az şekerli doğal ferahlık': {
+    en: 'Fresh squeezed lemon juice, fresh mint leaves, low sugar natural refreshment',
+    ru: 'Свежевыжатый лимонный сок, свежая мята, натуральный освежающий лимонад',
+  },
+  '%100 doğal taze sıkılmış tatlı Akdeniz portakalı': {
+    en: '100% natural freshly squeezed sweet Mediterranean oranges',
+    ru: '100% натуральный свежевыжатый сок из средиземноморских апельсинов',
+  },
+};
+
+export function getTranslatedDescription(desc: string | undefined, lang: Language): string {
+  if (!desc) return '';
+  if (lang === 'tr') return desc;
+  const match = descriptionMap[desc.trim()];
+  if (match && match[lang]) {
+    return match[lang];
+  }
+  return desc;
 }
