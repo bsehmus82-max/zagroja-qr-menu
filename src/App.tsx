@@ -28,24 +28,73 @@ export default function App() {
   const [customerLoading, setCustomerLoading] = useState(false);
   const [customerError, setCustomerError] = useState('');
 
-  // Re-fetch fresh business data on load to ensure up-to-date attributes
+  // Re-fetch fresh business data on load & subscribe to realtime changes (Deletions/Suspension/Updates)
   useEffect(() => {
-    if (activeBusiness?.id) {
-      supabase
-        .from('businesses')
-        .select('*')
-        .eq('id', activeBusiness.id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            const biz = data as Business;
-            setActiveBusiness(biz);
-            sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
-            localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+    if (!activeBusiness?.id) return;
+
+    const wipeSession = () => {
+      sessionStorage.removeItem('zagroja_business_id');
+      sessionStorage.removeItem('zagroja_business_data');
+      localStorage.removeItem('zagroja_business_id');
+      localStorage.removeItem('zagroja_business_data');
+      setActiveBusiness(null);
+    };
+
+    // 1. Initial verification query
+    supabase
+      .from('businesses')
+      .select('*')
+      .eq('id', activeBusiness.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error || !data) {
+          wipeSession();
+          return;
+        }
+
+        const biz = data as Business;
+        if (biz.subscription_status === 'suspended') {
+          wipeSession();
+          return;
+        }
+
+        setActiveBusiness(biz);
+        sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+        localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+      });
+
+    // 2. Realtime listener: If deleted, suspended or updated in SuperAdmin
+    const channel = supabase
+      .channel(`biz-security-guard-${activeBusiness.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'businesses',
+          filter: `id=eq.${activeBusiness.id}`,
+        },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            wipeSession();
+          } else if (payload.eventType === 'UPDATE') {
+            const updated = payload.new as Business;
+            if (updated.subscription_status === 'suspended') {
+              wipeSession();
+            } else {
+              setActiveBusiness(updated);
+              sessionStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+              localStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+            }
           }
-        });
-    }
-  }, []);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeBusiness?.id]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -89,7 +138,7 @@ export default function App() {
         .from('businesses')
         .select('*')
         .eq('slug', slug)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         setCustomerError('Menü bulunamadı.');

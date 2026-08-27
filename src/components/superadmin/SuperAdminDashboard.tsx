@@ -175,17 +175,35 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
   const promptDeleteBusiness = (biz: Business) => {
     setConfirmConfig({
       isOpen: true,
-      title: 'İşletmeyi Sil',
-      message: `"${biz.name}" işletmesini ve tüm menü verilerini kalıcı olarak silmek istediğinize emin misiniz?`,
+      title: 'İşletmeyi Kalıcı Olarak Sil',
+      message: `"${biz.name}" işletmesine ait tüm menü, masa, sipariş, servis çağrısı ve destek mesajı verileri geri alınamaz şekilde silinecektir. Devam etmek istiyor musunuz?`,
       type: 'danger',
       action: async () => {
-        const { error } = await supabase.from('businesses').delete().eq('id', biz.id);
-        if (!error) {
-          setBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
-          if (selectedBizForChat?.id === biz.id) {
-            setSelectedBizForChat(null);
+        try {
+          // 1. Delete all child records in parallel to prevent foreign key constraint violations & ghost data
+          await Promise.allSettled([
+            supabase.from('orders').delete().eq('business_id', biz.id),
+            supabase.from('service_requests').delete().eq('business_id', biz.id),
+            supabase.from('support_messages').delete().eq('business_id', biz.id),
+            supabase.from('products').delete().eq('business_id', biz.id),
+            supabase.from('categories').delete().eq('business_id', biz.id),
+            supabase.from('tables').delete().eq('business_id', biz.id),
+          ]);
+
+          // 2. Delete the parent business record
+          const { error } = await supabase.from('businesses').delete().eq('id', biz.id);
+
+          if (!error) {
+            setBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
+            if (selectedBizForChat?.id === biz.id) {
+              setSelectedBizForChat(null);
+            }
+            toast.success(`"${biz.name}" ve tüm ilişkili verileri kalıcı olarak silindi.`);
+          } else {
+            toast.error('İşletme silinirken bir hata oluştu: ' + error.message);
           }
-          toast.success(`"${biz.name}" silindi.`);
+        } catch {
+          toast.error('Silme işlemi sırasında bağlantı hatası oluştu.');
         }
       },
     });
