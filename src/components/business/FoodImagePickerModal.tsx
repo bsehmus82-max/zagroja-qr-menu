@@ -146,6 +146,16 @@ export const FoodImagePickerModal: React.FC<FoodImagePickerModalProps> = ({
               );
             })}
           </div>
+
+          {/* Quick Tip for External Stock Sites */}
+          <div className="p-2.5 bg-orange-50/80 border border-orange-200/80 rounded-2xl flex items-center justify-between text-[11px] text-orange-950 gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-orange-600 shrink-0" />
+              <span>
+                <strong>İpucu:</strong> Dilerseniz <strong>Unsplash.com</strong> veya <strong>Pexels.com</strong> üzerinden herhangi bir yemek fotoğrafına sağ tıklayıp <em>&quot;Resim Adresini Kopyala&quot;</em> diyerek aşağıdaki link kutusuna da yapıştırabilirsiniz.
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Gallery Image Grid */}
