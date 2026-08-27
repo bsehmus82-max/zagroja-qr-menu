@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Zero-dependency Web Audio API Sound Synthesizer
  * Generates crystal clear acoustic bell and notification chime effects
  */
@@ -14,7 +14,7 @@ class SoundEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
     return this.ctx;
   }

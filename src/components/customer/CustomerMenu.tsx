@@ -168,8 +168,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   // Load Active Orders for tracking and Customer Native Notifications
   useEffect(() => {
     const fetchMyActiveOrders = async () => {
-      const storedOrderIds = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
-      if (storedOrderIds.length === 0) return;
+      let storedOrderIds: string[] = [];
+      try {
+        storedOrderIds = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
+      } catch {
+        storedOrderIds = [];
+      }
+      if (!Array.isArray(storedOrderIds) || storedOrderIds.length === 0) return;
 
       const { data } = await supabase
         .from('orders')

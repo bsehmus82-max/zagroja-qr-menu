@@ -196,6 +196,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
             supabase.from('products').delete().eq('business_id', biz.id),
             supabase.from('categories').delete().eq('business_id', biz.id),
             supabase.from('tables').delete().eq('business_id', biz.id),
+            supabase.from('waiter_devices').delete().eq('business_id', biz.id),
+            supabase.from('waiters').delete().eq('business_id', biz.id),
+            supabase.from('daily_summary').delete().eq('business_id', biz.id),
           ]);
 
           // 2. Delete the parent business record

@@ -120,7 +120,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
 
       setName('');
       setTableLimit(20);
-      setDays(30);
+      setDays(7);
       onClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'İşletme hesabı oluşturulurken bir hata oluştu.';

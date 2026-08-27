@@ -296,6 +296,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
       if (data) {
         sessionStorage.setItem('restiva_biz_session', JSON.stringify(data));
+        localStorage.setItem('restiva_biz_session', JSON.stringify(data));
         onUpdate(data as Business);
         setPassSuccess(true);
         setNewPassword('');

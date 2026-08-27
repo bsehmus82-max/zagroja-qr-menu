@@ -38,6 +38,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
         business_id: biz.id,
         sender: 'superadmin',
         message: `[SİSTEM DUYURUSU]\n${message.trim()}`,
+        status: 'open',
         is_read: false,
       }));
 
