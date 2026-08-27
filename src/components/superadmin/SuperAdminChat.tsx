@@ -83,6 +83,7 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
       business_id: activeBusiness.id,
       sender: 'superadmin',
       message: text,
+      status: 'open',
       is_read: false,
     };
 

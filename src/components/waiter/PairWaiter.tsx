@@ -46,7 +46,7 @@ export const PairWaiter: React.FC = () => {
 
       if (!error && data) {
         if (data.status === 'approved' && data.is_trusted) {
-          window.location.href = '/waiter';
+          window.location.href = '/?mode=waiter';
           return;
         } else if (data.status === 'pending') {
           setDeviceToken(token);
@@ -81,7 +81,7 @@ export const PairWaiter: React.FC = () => {
               localStorage.setItem('restiva_waiter_name', updated.waiter_name || 'Garson');
               setStatus('approved');
               setTimeout(() => {
-                window.location.href = '/waiter';
+                window.location.href = '/?mode=waiter';
               }, 1200);
             } else if (updated.status === 'rejected') {
               setStatus('rejected');
@@ -101,7 +101,7 @@ export const PairWaiter: React.FC = () => {
         if (data.waiter_name) localStorage.setItem('restiva_waiter_name', data.waiter_name);
         setStatus('approved');
         setTimeout(() => {
-          window.location.href = '/waiter';
+          window.location.href = '/?mode=waiter';
         }, 1200);
       } else if (data && data.status === 'rejected') {
         setStatus('rejected');

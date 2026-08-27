@@ -5,7 +5,7 @@ import {
   UserCheck, ShieldAlert
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { toast } from 'sonner';
+import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { Business, WaiterDevice } from '../../types';
 import { ConfirmModal } from '../common/ConfirmModal';
@@ -15,6 +15,7 @@ interface WaitersManagerProps {
 }
 
 export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
+  const toast = useToast();
   const [approvedDevices, setApprovedDevices] = useState<WaiterDevice[]>([]);
   const [pendingDevices, setPendingDevices] = useState<WaiterDevice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,9 +83,7 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         (payload: any) => {
           loadData();
           if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
-            toast.info(`Yeni Garson Talebi: "${payload.new.waiter_name || payload.new.device_name}" onay bekliyor!`, {
-              duration: 6000,
-            });
+            toast.info(`Yeni Garson Talebi: "${payload.new.waiter_name || payload.new.device_name}" onay bekliyor!`);
           }
         }
       )

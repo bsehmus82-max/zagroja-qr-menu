@@ -175,8 +175,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         price: updatedPrice,
         category_id: editingProduct.category_id,
         image_url: editingProduct.image_url?.trim() || null,
+        updated_at: new Date().toISOString(),
       })
-      .eq('id', editingProduct.id);
+      .eq('id', editingProduct.id)
+      .eq('business_id', business.id);
 
     if (error) {
       toast.error('Ürün kaydedilirken hata oluştu.');
@@ -231,7 +233,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       type: 'danger',
       action: async () => {
         setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-        await supabase.from('products').delete().eq('id', prod.id);
+        await supabase.from('products').delete().eq('id', prod.id).eq('business_id', business.id);
         toast.success(`${prod.name} silindi.`);
       },
     });
@@ -252,8 +254,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
           setSelectedCatId(remaining.length > 0 ? remaining[0].id : null);
         }
 
-        await supabase.from('products').delete().eq('category_id', catId);
-        await supabase.from('categories').delete().eq('id', catId);
+        await supabase.from('products').delete().eq('category_id', catId).eq('business_id', business.id);
+        await supabase.from('categories').delete().eq('id', catId).eq('business_id', business.id);
         toast.success(`${catName} silindi.`);
       },
     });

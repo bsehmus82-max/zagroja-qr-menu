@@ -4,11 +4,12 @@ import {
   Send, RefreshCw, CheckCircle2, Utensils, LogOut, Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { toast } from 'sonner';
+import { useToast } from '../../context/ToastContext';
 import { supabase } from '../../lib/supabase';
 import { Business, Category, Product, Table } from '../../types';
 
 export const WaiterApp: React.FC = () => {
+  const toast = useToast();
   const [deviceToken, setDeviceToken] = useState<string | null>(() => localStorage.getItem('restiva_waiter_device_token'));
   const [businessId, setBusinessId] = useState<string | null>(() => localStorage.getItem('restiva_waiter_biz_id'));
   const [waiterName, setWaiterName] = useState<string>(() => localStorage.getItem('restiva_waiter_name') || 'Garson');

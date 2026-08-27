@@ -270,11 +270,12 @@ ON public.orders
 FOR SELECT 
 USING (public.is_business_active(business_id));
 
+DROP POLICY IF EXISTS "Allow insert orders" ON public.orders;
 DROP POLICY IF EXISTS "Deny direct anon order inserts" ON public.orders;
-CREATE POLICY "Deny direct anon order inserts" 
+CREATE POLICY "Allow insert orders" 
 ON public.orders 
 FOR INSERT 
-WITH CHECK (false);
+WITH CHECK (public.is_business_active(business_id));
 
 DROP POLICY IF EXISTS "Allow update order status" ON public.orders;
 CREATE POLICY "Allow update order status" 

@@ -49,6 +49,8 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
 
       sessionStorage.setItem('restiva_biz_id', biz.id);
       sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
+      localStorage.setItem('restiva_biz_id', biz.id);
+      localStorage.setItem('restiva_biz_session', JSON.stringify(biz));
       onSuccess(biz);
     } catch {
       setError('Giriş yapılırken bir hata oluştu.');

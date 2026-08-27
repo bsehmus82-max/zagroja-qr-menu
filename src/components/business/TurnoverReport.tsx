@@ -6,12 +6,14 @@ import {
 import { Business, Order, DailySummary } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { printZReport } from '../../lib/thermalPrinter';
+import { useToast } from '../../context/ToastContext';
 
 interface TurnoverReportProps {
   business: Business;
 }
 
 export const TurnoverReport: React.FC<TurnoverReportProps> = ({ business }) => {
+  const toast = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [dailySummaries, setDailySummaries] = useState<DailySummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +99,10 @@ export const TurnoverReport: React.FC<TurnoverReportProps> = ({ business }) => {
     const mCard = prevMonthOrders.filter((o) => o.payment_method === 'credit_card').reduce((acc, o) => acc + o.total_amount, 0);
 
     const printWin = window.open('', '_blank', 'width=800,height=900');
-    if (!printWin) return;
+    if (!printWin) {
+      toast.warning('Açılır pencere tarayıcınız tarafından engellendi. Lütfen izin veriniz.');
+      return;
+    }
 
     const htmlContent = `
       <!DOCTYPE html>

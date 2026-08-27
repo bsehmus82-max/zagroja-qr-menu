@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, Printer, QrCode, Trash2, RefreshCw, 
   ExternalLink, Layers, Copy, Check
@@ -129,7 +129,11 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
       message: 'Bu masayı sildiğinizde masaya ait QR kod geçersiz olacaktır.',
       type: 'danger',
       action: async () => {
-        const { error } = await supabase.from('tables').delete().eq('id', id);
+        const { error } = await supabase
+          .from('tables')
+          .delete()
+          .eq('id', id)
+          .eq('business_id', business.id);
         if (!error) {
           setTables((prev) => prev.filter((t) => t.id !== id));
           toast.success(`${name} silindi.`);

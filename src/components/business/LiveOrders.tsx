@@ -149,7 +149,8 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
     const { error } = await supabase
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .eq('business_id', business.id);
 
     if (!error) {
       if (status === 'paid' || status === 'cancelled') {
@@ -166,8 +167,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   const resolveServiceRequest = async (reqId: string) => {
     const { error } = await supabase
       .from('service_requests')
-      .update({ status: 'resolved' })
-      .eq('id', reqId);
+      .update({ status: 'resolved', updated_at: new Date().toISOString() })
+      .eq('id', reqId)
+      .eq('business_id', business.id);
 
     if (!error) {
       setServiceRequests((prev) => prev.filter((r) => r.id !== reqId));
@@ -188,7 +190,8 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
           payment_method: paymentMethod, 
           updated_at: new Date().toISOString() 
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('business_id', business.id);
 
       if (error) throw error;
 

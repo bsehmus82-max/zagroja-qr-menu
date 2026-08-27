@@ -366,7 +366,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newMsg = payload.new as SupportMessage;
-            if (newMsg.status === 'open') {
+            if (!newMsg.status || newMsg.status === 'open') {
               setMessages((prev) => [...prev, newMsg]);
               if (newMsg.sender === 'superadmin') {
                 sound.playMessageTone();
