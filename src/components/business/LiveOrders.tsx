@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
   Hand, Banknote, RefreshCw, Volume2, CreditCard
@@ -64,11 +64,11 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
             setOrders((prev) => [newOrder, ...prev]);
             sound.playOrderBell();
             printKitchenTicket(business, newOrder);
-            toast.info(`🔔 ${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
+            toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
             
             // Native Background / OS Push Notification
             sendNativeNotification({
-              title: `🔔 Yeni Sipariş: ${newOrder.table_no}`,
+              title: `Yeni Sipariş: ${newOrder.table_no}`,
               body: `${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} (${newOrder.total_amount.toFixed(2)} ₺)`,
               url: '/admin',
             });
@@ -103,11 +103,11 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
                 ? 'Hesap İste (Nakit)'
                 : 'Hesap İste (POS / Kart)';
 
-            toast.warning(`🛎️ ${newReq.table_no}: ${reqLabel}`);
+            toast.warning(`${newReq.table_no}: ${reqLabel}`);
 
             // Native Background Push Notification
             sendNativeNotification({
-              title: `🛎️ ${newReq.table_no}: ${reqLabel}`,
+              title: `${newReq.table_no}: ${reqLabel}`,
               body: `${newReq.table_no} masası servis personeli bekliyor.`,
               url: '/admin',
             });
@@ -281,7 +281,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
                         )}
                         {isPreparing && (
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                            Hazırlanıyor 👨‍🍳
+                            Hazırlanıyor
                           </span>
                         )}
                       </div>

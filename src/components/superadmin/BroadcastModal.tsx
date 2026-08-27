@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Radio, X, Send, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../types';
@@ -37,7 +37,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
       const rows = activeBiz.map((biz) => ({
         business_id: biz.id,
         sender: 'superadmin',
-        message: `📢 [SİSTEM DUYURUSU]\n${message.trim()}`,
+        message: `[SİSTEM DUYURUSU]\n${message.trim()}`,
         is_read: false,
       }));
 

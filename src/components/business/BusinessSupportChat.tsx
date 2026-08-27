@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Business, SupportMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -57,7 +57,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             sound.playMessageTone();
             toast.info('Sistem Yöneticisinden yeni mesaj geldi.');
             sendNativeNotification({
-              title: '📢 Sistem Yöneticisinden Mesaj',
+              title: 'Sistem Yöneticisinden Mesaj',
               body: newMsg.message.slice(0, 100),
               url: '/admin',
             });

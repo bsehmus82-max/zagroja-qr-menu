@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChefHat, CheckCircle2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -73,15 +73,15 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
         };
       case 'preparing':
         return {
-          title: 'Mutfakta Hazırlanıyor 👨‍🍳',
-          subtitle: 'Şeflerimiz siparişinizi hazırlıyor.',
-          badgeClass: 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 animate-pulse',
+          title: 'Mutfakta Hazırlanıyor',
+          subtitle: 'Şeflerimiz siparişinizi özenle hazırlıyor.',
+          badgeClass: 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400',
           icon: ChefHat,
         };
       case 'served':
         return {
-          title: 'Siparişiniz Masanızda ✨',
-          subtitle: 'Afiyet olsun!',
+          title: 'Siparişiniz Masanızda',
+          subtitle: 'Afiyet olsun! İlave istekleriniz için çağrı butonunu kullanabilirsiniz.',
           badgeClass: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
           icon: CheckCircle2,
         };

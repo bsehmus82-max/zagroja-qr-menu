@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Plus, MessageSquare, Shield, Power, 
   Calendar, Layers, Search, AlertTriangle, 
@@ -85,7 +85,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
             sound.playMessageTone();
             toast.info('İşletmeden yeni bir destek mesajı geldi.');
             sendNativeNotification({
-              title: '💬 Yeni Destek Mesajı',
+              title: 'Yeni Destek Mesajı',
               body: 'Bir işletme platform yöneticisine mesaj gönderdi.',
               url: '/superadmin',
             });
