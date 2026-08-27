@@ -1,8 +1,9 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, Trash2, Edit3, 
   ChevronLeft, ChevronRight, Check, X,
-  Eye, EyeOff, Layers, Sparkles, Smartphone, ArrowRight
+  Eye, EyeOff, Layers, Sparkles, Smartphone, ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -213,6 +214,102 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         toast.success(`${prod.name} silindi.`);
       },
     });
+  };
+
+  // Delete Category completely
+  const handleDeleteCategory = (catId: string, catName: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: `${catName} Kategorisi Silinsin mi?`,
+      message: 'Bu kategoriyi ve içindeki tüm ürünleri silmek istediğinize emin misiniz?',
+      type: 'danger',
+      action: async () => {
+        setCategories((prev) => prev.filter((c) => c.id !== catId));
+        setProducts((prev) => prev.filter((p) => p.category_id !== catId));
+        if (selectedCatId === catId) {
+          const remaining = categories.filter((c) => c.id !== catId);
+          setSelectedCatId(remaining.length > 0 ? remaining[0].id : null);
+        }
+
+        await supabase.from('products').delete().eq('category_id', catId);
+        await supabase.from('categories').delete().eq('id', catId);
+        toast.success(`${catName} silindi.`);
+      },
+    });
+  };
+
+  // Clean and Reset Menu to EXACT 16 Standard Categories
+  const handleResetAndCleanTo16 = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: '16 Standart Kategoriye Sıfırlansın mı?',
+      message: 'Mevcut mükerrer veya eski kategoriler temizlenip standart 16 kategori ve lezzetleri sıfırdan tertemiz kurulacaktır. Onaylıyor musunuz?',
+      type: 'warning',
+      action: async () => {
+        setLoading(true);
+        try {
+          // 1. Delete old products and categories
+          await supabase.from('products').delete().eq('business_id', business.id);
+          await supabase.from('categories').delete().eq('business_id', business.id);
+
+          // 2. Insert clean 16 DEFAULT_CATEGORIES
+          for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+            const catTemplate = DEFAULT_CATEGORIES[i];
+            const { data: catData } = await supabase
+              .from('categories')
+              .insert([
+                {
+                  business_id: business.id,
+                  name: catTemplate.name,
+                  image_url: catTemplate.image_url,
+                  order_index: i,
+                  is_active: true,
+                },
+              ])
+              .select()
+              .single();
+
+            if (catData) {
+              const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
+                business_id: business.id,
+                category_id: catData.id,
+                name: p.name,
+                description: p.description,
+                price: p.price,
+                is_frozen: false,
+                is_active: true,
+                order_index: pIdx,
+              }));
+
+              await supabase.from('products').insert(prodsToInsert);
+            }
+          }
+
+          await loadMenuData();
+          setShowCategoryManagerModal(false);
+          toast.success('Menü temizlendi ve tam 16 standart kategori kuruldu!');
+        } catch {
+          toast.error('Menü sıfırlanırken hata oluştu.');
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  // Toggle Category Active Status
+  const handleToggleCategoryActive = async (catId: string, currentActive: boolean) => {
+    const nextActive = !currentActive;
+    setCategories((prev) =>
+      prev.map((c) => (c.id === catId ? { ...c, is_active: nextActive } : c))
+    );
+
+    await supabase
+      .from('categories')
+      .update({ is_active: nextActive })
+      .eq('id', catId);
+
+    toast.info(nextActive ? 'Kategori menüde aktif edildi.' : 'Kategori menüden gizlendi.');
   };
 
   // Toggle Standard Category in Category Manager Modal
@@ -522,11 +619,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       {showCategoryManagerModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div>
                 <h3 className="font-black text-base text-slate-900">Kategori Yönetimi</h3>
                 <p className="text-xs text-slate-500">
-                  16 hazır restoran kategorisini tek tıkla menünüze ekleyin veya gizleyin.
+                  Toplam {categories.length} kategori mevcut.
                 </p>
               </div>
               <button
@@ -534,6 +631,23 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
               >
                 <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Clean & Reset Button for 16 Categories */}
+            <div className="mb-3 bg-amber-50 border border-amber-200/80 rounded-2xl p-3 flex items-center justify-between gap-3">
+              <div className="text-xs text-amber-900">
+                <strong className="font-black block">Mükerrer veya Karışmış Kategoriler?</strong>
+                <span>Tek tıkla menünüzü temiz 16 standart kategoriye eşitleyin.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleResetAndCleanTo16}
+                disabled={loading}
+                className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>16 Kategoriye Sıfırla</span>
               </button>
             </div>
 
@@ -566,19 +680,32 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                       </div>
                     </div>
 
-                    {/* Toggle Button */}
-                    <button
-                      onClick={() => handleToggleCategory(catTemplate)}
-                      className={`px-3 py-1.5 rounded-xl font-black text-xs transition active:scale-95 shrink-0 ${
-                        !isInstalled
-                          ? 'bg-slate-900 hover:bg-slate-800 text-white'
-                          : isActive
-                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs'
-                          : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
-                      }`}
-                    >
-                      {!isInstalled ? '+ Menüye Ekle' : isActive ? 'Menüde Aktif' : 'Gizlendi (Aç)'}
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {/* Toggle Button */}
+                      <button
+                        onClick={() => handleToggleCategory(catTemplate)}
+                        className={`px-3 py-1.5 rounded-xl font-black text-xs transition active:scale-95 ${
+                          !isInstalled
+                            ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                            : isActive
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs'
+                            : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                        }`}
+                      >
+                        {!isInstalled ? '+ Menüye Ekle' : isActive ? 'Menüde Aktif' : 'Gizlendi (Aç)'}
+                      </button>
+
+                      {/* Delete Button if exists */}
+                      {existing && (
+                        <button
+                          onClick={() => handleDeleteCategory(existing.id, existing.name)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                          title="Kategoriyi ve Ürünlerini Sil"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}
