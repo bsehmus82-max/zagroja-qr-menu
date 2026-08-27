@@ -189,6 +189,35 @@ Avantajlar:
 * "İşletme Ayarları" sekmesine giderek işletme adı, telefon, adres ve müşteri WiFi adı/şifresini girebilirsiniz.
 * Girilen WiFi bilgileri müşterilerinizin QR menü ekranında pratik bir şekilde görüntülenir.`,
   },
+  {
+    id: 'nasil-musteri-oturum-kapatma',
+    category: 'nasil_kullanirim',
+    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
+    title: '8. Hesap Kapatıldığında Müşteri Ekranı ve Oturum Sıfırlama',
+    summary: 'Kasa hesabı kapattığında müşterinin telefonundaki QR menünün anında algılayıp sıfırlanması.',
+    content: `Müşteri Cihazının Otomatik Sıfırlanma Mantığı:
+
+1. Canlı Algılama:
+   * Kasa panelinden veya garson terminalinden masanın hesabı kapatıldığı anda (Örn: POS veya Nakit ile), masada açık olan müşterinin telefonundaki QR menü canlı olarak kapanışı algılar.
+
+2. Oturum ve Sepet Temizliği:
+   * Müşterinin cihazındaki eski sipariş geçmişi ve sepet anında temizlenir.
+   * Ekranda "Hesabınız Başarıyla Kapatıldı - Afiyet Olsun / Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz" bilgilendirme kartı belirir.
+
+3. Sekmeyi Kapatma:
+   * Müşteriye "Sekmeyi Kapat / Çıkış" butonu sunulur ve masa yeni gelen müşteriler için tamamen temizlenmiş olur.`,
+  },
+  {
+    id: 'nasil-sekme-basliklari',
+    category: 'nasil_kullanirim',
+    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
+    title: '9. Sekme Başlıkları ve İşletme Adı Görünümü',
+    summary: 'Tarayıcı sekmelerinde ve müşteri menülerinde sadece işletme adının yer alması.',
+    content: `Sekme Başlıklarının Özelleştirilmesi:
+
+* Müşteriler masadaki QR kodu okuttuğunda Safari, Chrome veya diğer mobil tarayıcı sekmelerinde doğrudan yalnızca işletmenizin adı (Örn: Bistro Kafe) görünür.
+* Kasa panelinizde ve garson el terminallerinde de sekme başlığı işletme adınızla senkronize çalışır.`,
+  },
 ];
 
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {

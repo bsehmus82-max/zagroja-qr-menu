@@ -130,6 +130,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     };
   }, [business.id]);
 
+  // Set browser tab title strictly to business name
+  useEffect(() => {
+    if (business?.name) {
+      document.title = business.name;
+    }
+  }, [business?.name]);
+
   // Load Active Orders for tracking and Customer Native Notifications
   useEffect(() => {
     const fetchMyActiveOrders = async () => {
@@ -146,18 +153,18 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
         const stillActive = allOrders.filter((o) => ['pending', 'preparing', 'served'].includes(o.status));
         const newlyPaidOrders = allOrders.filter((o) => o.status === 'paid');
 
-        // Check for Status Changes and trigger Native Notifications for Customer (Food preparation only)
+        // Check for Status Changes and trigger Native Notifications for Customer
         allOrders.forEach((order) => {
           const prevStatus = prevOrderStatusRef.current[order.id];
           if (prevStatus && prevStatus !== order.status) {
             if (order.status === 'preparing') {
               sendNativeNotification({
-                title: 'Siparişiniz Hazırlanıyor 👨‍🍳',
-                body: 'Şeflerimiz siparişinizi özenle hazırlamaya başladı.',
+                title: 'Siparişiniz Hazırlanıyor',
+                body: 'Siparişiniz özenle hazırlanmaya başladı.',
               });
             } else if (order.status === 'served') {
               sendNativeNotification({
-                title: 'Siparişiniz Masanızda! 🍽️',
+                title: 'Siparişiniz Masanızda',
                 body: 'Siparişiniz servis edildi. Afiyet olsun!',
               });
             }
@@ -176,6 +183,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           setShowCart(false);
           setServiceModalType(null);
           prevOrderStatusRef.current = {};
+
+          try {
+            window.close();
+          } catch {}
         } else {
           setActiveOrders(stillActive);
         }
@@ -662,17 +673,26 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-[11px] text-slate-600 font-semibold flex items-center justify-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                <span>Oturumunuz güvenle sıfırlandı.</span>
-              </div>
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => {
+                    try {
+                      window.close();
+                    } catch {}
+                    handleClosePaidSession();
+                  }}
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-2xl shadow-lg shadow-emerald-600/20 transition active:scale-98"
+                >
+                  Sekmeyi Kapat / Çıkış
+                </button>
 
-              <button
-                onClick={handleClosePaidSession}
-                className="w-full py-3.5 bg-slate-900 hover:bg-orange-600 text-white font-black text-xs rounded-2xl shadow-lg transition active:scale-98"
-              >
-                Yeni Menüyü Aç / Tamamla
-              </button>
+                <button
+                  onClick={handleClosePaidSession}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-2xl transition"
+                >
+                  Menüyü İncelemeye Devam Et
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -55,6 +55,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const isTrialExpiring = diffDays >= 0 && diffDays <= 3;
   const isMonthlyPdfReady = now.getDate() <= 5;
 
+  // Set browser tab title strictly to business name
+  useEffect(() => {
+    if (business?.name) {
+      document.title = business.name;
+    }
+  }, [business?.name]);
+
   const totalNotifications = unreadSupportCount + (isTrialExpiring ? 1 : 0) + (isMonthlyPdfReady ? 1 : 0);
 
   // Fetch Table Count & Unread Support Messages for Sidebar Badge

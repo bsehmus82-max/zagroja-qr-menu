@@ -28,6 +28,11 @@ export const WaiterApp: React.FC = () => {
   const [isSendingOrder, setIsSendingOrder] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
+  // Set browser tab title strictly to business name
+  useEffect(() => {
+    document.title = business?.name || 'Garson Terminali';
+  }, [business?.name]);
+
   // Check device validity on mount
   useEffect(() => {
     if (!deviceToken) {
