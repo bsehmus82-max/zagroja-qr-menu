@@ -36,6 +36,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     return (localStorage.getItem('biz_active_tab') as any) || 'orders';
   });
   const [tableCount, setTableCount] = useState<number>(0);
+  const [unreadSupportCount, setUnreadSupportCount] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleTabChange = (tab: typeof activeTab) => {
@@ -47,16 +48,53 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const isFirstTime = !business.phone && !business.address;
   const [showOnboarding, setShowOnboarding] = useState(isFirstTime);
 
-  // Fetch Table Count for Sidebar Badge
+  // Check Trial & Monthly PDF Status for Notifications
+  const now = new Date();
+  const expiresAt = business.subscription_expires_at ? new Date(business.subscription_expires_at) : null;
+  const diffDays = expiresAt ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 999;
+  const isTrialExpiring = diffDays >= 0 && diffDays <= 3;
+  const isMonthlyPdfReady = now.getDate() <= 5;
+
+  const totalNotifications = unreadSupportCount + (isTrialExpiring ? 1 : 0) + (isMonthlyPdfReady ? 1 : 0);
+
+  // Fetch Table Count & Unread Support Messages for Sidebar Badge
   useEffect(() => {
-    const fetchTableCount = async () => {
-      const { data } = await supabase
-        .from('tables')
-        .select('id')
-        .eq('business_id', business.id);
-      if (data) setTableCount(data.length);
+    const fetchCounts = async () => {
+      const [tRes, sRes] = await Promise.all([
+        supabase.from('tables').select('id').eq('business_id', business.id),
+        supabase
+          .from('support_messages')
+          .select('id')
+          .eq('business_id', business.id)
+          .eq('sender', 'superadmin')
+          .eq('is_read', false)
+      ]);
+
+      if (tRes.data) setTableCount(tRes.data.length);
+      if (sRes.data) setUnreadSupportCount(sRes.data.length);
     };
-    fetchTableCount();
+
+    fetchCounts();
+
+    const channel = supabase
+      .channel(`sidebar-notifs-${business.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'support_messages',
+          filter: `business_id=eq.${business.id}`,
+        },
+        () => {
+          fetchCounts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [business.id, activeTab]);
 
   if (showOnboarding) {
@@ -80,48 +118,56 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       label: 'Canlı Siparişler',
       icon: ChefHat,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'menu' as const,
       label: 'Menü & Ürünler',
       icon: UtensilsCrossed,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'tables' as const,
       label: 'Masa & QR Kodlar',
       icon: QrCode,
       badge: tableCount > 0 ? `${tableCount} Masa` : null,
+      isAlert: false,
     },
     {
       id: 'pos' as const,
       label: 'Kasa / POS Satış',
       icon: Calculator,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'waiters' as const,
       label: 'Garson & Cihazlar',
       icon: Users,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'turnover' as const,
       label: 'Gün Sonu & Ciro',
       icon: TrendingUp,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'settings' as const,
       label: 'İşletme Ayarları',
       icon: Settings,
       badge: null,
+      isAlert: false,
     },
     {
       id: 'support' as const,
-      label: 'Canlı Destek',
+      label: 'Yardım & Bildirimler',
       icon: MessageSquare,
-      badge: null,
+      badge: totalNotifications > 0 ? totalNotifications.toString() : null,
+      isAlert: totalNotifications > 0,
     },
   ];
 
@@ -134,7 +180,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       case 'waiters': return 'Garson & Cihaz Güvenliği';
       case 'turnover': return 'Gün Sonu & Kasa Analizi';
       case 'settings': return 'İşletme Ayarları';
-      case 'support': return 'Canlı Destek & Bildirimler';
+      case 'support': return 'Yardım & Bildirimler';
       default: return '';
     }
   };
@@ -208,11 +254,17 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                   </div>
 
                   {item.badge && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${
-                      isActive ? 'bg-black/20 text-white' : 'bg-slate-800 text-slate-300'
-                    }`}>
-                      {item.badge}
-                    </span>
+                    item.isAlert ? (
+                      <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-pulse shrink-0">
+                        {item.badge}
+                      </span>
+                    ) : (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-extrabold ${
+                        isActive ? 'bg-black/20 text-white' : 'bg-slate-800 text-slate-300'
+                      }`}>
+                        {item.badge}
+                      </span>
+                    )
                   )}
                 </button>
               );

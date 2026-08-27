@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Send, MessageSquare, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business, SupportMessage } from '../../types';
@@ -158,6 +158,19 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
               </p>
             </div>
           </div>
+
+          <button
+            onClick={async () => {
+              if (!activeBusiness) return;
+              if (confirm(`${activeBusiness.name} ile olan sohbeti sonlandırmak istiyor musunuz?`)) {
+                await supabase.rpc('end_support_chat', { p_business_id: activeBusiness.id });
+                setMessages([]);
+              }
+            }}
+            className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-bold rounded-xl transition"
+          >
+            Sohbeti Bitir
+          </button>
         </div>
 
         {/* Messages Body */}
@@ -177,19 +190,38 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
               return (
                 <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                    className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-1.5 ${
                       isMe
                         ? 'bg-indigo-600 text-white rounded-br-none shadow-sm'
                         : 'bg-[#181E2B] text-slate-200 border border-[#262E3E] rounded-bl-none'
                     }`}
                   >
-                    <div className="text-[10px] font-semibold opacity-75 mb-1">
-                      {isMe ? 'Siz (Yönetici)' : activeBusiness?.name}
+                    <div className="text-[10px] font-semibold opacity-75 mb-1 flex items-center justify-between">
+                      <span>{isMe ? 'Restiva Müşteri Hizmetleri' : activeBusiness?.name}</span>
+                      <span className="text-[9px] font-mono opacity-60">
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
+
+                    {m.subject && (
+                      <div className="text-[11px] font-bold text-orange-400">
+                        Konu: {m.subject}
+                      </div>
+                    )}
+
                     <p className="whitespace-pre-wrap">{m.message}</p>
-                    <div className="text-[9px] opacity-60 text-right mt-1 font-mono">
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+
+                    {m.image_url && (
+                      <div className="pt-1.5">
+                        <a href={m.image_url} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={m.image_url}
+                            alt="Ekran Görüntüsü"
+                            className="max-h-48 rounded-xl object-cover border border-slate-700 hover:opacity-90 transition"
+                          />
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

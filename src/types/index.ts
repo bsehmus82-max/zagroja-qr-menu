@@ -126,10 +126,15 @@ export interface ServiceRequest {
 export interface SupportMessage {
   id: string;
   business_id: string;
-  sender: 'superadmin' | 'business';
+  sender: 'superadmin' | 'business' | 'system';
   message: string;
+  subject?: string;
+  image_url?: string;
   is_read: boolean;
+  status?: 'open' | 'closed';
+  is_resolved?: boolean;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface CartItem {
