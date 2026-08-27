@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
@@ -20,11 +20,13 @@ import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 interface BusinessDashboardProps {
   initialBusiness: Business;
   onLogout: () => void;
+  onBusinessUpdate?: (updated: Business) => void;
 }
 
 export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   initialBusiness,
   onLogout,
+  onBusinessUpdate,
 }) => {
   const [business, setBusiness] = useState<Business>(initialBusiness);
   const [activeTab, setActiveTab] = useState<
@@ -55,6 +57,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         onComplete={(updated) => {
           setBusiness(updated);
           setShowOnboarding(false);
+          onBusinessUpdate?.(updated);
         }}
       />
     );
@@ -266,7 +269,10 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           {activeTab === 'settings' && (
             <BusinessSettings
               business={business}
-              onUpdate={(updated) => setBusiness(updated)}
+              onUpdate={(updated) => {
+                setBusiness(updated);
+                onBusinessUpdate?.(updated);
+              }}
             />
           )}
           {activeTab === 'support' && <BusinessSupportChat business={business} />}

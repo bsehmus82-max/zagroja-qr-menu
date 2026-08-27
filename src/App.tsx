@@ -13,12 +13,12 @@ export default function App() {
   
   // Super Admin state
   const [isSuperAdminAuth, setIsSuperAdminAuth] = useState(
-    () => sessionStorage.getItem('zagroja_superadmin_auth') === 'true'
+    () => sessionStorage.getItem('zagroja_superadmin_auth') === 'true' || localStorage.getItem('zagroja_superadmin_auth') === 'true'
   );
 
   // Business Admin state
   const [activeBusiness, setActiveBusiness] = useState<Business | null>(() => {
-    const raw = sessionStorage.getItem('zagroja_business_data');
+    const raw = sessionStorage.getItem('zagroja_business_data') || localStorage.getItem('zagroja_business_data');
     return raw ? JSON.parse(raw) : null;
   });
 
@@ -27,6 +27,25 @@ export default function App() {
   const [customerTable, setCustomerTable] = useState<string>('');
   const [customerLoading, setCustomerLoading] = useState(false);
   const [customerError, setCustomerError] = useState('');
+
+  // Re-fetch fresh business data on load to ensure up-to-date attributes
+  useEffect(() => {
+    if (activeBusiness?.id) {
+      supabase
+        .from('businesses')
+        .select('*')
+        .eq('id', activeBusiness.id)
+        .single()
+        .then(({ data }) => {
+          if (data) {
+            const biz = data as Business;
+            setActiveBusiness(biz);
+            sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+            localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+          }
+        });
+    }
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -57,7 +76,7 @@ export default function App() {
       loadCustomerBusiness(slug);
       setCurrentRoute('customer');
     } else {
-      // Default directly to Business Login / Dashboard (No landing/marketing page)
+      // Default directly to Business Login / Dashboard
       setCurrentRoute('business');
     }
   }, []);
@@ -94,12 +113,21 @@ export default function App() {
   // 1. SUPER ADMIN PANEL ROUTE
   if (currentRoute === 'superadmin') {
     if (!isSuperAdminAuth) {
-      return <SuperAdminLogin onSuccess={() => setIsSuperAdminAuth(true)} />;
+      return (
+        <SuperAdminLogin
+          onSuccess={() => {
+            sessionStorage.setItem('zagroja_superadmin_auth', 'true');
+            localStorage.setItem('zagroja_superadmin_auth', 'true');
+            setIsSuperAdminAuth(true);
+          }}
+        />
+      );
     }
     return (
       <SuperAdminDashboard
         onLogout={() => {
           sessionStorage.removeItem('zagroja_superadmin_auth');
+          localStorage.removeItem('zagroja_superadmin_auth');
           setIsSuperAdminAuth(false);
           window.location.href = '/';
         }}
@@ -111,20 +139,20 @@ export default function App() {
   if (currentRoute === 'customer') {
     if (customerLoading) {
       return (
-        <div className="min-h-screen bg-[#090C10] flex flex-col items-center justify-center p-4 text-center">
-          <RefreshCw className="w-6 h-6 animate-spin text-indigo-500 mb-3" />
-          <h2 className="font-semibold text-xs text-slate-200">Menü Yükleniyor...</h2>
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
+          <RefreshCw className="w-6 h-6 animate-spin text-orange-500 mb-3" />
+          <h2 className="font-bold text-xs text-slate-700">Menü Yükleniyor...</h2>
         </div>
       );
     }
 
     if (customerError || !customerBusiness) {
       return (
-        <div className="min-h-screen bg-[#090C10] flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-[#12161F] border border-[#212634] flex items-center justify-center text-slate-500 mb-3">
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 mb-3">
             <QrCode className="w-6 h-6" />
           </div>
-          <h2 className="font-semibold text-sm text-slate-100 mb-1">{customerError || 'Menü Bulunamadı'}</h2>
+          <h2 className="font-extrabold text-sm text-slate-800 mb-1">{customerError || 'Menü Bulunamadı'}</h2>
           <p className="text-xs text-slate-400 max-w-xs">
             Lütfen masanızdaki QR kodu tekrar okutunuz.
           </p>
@@ -140,6 +168,10 @@ export default function App() {
     return (
       <BusinessLogin
         onSuccess={(biz) => {
+          sessionStorage.setItem('zagroja_business_id', biz.id);
+          sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+          localStorage.setItem('zagroja_business_id', biz.id);
+          localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
           setActiveBusiness(biz);
         }}
       />
@@ -149,9 +181,16 @@ export default function App() {
   return (
     <BusinessDashboard
       initialBusiness={activeBusiness}
+      onBusinessUpdate={(updated) => {
+        setActiveBusiness(updated);
+        sessionStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+        localStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+      }}
       onLogout={() => {
         sessionStorage.removeItem('zagroja_business_id');
         sessionStorage.removeItem('zagroja_business_data');
+        localStorage.removeItem('zagroja_business_id');
+        localStorage.removeItem('zagroja_business_data');
         setActiveBusiness(null);
       }}
     />
