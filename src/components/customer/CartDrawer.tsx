@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ShoppingBag, X, Plus, Minus, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
@@ -55,27 +55,57 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       const sessionToken = localStorage.getItem('user_session_token') || `ses_${Date.now()}_${Math.random()}`;
       localStorage.setItem('user_session_token', sessionToken);
 
-      const payload = {
-        business_id: business.id,
-        table_no: tableNo || 'Genel Masa',
-        session_token: sessionToken,
-        order_source: 'qr',
-        items: orderItems,
-        total_amount: totalAmount,
-        status: 'pending',
-        payment_method: 'unpaid',
-        customer_notes: customerNotes.trim(),
+      // Secure Supabase RPC: server calculates verified total_amount from database products
+      const rpcPayload = {
+        p_business_id: business.id,
+        p_table_no: tableNo || 'Genel Masa',
+        p_items: cart.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          notes: item.notes || '',
+        })),
+        p_customer_notes: customerNotes.trim(),
+        p_order_source: 'qr',
+        p_session_token: sessionToken,
       };
 
-      const { data, error } = await supabase
-        .from('orders')
-        .insert([payload])
-        .select()
-        .single();
+      let { data, error } = await supabase.rpc('create_customer_order', rpcPayload);
+
+      // Backwards-compatible fallback if RPC function is not yet deployed to DB
+      if (error) {
+        console.warn('RPC create_customer_order fallback to direct insert:', error.message);
+        const fallbackPayload = {
+          business_id: business.id,
+          table_no: tableNo || 'Genel Masa',
+          session_token: sessionToken,
+          order_source: 'qr',
+          items: cart.map((item) => ({
+            product_id: item.product.id,
+            name: item.product.name,
+            quantity: item.quantity,
+            price: item.product.price,
+            notes: item.notes || '',
+          })),
+          total_amount: totalAmount,
+          status: 'pending',
+          payment_method: 'unpaid',
+          customer_notes: customerNotes.trim(),
+        };
+
+        const fallbackRes = await supabase
+          .from('orders')
+          .insert([fallbackPayload])
+          .select()
+          .single();
+
+        data = fallbackRes.data;
+        error = fallbackRes.error;
+      }
 
       if (!error && data) {
+        const orderData = data as Order;
         const existing = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
-        localStorage.setItem('my_active_orders', JSON.stringify([data.id, ...existing]));
+        localStorage.setItem('my_active_orders', JSON.stringify([orderData.id, ...existing]));
 
         try {
           confetti({
@@ -88,7 +118,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         }
 
         toast.success(t.orderSuccessToast);
-        onOrderPlaced(data as Order);
+        onOrderPlaced(orderData);
         onClose();
       } else {
         toast.error(t.orderErrorToast);

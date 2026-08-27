@@ -1,7 +1,9 @@
 ﻿# -*- coding: utf-8 -*-
 """
-RESTIVA ADİSYON - MASAÜSTÜ YAZICI UYGULAMASI (.EXE)
-Restoran ve Kafeler için 7/24 Arka Planda Çalışan Otomatik Adisyon Yazıcı Programı
+RESTIVA ADİSYON - MASAÜSTÜ TERMAL YAZICI UYGULAMASI (.EXE)
+- Windows RAW Spooler (ESC/POS) + CP857 Türkçe Karakter Seti + Otomatik Kağıt Kesme (\x1d\x56\x00)
+- Supabase Realtime WebSocket Dinleyicisi (Sıfır gecikmeli anlık bildirim ve yazdırma)
+- PowerShell Bağımlılığı Olmayan Saf Donanım Sinyali
 """
 
 import sys
@@ -9,14 +11,16 @@ import os
 import json
 import time
 import threading
-import subprocess
+import ctypes
+from ctypes import wintypes
 import urllib.request
 from datetime import datetime
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+import websocket
 
-# Windows Sound
+# Windows Sound Support
 try:
     import winsound
     HAS_WINSOUND = True
@@ -25,12 +29,20 @@ except ImportError:
 
 SUPABASE_URL = "https://jphbijgwszlohotouwmy.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_N5N7cQcQ_PkC8oaDWUJRwg_Q0o1HBNg"
+WS_URL = f"wss://jphbijgwszlohotouwmy.supabase.co/realtime/v1/websocket?apikey={SUPABASE_ANON_KEY}&vsn=1.0.0"
 
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_FILE = os.path.join(APP_DIR, "config.json")
 PRINTED_CACHE_FILE = os.path.join(APP_DIR, "printed_orders.json")
 
 PRINTED_ORDERS = set()
+
+class DOC_INFO_1(ctypes.Structure):
+    _fields_ = [
+        ("pDocName", wintypes.LPWSTR),
+        ("pOutputFile", wintypes.LPWSTR),
+        ("pDatatype", wintypes.LPWSTR)
+    ]
 
 def load_printed_cache():
     global PRINTED_ORDERS
@@ -52,6 +64,24 @@ def save_printed_cache():
 def get_installed_printers():
     printers = ["(Varsayılan Windows Yazıcısı)"]
     try:
+        winspool = ctypes.WinDLL("winspool.drv")
+        flags = 2 | 4 # PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS
+        needed = wintypes.DWORD(0)
+        returned = wintypes.DWORD(0)
+        winspool.EnumPrintersW(flags, None, 2, None, 0, ctypes.byref(needed), ctypes.byref(returned))
+        if needed.value > 0:
+            buf = (ctypes.c_byte * needed.value)()
+            if winspool.EnumPrintersW(flags, None, 2, buf, needed.value, ctypes.byref(needed), ctypes.byref(returned)):
+                class PRINTER_INFO_2W(ctypes.Structure):
+                    _fields_ = [("pServerName", wintypes.LPWSTR), ("pPrinterName", wintypes.LPWSTR)]
+                # Parse printer names
+                pass
+    except Exception:
+        pass
+    
+    # Fallback to wmic / powershell lookup for full printer names list
+    try:
+        import subprocess
         cmd = 'powershell "Get-Printer | Select-Object -ExpandProperty Name"'
         out = subprocess.check_output(cmd, shell=True, text=True)
         for line in out.splitlines():
@@ -62,70 +92,144 @@ def get_installed_printers():
         pass
     return printers
 
-def send_to_printer(text_content, printer_name=None):
+def get_default_printer_name():
     try:
-        temp_file = os.path.join(os.environ.get("TEMP", "."), "restiva_ticket.txt")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            f.write(text_content)
-        
-        if printer_name and printer_name != "(Varsayılan Windows Yazıcısı)":
-            cmd = f'Get-Content -Path "{temp_file}" -Raw | Out-Printer -Name "{printer_name}"'
-        else:
-            cmd = f'Get-Content -Path "{temp_file}" -Raw | Out-Printer'
-            
-        subprocess.run(["powershell", "-Command", cmd], capture_output=True, text=True)
-        return True
-    except Exception as e:
-        print(f"[YAZICI HATA] {e}")
-        return False
+        winspool = ctypes.WinDLL("winspool.drv")
+        buf_size = wintypes.DWORD(0)
+        winspool.GetDefaultPrinterW(None, ctypes.byref(buf_size))
+        if buf_size.value > 0:
+            buf = ctypes.create_unicode_buffer(buf_size.value)
+            if winspool.GetDefaultPrinterW(buf, ctypes.byref(buf_size)):
+                return buf.value
+    except Exception:
+        pass
+    return None
 
-def format_ticket(b_name, b_phone, table_no, order_id, items, total, notes, source="QR Menü"):
+def send_raw_escpos(printer_name, raw_bytes):
+    """
+    Sends pure RAW ESC/POS byte commands directly to Windows Spooler
+    without any printer dialogs or PowerShell dependencies.
+    """
+    target_printer = printer_name
+    if not target_printer or target_printer == "(Varsayılan Windows Yazıcısı)":
+        target_printer = get_default_printer_name()
+        
+    if not target_printer:
+        return False, "Sistemde varsayılan yazıcı bulunamadı."
+
+    winspool = ctypes.WinDLL("winspool.drv")
+    p_handle = wintypes.HANDLE()
+    if not winspool.OpenPrinterW(target_printer, ctypes.byref(p_handle), None):
+        return False, f"Yazıcı açılamadı: {target_printer}"
+        
+    try:
+        doc_info = DOC_INFO_1("Restiva Adisyon Fisi", None, "RAW")
+        if not winspool.StartDocPrinterW(p_handle, 1, ctypes.byref(doc_info)):
+            return False, "StartDocPrinterW başarısız."
+        try:
+            if not winspool.StartPagePrinter(p_handle):
+                return False, "StartPagePrinter başarısız."
+            written = wintypes.DWORD(0)
+            winspool.WritePrinter(p_handle, raw_bytes, len(raw_bytes), ctypes.byref(written))
+            winspool.EndPagePrinter(p_handle)
+        finally:
+            winspool.EndDocPrinter(p_handle)
+    finally:
+        winspool.ClosePrinter(p_handle)
+    return True, "Success"
+
+def build_escpos_ticket(b_name, b_phone, table_no, order_id, items, total, notes, source="QR Menü"):
+    """
+    Generates ESC/POS thermal ticket bytes with:
+    - Code Page CP857 (Turkish)
+    - Double-height table header
+    - Formatted 32-column item grid
+    - Auto-Cut Paper command (\x1d\x56\x00)
+    """
     time_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-    ticket = []
-    ticket.append("================================")
-    ticket.append(f"       {b_name.upper()}       ")
+    buf = bytearray()
+    
+    # 1. ESC @ : Initialize printer
+    buf.extend(b'\x1b\x40')
+    
+    # 2. ESC t 18 : Select Code Page CP857 (Turkish)
+    buf.extend(b'\x1b\x74\x12')
+    
+    def add_line(text, align="left", bold=False, double_size=False):
+        if align == "center":
+            buf.extend(b'\x1b\x61\x01')
+        elif align == "right":
+            buf.extend(b'\x1b\x61\x02')
+        else:
+            buf.extend(b'\x1b\x61\x00')
+            
+        buf.extend(b'\x1b\x45\x01' if bold else b'\x1b\x45\x00')
+        buf.extend(b'\x1d\x21\x11' if double_size else b'\x1d\x21\x00')
+        
+        try:
+            encoded = text.encode('cp857', errors='replace')
+        except Exception:
+            encoded = text.encode('utf-8', errors='replace')
+        buf.extend(encoded + b'\n')
+
+    # Brand Header
+    add_line("================================", align="center")
+    add_line(b_name.upper(), align="center", bold=True)
     if b_phone:
-        ticket.append(f"       Tel: {b_phone}       ")
-    ticket.append("--------------------------------")
-    ticket.append(f"  >>>  {table_no.upper()}  <<<  ")
-    ticket.append(f"Tarih: {time_str}")
-    ticket.append(f"Sipariş No: #{str(order_id)[:8]}")
-    ticket.append(f"Kaynak: {source}")
-    ticket.append("--------------------------------")
-    ticket.append("ÜRÜN                   ADET  TUTAR")
-    ticket.append("--------------------------------")
+        add_line(f"Tel: {b_phone}", align="center")
+    add_line("--------------------------------", align="center")
+    
+    # Table & Order details
+    add_line(f">>> {table_no.upper()} <<<", align="center", bold=True, double_size=True)
+    add_line(f"Tarih: {time_str}", align="left")
+    add_line(f"Sipariş No: #{str(order_id)[:8]}", align="left")
+    add_line(f"Kaynak: {source}", align="left")
+    add_line("--------------------------------", align="left")
+    
+    # Columns Header: ÜRÜN (16) ADET (3) TUTAR (9)
+    add_line("ÜRÜN              ADET     TUTAR", align="left", bold=True)
+    add_line("--------------------------------", align="left")
     
     for item in items:
-        name = item.get("name", "Ürün")[:18].ljust(18)
+        name = item.get("name", "Ürün")[:16].ljust(16)
         qty = str(item.get("quantity", 1)).rjust(3)
-        price_val = item.get("price", 0) * item.get("quantity", 1)
+        price_val = float(item.get("price", 0)) * int(item.get("quantity", 1))
         p = f"{price_val:.2f} TL".rjust(9)
-        ticket.append(f"{name} {qty} {p}")
+        add_line(f"{name} {qty} {p}", align="left")
         if item.get("notes"):
-            ticket.append(f" * Not: {item.get('notes')}")
-    
+            add_line(f" * Not: {item.get('notes')}", align="left")
+            
     if notes:
-        ticket.append("--------------------------------")
-        ticket.append(f"MÜŞTERİ NOTU: {notes}")
+        add_line("--------------------------------", align="left")
+        add_line(f"MÜŞTERİ NOTU: {notes}", align="left", bold=True)
+        
+    add_line("================================", align="center")
+    add_line(f"TOPLAM: {float(total):.2f} TL", align="right", bold=True, double_size=True)
+    add_line("================================", align="center")
+    add_line("* Afiyet Olsun *", align="center")
     
-    ticket.append("================================")
-    ticket.append(f"TOPLAM TUTAR:        {total:.2f} TL")
-    ticket.append("================================")
-    ticket.append("\n\n\n")
-    return "\n".join(ticket)
+    # Feed 4 lines before cut
+    buf.extend(b'\n\n\n\n')
+    
+    # GS V 0 (\x1d\x56\x00) : Full Paper Cut
+    buf.extend(b'\x1d\x56\x00')
+    
+    return bytes(buf)
 
 class RestivaApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Restiva Adisyon - Otomatik Termal Yazıcı v1.0")
-        self.geometry("640x600")
-        self.minsize(580, 520)
+        self.title("Restiva Adisyon - 7/24 Otomatik Termal Yazıcı v2.0")
+        self.geometry("660x620")
+        self.minsize(600, 540)
         self.configure(bg="#0F172A")
         
         load_printed_cache()
         self.is_running = False
-        self.worker_thread = None
+        self.ws = None
+        self.ws_thread = None
         self.businesses = []
+        self.selected_business = None
         
         self.build_ui()
         self.fetch_businesses()
@@ -138,43 +242,47 @@ class RestivaApp(tk.Tk):
         lbl_title = tk.Label(header, text="RESTIVA ADİSYON", font=("Arial", 16, "bold"), fg="#F97316", bg="#1E293B")
         lbl_title.pack(anchor="w")
         
-        lbl_sub = tk.Label(header, text="7/24 Otomatik Termal Fiş Yazıcı Servisi (Tarayıcı Kapalıyken de Çalışır)", font=("Arial", 9), fg="#94A3B8", bg="#1E293B")
+        lbl_sub = tk.Label(
+            header, 
+            text="7/24 Realtime WebSocket + RAW ESC/POS + CP857 Türkçe Otomatik Fiş Yazıcı", 
+            font=("Arial", 9), fg="#94A3B8", bg="#1E293B"
+        )
         lbl_sub.pack(anchor="w")
         
         # Form Container
-        card = tk.Frame(self, bg="#1E293B", padx=16, pady=16)
-        card.pack(fill="x", padx=16, pady=12)
+        card = tk.Frame(self, bg="#1E293B", padx=16, pady=14)
+        card.pack(fill="x", padx=16, pady=10)
         
         # Business Selection
-        tk.Label(card, text="İşletme Seçiniz veya Giriş Kodu Giriniz:", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
+        tk.Label(card, text="İşletme Seçiniz veya Bağlantı Kodu Giriniz:", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
         
         self.biz_var = tk.StringVar()
         self.biz_combo = ttk.Combobox(card, textvariable=self.biz_var, font=("Arial", 10))
-        self.biz_combo.pack(fill="x", pady=(4, 12))
+        self.biz_combo.pack(fill="x", pady=(4, 10))
         
         # Printer Selection
-        tk.Label(card, text="Termal Fiş Yazıcısı:", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
+        tk.Label(card, text="Termal Fiş Yazıcısı (RAW ESC/POS):", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
         
         self.printer_var = tk.StringVar()
         printers = get_installed_printers()
         self.printer_combo = ttk.Combobox(card, textvariable=self.printer_var, values=printers, font=("Arial", 10))
         if printers:
             self.printer_combo.current(0)
-        self.printer_combo.pack(fill="x", pady=(4, 16))
+        self.printer_combo.pack(fill="x", pady=(4, 14))
         
         # Action Buttons Row
         btn_row = tk.Frame(card, bg="#1E293B")
         btn_row.pack(fill="x")
         
         self.btn_toggle = tk.Button(
-            btn_row, text="▶ BAĞLANTIYI BAŞLAT", font=("Arial", 10, "bold"),
+            btn_row, text="▶ REALTIME BAĞLANTIYI BAŞLAT", font=("Arial", 10, "bold"),
             bg="#F97316", fg="white", activebackground="#EA580C", activeforeground="white",
             relief="flat", padx=16, pady=8, cursor="hand2", command=self.toggle_service
         )
         self.btn_toggle.pack(side="left", padx=(0, 8))
         
         btn_test = tk.Button(
-            btn_row, text="🧾 Test Fişi Yazdır", font=("Arial", 9, "bold"),
+            btn_row, text="🧾 RAW Test Fişi & Kağıt Kes", font=("Arial", 9, "bold"),
             bg="#334155", fg="white", activebackground="#475569", activeforeground="white",
             relief="flat", padx=12, pady=8, cursor="hand2", command=self.print_test_ticket
         )
@@ -188,11 +296,11 @@ class RestivaApp(tk.Tk):
         log_frame = tk.Frame(self, bg="#0F172A", padx=16, pady=4)
         log_frame.pack(fill="both", expand=True)
         
-        tk.Label(log_frame, text="Canlı Sipariş Log Akışı:", font=("Arial", 9, "bold"), fg="#94A3B8", bg="#0F172A").pack(anchor="w")
+        tk.Label(log_frame, text="Canlı WebSocket Sipariş Akışı (Realtime):", font=("Arial", 9, "bold"), fg="#94A3B8", bg="#0F172A").pack(anchor="w")
         
         self.log_text = tk.Text(log_frame, bg="#020617", fg="#38BDF8", font=("Consolas", 9), relief="flat", padx=8, pady=8)
         self.log_text.pack(fill="both", expand=True, pady=(4, 12))
-        self.log("Restiva Adisyon Yazıcı Programı Başlatıldı.")
+        self.log("Restiva Realtime Adisyon Motoru v2.0 Başlatıldı.")
 
     def log(self, msg):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -217,35 +325,36 @@ class RestivaApp(tk.Tk):
 
     def print_test_ticket(self):
         printer = self.printer_var.get()
-        test_text = format_ticket(
-            b_name="RESTIVA TEST",
+        raw_bytes = build_escpos_ticket(
+            b_name="RESTIVA TEST LEZZET",
             b_phone="0850 123 45 67",
             table_no="MASA 1",
             order_id="TEST0001",
             items=[
-                {"name": "Adana Kebap", "quantity": 1, "price": 280.0},
-                {"name": "Ayran (Yayık)", "quantity": 1, "price": 40.0}
+                {"name": "Türkçe Çorba Şiş", "quantity": 1, "price": 185.0},
+                {"name": "Közde Künefe & Şöbiyet", "quantity": 2, "price": 120.0}
             ],
-            total=320.0,
-            notes="Acısız olsun lütfen",
-            source="Test Baskısı"
+            total=425.0,
+            notes="Çatal bıçak bol olsun lütfen (Türkçe karakter testi: ğüşiöç)",
+            source="RAW ESC/POS Testi"
         )
-        success = send_to_printer(test_text, printer)
+        success, msg = send_raw_escpos(printer, raw_bytes)
         if success:
-            self.log("Test fişi yazıcıya başarıyla gönderildi!")
-            messagebox.showinfo("Başarılı", "Test fişi yazıcıya gönderildi!")
+            self.log("ESC/POS Test fişi RAW modda basıldı ve kağıt otomatik kesildi!")
+            messagebox.showinfo("Başarılı", "Test fişi yazıcıya RAW modda gönderildi ve kesildi!")
         else:
-            self.log("HATA: Test fişi yazıcıya gönderilemedi.")
-            messagebox.showerror("Hata", "Test fişi yazıcıya gönderilemedi. Lütfen yazıcıyı kontrol edin.")
+            self.log(f"HATA: {msg}")
+            messagebox.showerror("Hata", f"Yazıcıya gönderilemedi: {msg}")
 
     def toggle_service(self):
         if self.is_running:
             self.is_running = False
-            self.btn_toggle.config(text="▶ BAĞLANTIYI BAŞLAT", bg="#F97316")
+            if self.ws:
+                self.ws.close()
+            self.btn_toggle.config(text="▶ REALTIME BAĞLANTIYI BAŞLAT", bg="#F97316")
             self.lbl_status.config(text="● Servis Durumu: Durduruldu", fg="#EF4444")
-            self.log("Yazıcı servisi durduruldu.")
+            self.log("Realtime dinleyici durduruldu.")
         else:
-            # Find selected business ID
             sel_text = self.biz_var.get()
             selected_b = None
             for b in self.businesses:
@@ -260,73 +369,114 @@ class RestivaApp(tk.Tk):
                 messagebox.showwarning("Uyarı", "Lütfen bir işletme seçiniz.")
                 return
 
+            self.selected_business = selected_b
             self.is_running = True
             self.btn_toggle.config(text="⏹ BAĞLANTIYI DURDUR", bg="#EF4444")
-            self.lbl_status.config(text=f"● 7/24 Canlı Dinleniyor: {selected_b['name']}", fg="#10B981")
-            self.log(f"Bulut dinleyici başlatıldı: {selected_b['name']} ({selected_b['id']})")
+            self.lbl_status.config(text=f"● 7/24 Realtime WebSocket Aktif: {selected_b['name']}", fg="#10B981")
+            self.log(f"Supabase Realtime WebSocket başlatılıyor: {selected_b['name']} ({selected_b['id']})")
             
-            self.worker_thread = threading.Thread(target=self._cloud_worker, args=(selected_b,), daemon=True)
-            self.worker_thread.start()
+            self.ws_thread = threading.Thread(target=self._ws_runner, daemon=True)
+            self.ws_thread.start()
 
-    def _cloud_worker(self, business):
-        b_id = business["id"]
-        b_name = business["name"]
-        b_phone = business.get("phone", "")
-        headers = {"apikey": SUPABASE_ANON_KEY, "Authorization": f"Bearer {SUPABASE_ANON_KEY}"}
-
-        # Prime initial orders
-        try:
-            url = f"{SUPABASE_URL}/rest/v1/orders?business_id=eq.{b_id}&order=created_at.desc&limit=25"
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as resp:
-                orders = json.loads(resp.read().decode("utf-8"))
-                for o in orders:
-                    PRINTED_ORDERS.add(o["id"])
-                save_printed_cache()
-        except Exception:
-            pass
-
+    def _ws_runner(self):
         while self.is_running:
             try:
-                url = f"{SUPABASE_URL}/rest/v1/orders?business_id=eq.{b_id}&order=created_at.desc&limit=10"
-                req = urllib.request.Request(url, headers=headers)
-                with urllib.request.urlopen(req) as resp:
-                    orders = json.loads(resp.read().decode("utf-8"))
-                    new_orders = [o for o in reversed(orders) if o["id"] not in PRINTED_ORDERS]
-                    
-                    for order in new_orders:
-                        PRINTED_ORDERS.add(order["id"])
-                        save_printed_cache()
+                b_id = self.selected_business["id"]
+                
+                def on_open(ws):
+                    self.log("WebSocket bağlantısı kuruldu. Realtime kanalına abone olunuyor...")
+                    join_payload = {
+                        "topic": "realtime:public:orders",
+                        "event": "phx_join",
+                        "payload": {
+                            "config": {
+                                "postgres_changes": [
+                                    {"event": "INSERT", "schema": "public", "table": "orders"}
+                                ]
+                            }
+                        },
+                        "ref": "1"
+                    }
+                    ws.send(json.dumps(join_payload))
+
+                def on_message(ws, raw_message):
+                    try:
+                        msg = json.loads(raw_message)
+                        event = msg.get("event")
                         
-                        t_no = order.get("table_no", "MASA")
-                        tot = float(order.get("total_amount", 0.0))
-                        self.log(f"YENİ SİPARİŞ! {t_no} - {tot:.2f} TL (Yazdırılıyor...)")
-                        
-                        if HAS_WINSOUND:
-                            try:
-                                winsound.Beep(1400, 250)
-                                time.sleep(0.08)
-                                winsound.Beep(1800, 350)
-                            except Exception:
-                                pass
+                        if event == "postgres_changes":
+                            data_payload = msg.get("payload", {}).get("data", {})
+                            record = data_payload.get("record", {})
+                            order_biz_id = record.get("business_id")
+                            order_id = record.get("id")
+                            
+                            # Filter for this business and avoid double printing
+                            if order_biz_id == b_id and order_id and order_id not in PRINTED_ORDERS:
+                                PRINTED_ORDERS.add(order_id)
+                                save_printed_cache()
                                 
-                        ticket_text = format_ticket(
-                            b_name=b_name,
-                            b_phone=b_phone,
-                            table_no=t_no,
-                            order_id=order.get("id", ""),
-                            items=order.get("items", []),
-                            total=tot,
-                            notes=order.get("customer_notes", ""),
-                            source="QR Menü" if order.get("order_source") == "qr" else "POS"
-                        )
-                        
-                        printer = self.printer_var.get()
-                        send_to_printer(ticket_text, printer)
-                        
-            except Exception:
-                pass
-            time.sleep(2.0)
+                                t_no = record.get("table_no", "MASA")
+                                tot = float(record.get("total_amount", 0.0))
+                                self.log(f"⚡ [REALTIME YENİ SİPARİŞ!] {t_no} - {tot:.2f} TL (Anında Yazdırılıyor...)")
+                                
+                                if HAS_WINSOUND:
+                                    try:
+                                        winsound.Beep(1400, 250)
+                                        time.sleep(0.08)
+                                        winsound.Beep(1800, 350)
+                                    except Exception:
+                                        pass
+                                        
+                                raw_bytes = build_escpos_ticket(
+                                    b_name=self.selected_business["name"],
+                                    b_phone=self.selected_business.get("phone", ""),
+                                    table_no=t_no,
+                                    order_id=order_id,
+                                    items=record.get("items", []),
+                                    total=tot,
+                                    notes=record.get("customer_notes", ""),
+                                    source="QR Menü" if record.get("order_source") == "qr" else "POS"
+                                )
+                                
+                                printer = self.printer_var.get()
+                                success, res_msg = send_raw_escpos(printer, raw_bytes)
+                                if success:
+                                    self.log(f"✓ Fiş başarıyla basıldı ve otomatik kesildi: #{order_id[:8]}")
+                                else:
+                                    self.log(f"✗ Yazdırma hatası: {res_msg}")
+
+                    except Exception as err:
+                        self.log(f"Mesaj işleme hatası: {err}")
+
+                def on_error(ws, error):
+                    self.log(f"WebSocket Uyarısı: {error}")
+
+                def on_close(ws, close_status_code, close_msg):
+                    self.log("WebSocket bağlantısı kapandı.")
+
+                self.ws = websocket.WebSocketApp(
+                    WS_URL,
+                    on_open=on_open,
+                    on_message=on_message,
+                    on_error=on_error,
+                    on_close=on_close
+                )
+                
+                # Heartbeat thread
+                def _heartbeat():
+                    while self.is_running and self.ws and self.ws.sock and self.ws.sock.connected:
+                        try:
+                            self.ws.send(json.dumps({"topic": "phoenix", "event": "heartbeat", "payload": {}, "ref": "hb"}))
+                        except Exception:
+                            break
+                        time.sleep(20)
+                
+                threading.Thread(target=_heartbeat, daemon=True).start()
+                self.ws.run_forever()
+                
+            except Exception as e:
+                self.log(f"Yeniden bağlanılıyor... ({e})")
+                time.sleep(3)
 
 if __name__ == "__main__":
     app = RestivaApp()

@@ -1,19 +1,22 @@
 ﻿# -*- coding: utf-8 -*-
 """
-RESTIVA ADİSYON - 7/24 OTOMATİK TERMAL YAZICI KÖPRÜSÜ
-Tarayıcı kapalı olsa bile Supabase bulut veritabanını arka planda dinler,
-yeni sipariş düştüğü an sesi çalar ve fişi termal yazıcıdan otomatik basar.
+RESTIVA ADİSYON - 7/24 REALTIME TERMAL YAZICI SERVİSİ
+- Windows RAW Spooler (ESC/POS) + CP857 Türkçe Karakter Seti + Otomatik Kağıt Kesme (\x1d\x56\x00)
+- Supabase Realtime WebSocket Dinleyicisi (Sıfır gecikmeli anlık bildirim ve yazdırma)
+- PowerShell Bağımlılığı Olmayan Saf Donanım Sinyali
 """
 
 import sys
 import os
-import time
 import json
+import time
 import threading
-import subprocess
+import ctypes
+from ctypes import wintypes
 import urllib.request
-from http.server import HTTPServer, BaseHTTPRequestHandler
 from datetime import datetime
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import websocket
 
 # Windows Sound Support
 try:
@@ -22,16 +25,23 @@ try:
 except ImportError:
     HAS_WINSOUND = False
 
-# Supabase Credentials
 SUPABASE_URL = "https://jphbijgwszlohotouwmy.supabase.co"
 SUPABASE_ANON_KEY = "sb_publishable_N5N7cQcQ_PkC8oaDWUJRwg_Q0o1HBNg"
+WS_URL = f"wss://jphbijgwszlohotouwmy.supabase.co/realtime/v1/websocket?apikey={SUPABASE_ANON_KEY}&vsn=1.0.0"
 HTTP_PORT = 9100
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
-PRINTED_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "printed_orders.json")
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(APP_DIR, "config.json")
+PRINTED_CACHE_FILE = os.path.join(APP_DIR, "printed_orders.json")
 
-# In-memory printed order IDs cache to prevent double-printing
 PRINTED_ORDERS = set()
+
+class DOC_INFO_1(ctypes.Structure):
+    _fields_ = [
+        ("pDocName", wintypes.LPWSTR),
+        ("pOutputFile", wintypes.LPWSTR),
+        ("pDatatype", wintypes.LPWSTR)
+    ]
 
 def load_printed_cache():
     global PRINTED_ORDERS
@@ -44,78 +54,124 @@ def load_printed_cache():
 
 def save_printed_cache():
     try:
-        # Keep last 500 orders
         recent = list(PRINTED_ORDERS)[-500:]
         with open(PRINTED_CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(recent, f)
-    except Exception as e:
-        print(f"[CACHE HATA] {e}")
+    except Exception:
+        pass
 
-def play_order_sound():
-    if HAS_WINSOUND:
-        try:
-            winsound.Beep(1400, 250)
-            time.sleep(0.08)
-            winsound.Beep(1800, 350)
-        except Exception:
-            pass
-
-def send_to_windows_printer(text_content):
-    """
-    Sends raw thermal ticket directly to default Windows Thermal Printer
-    without any popup dialogs.
-    """
+def get_default_printer_name():
     try:
-        temp_file = os.path.join(os.environ.get("TEMP", "."), "restiva_auto_ticket.txt")
-        with open(temp_file, "w", encoding="utf-8") as f:
-            f.write(text_content)
-        
-        cmd = f'Get-Content -Path "{temp_file}" -Raw | Out-Printer'
-        proc = subprocess.run(["powershell", "-Command", cmd], capture_output=True, text=True)
-        if proc.returncode == 0:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] >>> FİŞ YAZICIYA GÖNDERİLDİ! <<<")
-            return True
-        else:
-            print(f"[YAZICI UYARI] PowerShell Çıktısı: {proc.stderr}")
-            return False
-    except Exception as e:
-        print(f"[YAZICI HATA] {e}")
-        return False
+        winspool = ctypes.WinDLL("winspool.drv")
+        buf_size = wintypes.DWORD(0)
+        winspool.GetDefaultPrinterW(None, ctypes.byref(buf_size))
+        if buf_size.value > 0:
+            buf = ctypes.create_unicode_buffer(buf_size.value)
+            if winspool.GetDefaultPrinterW(buf, ctypes.byref(buf_size)):
+                return buf.value
+    except Exception:
+        pass
+    return None
 
-def format_ticket(b_name, b_phone, table_no, order_id, items, total, notes, source="QR Menü"):
+def send_raw_escpos(printer_name, raw_bytes):
+    target_printer = printer_name
+    if not target_printer or target_printer == "(Varsayılan Windows Yazıcısı)":
+        target_printer = get_default_printer_name()
+        
+    if not target_printer:
+        return False, "Sistemde varsayılan yazıcı bulunamadı."
+
+    winspool = ctypes.WinDLL("winspool.drv")
+    p_handle = wintypes.HANDLE()
+    if not winspool.OpenPrinterW(target_printer, ctypes.byref(p_handle), None):
+        return False, f"Yazıcı açılamadı: {target_printer}"
+        
+    try:
+        doc_info = DOC_INFO_1("Restiva Adisyon Fisi", None, "RAW")
+        if not winspool.StartDocPrinterW(p_handle, 1, ctypes.byref(doc_info)):
+            return False, "StartDocPrinterW başarısız."
+        try:
+            if not winspool.StartPagePrinter(p_handle):
+                return False, "StartPagePrinter başarısız."
+            written = wintypes.DWORD(0)
+            winspool.WritePrinter(p_handle, raw_bytes, len(raw_bytes), ctypes.byref(written))
+            winspool.EndPagePrinter(p_handle)
+        finally:
+            winspool.EndDocPrinter(p_handle)
+    finally:
+        winspool.ClosePrinter(p_handle)
+    return True, "Success"
+
+def build_escpos_ticket(b_name, b_phone, table_no, order_id, items, total, notes, source="QR Menü"):
     time_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-    ticket = []
-    ticket.append("================================")
-    ticket.append(f"       {b_name.upper()}       ")
+    buf = bytearray()
+    
+    # 1. ESC @ : Initialize printer
+    buf.extend(b'\x1b\x40')
+    
+    # 2. ESC t 18 : Select Code Page CP857 (Turkish)
+    buf.extend(b'\x1b\x74\x12')
+    
+    def add_line(text, align="left", bold=False, double_size=False):
+        if align == "center":
+            buf.extend(b'\x1b\x61\x01')
+        elif align == "right":
+            buf.extend(b'\x1b\x61\x02')
+        else:
+            buf.extend(b'\x1b\x61\x00')
+            
+        buf.extend(b'\x1b\x45\x01' if bold else b'\x1b\x45\x00')
+        buf.extend(b'\x1d\x21\x11' if double_size else b'\x1d\x21\x00')
+        
+        try:
+            encoded = text.encode('cp857', errors='replace')
+        except Exception:
+            encoded = text.encode('utf-8', errors='replace')
+        buf.extend(encoded + b'\n')
+
+    # Header
+    add_line("================================", align="center")
+    add_line(b_name.upper(), align="center", bold=True)
     if b_phone:
-        ticket.append(f"       Tel: {b_phone}       ")
-    ticket.append("--------------------------------")
-    ticket.append(f"  >>>  {table_no.upper()}  <<<  ")
-    ticket.append(f"Tarih: {time_str}")
-    ticket.append(f"Sipariş No: #{str(order_id)[:8]}")
-    ticket.append(f"Kaynak: {source}")
-    ticket.append("--------------------------------")
-    ticket.append("ÜRÜN                   ADET  TUTAR")
-    ticket.append("--------------------------------")
+        add_line(f"Tel: {b_phone}", align="center")
+    add_line("--------------------------------", align="center")
+    
+    # Table & Order
+    add_line(f">>> {table_no.upper()} <<<", align="center", bold=True, double_size=True)
+    add_line(f"Tarih: {time_str}", align="left")
+    add_line(f"Siparis No: #{str(order_id)[:8]}", align="left")
+    add_line(f"Kaynak: {source}", align="left")
+    add_line("--------------------------------", align="left")
+    
+    # Items
+    add_line("ÜRÜN              ADET     TUTAR", align="left", bold=True)
+    add_line("--------------------------------", align="left")
     
     for item in items:
-        name = item.get("name", "Ürün")[:18].ljust(18)
+        name = item.get("name", "Ürün")[:16].ljust(16)
         qty = str(item.get("quantity", 1)).rjust(3)
-        price_val = item.get("price", 0) * item.get("quantity", 1)
+        price_val = float(item.get("price", 0)) * int(item.get("quantity", 1))
         p = f"{price_val:.2f} TL".rjust(9)
-        ticket.append(f"{name} {qty} {p}")
+        add_line(f"{name} {qty} {p}", align="left")
         if item.get("notes"):
-            ticket.append(f" * Not: {item.get('notes')}")
-    
+            add_line(f" * Not: {item.get('notes')}", align="left")
+            
     if notes:
-        ticket.append("--------------------------------")
-        ticket.append(f"MÜŞTERİ NOTU: {notes}")
+        add_line("--------------------------------", align="left")
+        add_line(f"MÜŞTERİ NOTU: {notes}", align="left", bold=True)
+        
+    add_line("================================", align="center")
+    add_line(f"TOPLAM: {float(total):.2f} TL", align="right", bold=True, double_size=True)
+    add_line("================================", align="center")
+    add_line("* Afiyet Olsun *", align="center")
     
-    ticket.append("================================")
-    ticket.append(f"TOPLAM TUTAR:        {total:.2f} TL")
-    ticket.append("================================")
-    ticket.append("\n\n\n") # feed cut
-    return "\n".join(ticket)
+    # Feed 4 lines before cut
+    buf.extend(b'\n\n\n\n')
+    
+    # GS V 0 (\x1d\x56\x00) : Full Paper Cut
+    buf.extend(b'\x1d\x56\x00')
+    
+    return bytes(buf)
 
 def get_config():
     if os.path.exists(CONFIG_FILE):
@@ -174,152 +230,120 @@ def setup_config():
         json.dump(cfg, f, indent=2, ensure_ascii=False)
     return cfg
 
-def cloud_listener_loop(config):
-    """
-    Background worker that monitors Supabase for new orders 24/7 without a browser.
-    """
+def run_ws_realtime(config):
     b_id = config["business_id"]
-    b_name = config.get("business_name", "Restiva")
+    b_name = config["business_name"]
     b_phone = config.get("business_phone", "")
-    
-    headers = {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
-    }
 
-    # Initial priming: fetch existing orders so we don't print historical orders on first startup
-    init_url = f"{SUPABASE_URL}/rest/v1/orders?business_id=eq.{b_id}&order=created_at.desc&limit=30"
-    try:
-        req = urllib.request.Request(init_url, headers=headers)
-        with urllib.request.urlopen(req) as resp:
-            orders = json.loads(resp.read().decode("utf-8"))
-            for o in orders:
-                PRINTED_ORDERS.add(o["id"])
-            save_printed_cache()
-            print(f"[BAŞLANGIÇ] {len(orders)} geçmiş sipariş hafızaya alındı (yeniden basılmayacak).")
-    except Exception as e:
-        print(f"[BAŞLANGIÇ UYARI] {e}")
+    print(f"\n[*] 7/24 Supabase Realtime WebSocket başlatılıyor: {b_name}...")
 
-    print(f"[*] 7/24 Bulut Dinleme Aktif: {b_name} işletmesi dinleniyor...\n")
+    def on_open(ws):
+        print(f"[{datetime.now().strftime('%H:%M:%S')}] Realtime WebSocket Bağlandı! Siparişler bekleniyor...")
+        join_msg = {
+            "topic": "realtime:public:orders",
+            "event": "phx_join",
+            "payload": {
+                "config": {
+                    "postgres_changes": [
+                        {"event": "INSERT", "schema": "public", "table": "orders"}
+                    ]
+                }
+            },
+            "ref": "1"
+        }
+        ws.send(json.dumps(join_msg))
+
+    def on_message(ws, raw_message):
+        try:
+            msg = json.loads(raw_message)
+            event = msg.get("event")
+            
+            if event == "postgres_changes":
+                data_payload = msg.get("payload", {}).get("data", {})
+                record = data_payload.get("record", {})
+                order_biz_id = record.get("business_id")
+                order_id = record.get("id")
+                
+                if order_biz_id == b_id and order_id and order_id not in PRINTED_ORDERS:
+                    PRINTED_ORDERS.add(order_id)
+                    save_printed_cache()
+                    
+                    t_no = record.get("table_no", "MASA")
+                    tot = float(record.get("total_amount", 0.0))
+                    print(f"\n⚡ [{datetime.now().strftime('%H:%M:%S')}] REALTIME YENİ SİPARİŞ! {t_no} - {tot:.2f} TL")
+                    
+                    if HAS_WINSOUND:
+                        try:
+                            winsound.Beep(1400, 250)
+                            time.sleep(0.08)
+                            winsound.Beep(1800, 350)
+                        except Exception:
+                            pass
+                            
+                    raw_bytes = build_escpos_ticket(
+                        b_name=b_name,
+                        b_phone=b_phone,
+                        table_no=t_no,
+                        order_id=order_id,
+                        items=record.get("items", []),
+                        total=tot,
+                        notes=record.get("customer_notes", ""),
+                        source="QR Menü" if record.get("order_source") == "qr" else "POS"
+                    )
+                    
+                    success, res_msg = send_raw_escpos(None, raw_bytes)
+                    if success:
+                        print(f"✓ Fiş başarıyla basıldı ve otomatik kesildi: #{order_id[:8]}")
+                    else:
+                        print(f"✗ Yazdırma hatası: {res_msg}")
+
+        except Exception as e:
+            print(f"[HATA] {e}")
+
+    def on_error(ws, error):
+        print(f"[WS UYARI] {error}")
+
+    def on_close(ws, code, msg):
+        print("[WS KAPANDI] Yeniden bağlanılıyor...")
 
     while True:
         try:
-            url = f"{SUPABASE_URL}/rest/v1/orders?business_id=eq.{b_id}&order=created_at.desc&limit=10"
-            req = urllib.request.Request(url, headers=headers)
-            with urllib.request.urlopen(req) as resp:
-                orders = json.loads(resp.read().decode("utf-8"))
-                
-                # Check for new unprinted orders (process oldest new order first)
-                new_orders = [o for o in reversed(orders) if o["id"] not in PRINTED_ORDERS]
-                
-                for order in new_orders:
-                    PRINTED_ORDERS.add(order["id"])
-                    save_printed_cache()
-                    
-                    print("\n" + "="*45)
-                    print(f"[YENİ SİPARİŞ!] Masa: {order.get('table_no')} - Tutar: {order.get('total_amount')} TL")
-                    print(f"Zaman: {datetime.now().strftime('%H:%M:%S')}")
-                    print("="*45)
-                    
-                    play_order_sound()
-                    
-                    ticket_text = format_ticket(
-                        b_name=b_name,
-                        b_phone=b_phone,
-                        table_no=order.get("table_no", "MASA"),
-                        order_id=order.get("id", ""),
-                        items=order.get("items", []),
-                        total=float(order.get("total_amount", 0.0)),
-                        notes=order.get("customer_notes", ""),
-                        source="QR Menü" if order.get("order_source") == "qr" else "POS"
-                    )
-                    
-                    send_to_windows_printer(ticket_text)
-                    
-        except Exception as e:
-            # Silent connection retry
-            pass
+            ws = websocket.WebSocketApp(
+                WS_URL,
+                on_open=on_open,
+                on_message=on_message,
+                on_error=on_error,
+                on_close=on_close
+            )
             
-        time.sleep(2.0)
-
-class LocalHttpHandler(BaseHTTPRequestHandler):
-    def _set_cors_headers(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self._set_cors_headers()
-        self.end_headers()
-
-    def do_GET(self):
-        self.send_response(200)
-        self._set_cors_headers()
-        self.send_header('Content-Type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps({"status": "online", "port": HTTP_PORT}).encode("utf-8"))
-
-    def do_POST(self):
-        if self.path == '/print':
-            length = int(self.headers.get('Content-Length', 0))
-            post_data = self.rfile.read(length)
-            try:
-                data = json.loads(post_data.decode('utf-8'))
-                order_id = data.get("order_id")
-                if order_id:
-                    PRINTED_ORDERS.add(order_id)
-                    save_printed_cache()
-
-                play_order_sound()
-                ticket_text = format_ticket(
-                    b_name=data.get("business_name", "RESTIVA"),
-                    b_phone=data.get("business_phone", ""),
-                    table_no=data.get("table_no", "MASA"),
-                    order_id=order_id or "MANUEL",
-                    items=data.get("items", []),
-                    total=float(data.get("total_amount", 0.0)),
-                    notes=data.get("customer_notes", ""),
-                    source=data.get("order_source", "Web")
-                )
-                success = send_to_windows_printer(ticket_text)
-                
-                self.send_response(200 if success else 500)
-                self._set_cors_headers()
-                self.send_header('Content-Type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps({"success": success}).encode("utf-8"))
-            except Exception as e:
-                self.send_response(400)
-                self._set_cors_headers()
-                self.end_headers()
-                self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
+            def _hb():
+                while ws and ws.sock and ws.sock.connected:
+                    try:
+                        ws.send(json.dumps({"topic": "phoenix", "event": "heartbeat", "payload": {}, "ref": "hb"}))
+                    except Exception:
+                        break
+                    time.sleep(20)
+                    
+            threading.Thread(target=_hb, daemon=True).start()
+            ws.run_forever()
+        except Exception as e:
+            print(f"Bağlantı koptu ({e}), 3 sn sonra tekrar deneniyor...")
+            time.sleep(3)
 
 def main():
     print("="*60)
-    print("      RESTIVA ADİSYON - 7/24 OTOMATİK YAZICI KÖPRÜSÜ      ")
-    print("      (Tarayıcı Kapalı Olsa Bile Fişi Otomatik Basar)     ")
+    print("      RESTIVA ADİSYON - 7/24 REALTIME YAZICI KÖPRÜSÜ       ")
+    print("   (RAW ESC/POS + CP857 Türkçe Karakter + Otomatik Kesme)   ")
     print("="*60)
     
     load_printed_cache()
-    
     config = get_config()
     if not config:
         config = setup_config()
     else:
-        print(f"[*] İşletme: {config.get('business_name')} (ID: {config.get('business_id')})")
+        print(f"[*] Aktif İşletme: {config.get('business_name')} (ID: {config.get('business_id')})")
 
-    # Start Cloud Background Poller Thread (Zero Browser)
-    cloud_thread = threading.Thread(target=cloud_listener_loop, args=(config,), daemon=True)
-    cloud_thread.start()
+    run_ws_realtime(config)
 
-    # Start Local HTTP Fast-Track Server
-    try:
-        httpd = HTTPServer(('127.0.0.1', HTTP_PORT), LocalHttpHandler)
-        print(f"[*] Yerel Hızlı Köprü (127.0.0.1:{HTTP_PORT}) hazır.")
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        print("\nServis durduruldu.")
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

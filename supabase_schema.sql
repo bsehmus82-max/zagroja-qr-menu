@@ -146,3 +146,99 @@ CREATE POLICY "Allow public insert and read for orders" ON public.orders FOR ALL
 CREATE POLICY "Allow public insert and read for service_requests" ON public.service_requests FOR ALL USING (true);
 CREATE POLICY "Allow all for support_messages" ON public.support_messages FOR ALL USING (true);
 CREATE POLICY "Allow all for superadmin_auth" ON public.superadmin_auth FOR ALL USING (true);
+
+-- ============================================================
+-- 8. SECURE RPC: CREATE CUSTOMER ORDER WITH SERVER-SIDE PRICE VERIFICATION
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.create_customer_order(
+    p_business_id UUID,
+    p_table_no TEXT,
+    p_items JSONB, -- [{"product_id": "...", "quantity": 1, "notes": "..."}]
+    p_customer_notes TEXT DEFAULT '',
+    p_order_source TEXT DEFAULT 'qr',
+    p_session_token TEXT DEFAULT ''
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_item JSONB;
+    v_product RECORD;
+    v_total_amount NUMERIC(10,2) := 0.00;
+    v_verified_items JSONB := '[]'::jsonb;
+    v_order_id UUID;
+    v_new_order JSONB;
+    v_qty INT;
+BEGIN
+    -- Validate business
+    IF NOT EXISTS (SELECT 1 FROM public.businesses WHERE id = p_business_id AND is_active = true) THEN
+        RAISE EXCEPTION 'İşletme bulunamadı veya hesabı aktif değil.';
+    END IF;
+
+    -- Iterate and calculate verified price directly from database
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    LOOP
+        v_qty := COALESCE((v_item->>'quantity')::INT, 1);
+        IF v_qty <= 0 THEN
+            CONTINUE;
+        END IF;
+
+        -- Fetch live product price from database
+        SELECT id, name, price, is_frozen, is_active 
+        INTO v_product 
+        FROM public.products 
+        WHERE id = (v_item->>'product_id')::UUID AND business_id = p_business_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Menüde bulunmayan veya silinmiş bir ürün sipariş edilemez.';
+        END IF;
+
+        IF v_product.is_frozen OR NOT v_product.is_active THEN
+            RAISE EXCEPTION 'Seçilen ürünlerden biri tükendi: %', v_product.name;
+        END IF;
+
+        -- Accumulate secure verified price
+        v_total_amount := v_total_amount + (v_product.price * v_qty);
+
+        -- Build verified item record
+        v_verified_items := v_verified_items || jsonb_build_object(
+            'id', v_product.id,
+            'product_id', v_product.id,
+            'name', v_product.name,
+            'price', v_product.price,
+            'quantity', v_qty,
+            'notes', COALESCE(v_item->>'notes', '')
+        );
+    END LOOP;
+
+    IF jsonb_array_length(v_verified_items) = 0 THEN
+        RAISE EXCEPTION 'Sipariş için geçerli ürün bulunamadı.';
+    END IF;
+
+    -- Insert secure order with server-calculated total
+    INSERT INTO public.orders (
+        business_id,
+        table_no,
+        items,
+        total_amount,
+        status,
+        customer_notes,
+        order_source,
+        session_token
+    ) VALUES (
+        p_business_id,
+        p_table_no,
+        v_verified_items,
+        v_total_amount,
+        'pending',
+        p_customer_notes,
+        p_order_source,
+        p_session_token
+    )
+    RETURNING id INTO v_order_id;
+
+    SELECT row_to_json(o)::jsonb INTO v_new_order FROM public.orders o WHERE o.id = v_order_id;
+    RETURN v_new_order;
+END;
+$$;
