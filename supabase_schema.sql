@@ -37,6 +37,11 @@ ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS wifi_password TEXT DEFAUL
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS cover_image_url TEXT DEFAULT '';
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS sound_preference TEXT DEFAULT 'classic';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS plan_type TEXT DEFAULT 'trial';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS plan_price NUMERIC(10, 2) DEFAULT 0.00;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS billing_period TEXT DEFAULT 'trial';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS last_payment_date TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS next_billing_date TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days');
 
 -- 2. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (

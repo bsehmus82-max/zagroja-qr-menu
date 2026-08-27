@@ -10,6 +10,9 @@ export type TemplateId =
 
 export type SoundPresetKey = 'classic' | 'crystal' | 'digital' | 'woodblock' | 'melodic';
 
+export type PlanType = 'trial' | 'lite' | 'standard' | 'pro' | 'custom';
+export type BillingPeriod = 'trial' | 'monthly' | 'semi_annual' | 'annual' | 'custom';
+
 export interface Business {
   id: string;
   name: string;
@@ -28,6 +31,11 @@ export interface Business {
   table_limit?: number | null;
   pairing_secret?: string;
   sound_preference?: SoundPresetKey;
+  plan_type?: PlanType;
+  plan_price?: number;
+  billing_period?: BillingPeriod;
+  last_payment_date?: string;
+  next_billing_date?: string;
   subscription_status: SubscriptionStatus;
   subscription_days: number;
   subscription_expires_at: string;

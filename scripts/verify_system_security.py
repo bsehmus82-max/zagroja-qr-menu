@@ -186,6 +186,34 @@ def main():
         "RestivAdisyon - Belgeler & Kılavuz" in setup_py_content
     )
 
+    print("\n--- 6. ABONELİK PAKETLERİ VE FİNANSAL TAHSİLAT TAKİP TESTLERİ ---")
+
+    # 6.1 Create Business Package Presets & Custom Limits
+    test(
+        "Yeni işletme kayıt modalı Lite, Standart, Pro ve 7 Gün Deneme paketlerini ve manuel girişi destekliyor",
+        check_file_content("components/superadmin/CreateBusinessModal.tsx", "PLAN_PRESETS") and
+        check_file_content("components/superadmin/CreateBusinessModal.tsx", "selectedPlanType") and
+        check_file_content("components/superadmin/CreateBusinessModal.tsx", "isCustomMode")
+    )
+
+    # 6.2 SuperAdmin Financial Dashboard & Renew Modal
+    test(
+        "SuperAdmin paneli toplam sözleşme cirosu, yaklaşan tahsilatlar ve hızlı yenileme modalını içeriyor",
+        check_file_content("components/superadmin/SuperAdminDashboard.tsx", "totalContractValue") and
+        check_file_content("components/superadmin/SuperAdminDashboard.tsx", "dueSoonReceivables") and
+        check_file_content("components/superadmin/SuperAdminDashboard.tsx", "RenewSubscriptionModal") and
+        os.path.exists(os.path.join(SRC_DIR, "components/superadmin/RenewSubscriptionModal.tsx"))
+    )
+
+    # 6.3 Database Schema plan_price and billing fields
+    with open(SCHEMA_FILE, "r", encoding="utf-8", errors="ignore") as f:
+        schema_content = f.read()
+    test(
+        "Supabase veritabanı şemasında plan_price, plan_type, billing_period kolonları mevcut",
+        "plan_price NUMERIC(10, 2) DEFAULT 0.00" in schema_content and
+        "plan_type TEXT DEFAULT 'trial'" in schema_content
+    )
+
     print("\n" + "=" * 65)
     print(f"SONUÇ: {passed_tests} Test Başarılı, {failed_tests} Hata.")
     print("=" * 65 + "\n")
