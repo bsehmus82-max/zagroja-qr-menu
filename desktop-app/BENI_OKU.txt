@@ -1,0 +1,34 @@
+================================================================================
+                    RESTIVADISYON - HIZLI KURULUM & BAŞLANGIÇ NOTU
+================================================================================
+
+RestivAdisyon Bağımsız Masaüstü POS ve Otomatik Termal Fiş Yazıcı Sistemine Hoş Geldiniz.
+Bu yazılım hiçbir harici web sitesine bağımlı olmadan, gömülü yerel arayüzü ve 
+arka plan ESC/POS motoruyla çalışmaktadır.
+
+--------------------------------------------------------------------------------
+DÖRT ADIMDA HIZLI BAŞLANGIÇ REHBERİ:
+--------------------------------------------------------------------------------
+
+1. Adım: RestivAdisyon.exe'yi çalıştırın ve işletme kullanıcı adı/şifrenizle giriş yapın.
+   - Program açıldığında yerel arayüz yüklenir.
+   - Size iletilen işletme kullanıcı adı ve şifrenizle panele erişebilirsiniz.
+
+2. Adım: Windows Varsayılan Yazıcınızın bağlı olduğunu kontrol edin, Ayarlar menüsünden "Test Fişi Bas" ile doğrulayın.
+   - Termal yazıcınızın (80mm veya 58mm) USB kablosunun takılı ve Windows'ta "Varsayılan Yazıcı" olarak seçili olduğundan emin olun.
+   - "İşletme Ayarları" sekmesine giderek "Test Fişi Bas" butonuna tıklayın; yazıcınızdan Türkçe karakterli otomatik test fişi dökülecektir.
+
+3. Adım: Garson telefonundan PWA üzerinden gelen bağlantı taleplerini "Garson Yönetimi" sekmesinden onaylayın.
+   - Garsonlar kasadaki "Garson Eşleme QR Kodu"nu kendi telefon kameralarıyla okutur.
+   - Kasa ekranındaki "Garsonlar & Terminaller" sekmesinde talep canlı olarak görünür. "Yetkiyi Onayla" butonuna bastığınız anda personelin telefonu anında sipariş terminaline dönüşür.
+
+4. Adım: Tarayıcı üzerinden acil durum / tablet erişim adresi:
+   - https://restivadisyon.org/admin
+   - Masaüstü programı kapalı olsa veya tablet/telefon üzerinden erişmek istediğinizde bu adresi kullanabilirsiniz.
+
+--------------------------------------------------------------------------------
+SİSTEM BİLGİSİ & TEKNİK DESTEK:
+- Geliştirici & Platform: RestivAdisyon
+- Fiş Kod Sayfası: CP857 (Türkçe)
+- Otomatik Kağıt Kesme: GS V 0 Destekli
+================================================================================
