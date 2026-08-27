@@ -3,6 +3,7 @@ import { ShoppingBag, X, Plus, Minus, Send, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { useToast } from '../../context/ToastContext';
 
 interface CartDrawerProps {
   business: Business;
@@ -23,6 +24,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onUpdateQty,
   onOrderPlaced,
 }) => {
+  const toast = useToast();
   const [customerNotes, setCustomerNotes] = useState('');
   const [sending, setSending] = useState(false);
 
@@ -81,10 +83,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           // fallback
         }
 
+        toast.success('Siparişiniz mutfağa iletildi! Şeflerimiz hazırlamaya başlıyor.');
         onOrderPlaced(data as Order);
         onClose();
       } else {
-        alert('Sipariş iletilirken bir hata oluştu.');
+        toast.error('Sipariş iletilirken bir hata oluştu. Lütfen tekrar deneyiniz.');
       }
     } finally {
       setSending(false);

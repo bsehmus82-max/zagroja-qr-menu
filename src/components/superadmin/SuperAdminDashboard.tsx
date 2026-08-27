@@ -7,6 +7,8 @@ import {
 import { supabase, hashPassword, generateTempPassword } from '../../lib/supabase';
 import { Business } from '../../types';
 import { sound } from '../../lib/audio';
+import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../common/ConfirmModal';
 import { CreateBusinessModal } from './CreateBusinessModal';
 import { CreatedCredentialsModal } from './CreatedCredentialsModal';
 import { BroadcastModal } from './BroadcastModal';
@@ -17,6 +19,7 @@ interface SuperAdminDashboardProps {
 }
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogout }) => {
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'businesses' | 'chat' | 'database'>('businesses');
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +34,21 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
   } | null>(null);
 
   const [selectedBizForChat, setSelectedBizForChat] = useState<Business | null>(null);
+
+  // In-app Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    action: () => {},
+  });
 
   const loadBusinesses = async () => {
     setLoading(true);
@@ -62,6 +80,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
         (payload) => {
           if (payload.new && (payload.new as { sender: string }).sender === 'business') {
             sound.playMessageTone();
+            toast.info('İşletmeden yeni bir destek mesajı geldi.');
           }
         }
       )
@@ -70,7 +89,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [toast]);
 
   const toggleSuspend = async (biz: Business) => {
     const nextStatus = biz.subscription_status === 'suspended' ? 'active' : 'suspended';
@@ -83,6 +102,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
       setBusinesses((prev) =>
         prev.map((b) => (b.id === biz.id ? { ...b, subscription_status: nextStatus } : b))
       );
+      if (nextStatus === 'suspended') {
+        toast.warning(`"${biz.name}" hesabı askıya alındı.`);
+      } else {
+        toast.success(`"${biz.name}" hesabı aktifleştirildi.`);
+      }
     }
   };
 
@@ -109,43 +133,54 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
             : b
         )
       );
+      toast.success(`"${biz.name}" süresi +${additionalDays} gün uzatıldı.`);
     }
   };
 
-  const handleResetPassword = async (biz: Business) => {
-    if (!window.confirm(`"${biz.name}" işletmesinin şifresini sıfırlayıp yeni bir geçici şifre üretmek istiyor musunuz?`)) {
-      return;
-    }
+  const promptResetPassword = (biz: Business) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Şifre Sıfırlama',
+      message: `"${biz.name}" işletmesi için yeni bir geçici şifre üretmek istiyor musunuz?`,
+      type: 'warning',
+      action: async () => {
+        const newPass = generateTempPassword(8);
+        const newHash = await hashPassword(newPass);
 
-    const newPass = generateTempPassword(8);
-    const newHash = await hashPassword(newPass);
+        const { error } = await supabase
+          .from('businesses')
+          .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+          .eq('id', biz.id);
 
-    const { error } = await supabase
-      .from('businesses')
-      .update({ password_hash: newHash, updated_at: new Date().toISOString() })
-      .eq('id', biz.id);
-
-    if (!error) {
-      setCreatedInfo({
-        business: biz,
-        tempPass: newPass,
-        days: Math.max(0, Math.ceil((new Date(biz.subscription_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
-      });
-    }
+        if (!error) {
+          setCreatedInfo({
+            business: biz,
+            tempPass: newPass,
+            days: Math.max(0, Math.ceil((new Date(biz.subscription_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
+          });
+          toast.success('Yeni geçici şifre başarıyla üretildi.');
+        }
+      },
+    });
   };
 
-  const handleDeleteBusiness = async (biz: Business) => {
-    if (!window.confirm(`"${biz.name}" işletmesini silmek istediğinize emin misiniz?`)) {
-      return;
-    }
-
-    const { error } = await supabase.from('businesses').delete().eq('id', biz.id);
-    if (!error) {
-      setBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
-      if (selectedBizForChat?.id === biz.id) {
-        setSelectedBizForChat(null);
-      }
-    }
+  const promptDeleteBusiness = (biz: Business) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'İşletmeyi Sil',
+      message: `"${biz.name}" işletmesini ve tüm menü verilerini kalıcı olarak silmek istediğinize emin misiniz?`,
+      type: 'danger',
+      action: async () => {
+        const { error } = await supabase.from('businesses').delete().eq('id', biz.id);
+        if (!error) {
+          setBusinesses((prev) => prev.filter((b) => b.id !== biz.id));
+          if (selectedBizForChat?.id === biz.id) {
+            setSelectedBizForChat(null);
+          }
+          toast.success(`"${biz.name}" silindi.`);
+        }
+      },
+    });
   };
 
   const filtered = businesses.filter(
@@ -386,14 +421,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
 
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => handleResetPassword(biz)}
+                            onClick={() => promptResetPassword(biz)}
                             title="Şifre Sıfırla"
                             className="p-1.5 rounded-lg bg-[#1A202C] hover:bg-[#252D3D] text-slate-400 hover:text-slate-200 transition"
                           >
                             <Lock className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => handleDeleteBusiness(biz)}
+                            onClick={() => promptDeleteBusiness(biz)}
                             title="Sil"
                             className="p-1.5 rounded-lg bg-[#1A202C] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition"
                           >
@@ -433,6 +468,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
         onCreated={(info) => {
           setBusinesses((prev) => [info.business, ...prev]);
           setCreatedInfo(info);
+          toast.success(`"${info.business.name}" hesabı açıldı.`);
         }}
       />
 
@@ -445,6 +481,18 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
         isOpen={showBroadcastModal}
         onClose={() => setShowBroadcastModal(false)}
         businesses={businesses}
+      />
+
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        onConfirm={() => {
+          confirmConfig.action();
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+        onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

@@ -6,12 +6,15 @@ import {
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { DEFAULT_CATEGORIES } from '../../data/defaultCatalog';
+import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface MenuManagerProps {
   business: Business;
 }
 
 export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
@@ -25,6 +28,21 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const [newProdName, setNewProdName] = useState('');
   const [newProdDesc, setNewProdDesc] = useState('');
   const [newProdPrice, setNewProdPrice] = useState<number | ''>('');
+
+  // In-app Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    action: () => {},
+  });
 
   const loadMenuData = async () => {
     setLoading(true);
@@ -71,15 +89,28 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       setProducts((prev) =>
         prev.map((p) => (p.id === product.id ? { ...p, is_frozen: nextFreeze } : p))
       );
+      if (nextFreeze) {
+        toast.warning(`"${product.name}" donduruldu (Tükendi olarak işaretlendi).`);
+      } else {
+        toast.success(`"${product.name}" yeniden satışa açıldı.`);
+      }
     }
   };
 
-  const deleteProduct = async (prodId: string) => {
-    if (!window.confirm('Bu ürünü silmek istediğinize emin misiniz?')) return;
-    const { error } = await supabase.from('products').delete().eq('id', prodId);
-    if (!error) {
-      setProducts((prev) => prev.filter((p) => p.id !== prodId));
-    }
+  const promptDeleteProduct = (prod: Product) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Ürünü Sil',
+      message: `"${prod.name}" ürününü menünüzden silmek istediğinize emin misiniz?`,
+      type: 'danger',
+      action: async () => {
+        const { error } = await supabase.from('products').delete().eq('id', prod.id);
+        if (!error) {
+          setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+          toast.success(`"${prod.name}" silindi.`);
+        }
+      },
+    });
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -106,6 +137,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       setNewCatName('');
       setNewCatImage('');
       setShowAddCatModal(false);
+      toast.success(`"${data.name}" kategorisi eklendi.`);
     }
   };
 
@@ -136,50 +168,58 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       setNewProdDesc('');
       setNewProdPrice('');
       setShowAddProdModal(false);
+      toast.success(`"${data.name}" menüye eklendi.`);
     }
   };
 
-  const handleLoadDefaultCatalog = async () => {
-    if (!window.confirm('Hazır zengin kategorileri menünüze yüklemek istiyor musunuz?')) return;
-    setLoading(true);
+  const promptLoadDefaultCatalog = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Hazır Menüyü Yükle',
+      message: '10 zengin kategori (Kahvaltı, Kahve, Burger, Pizza, vb.) menünüze yüklensin mi?',
+      type: 'info',
+      action: async () => {
+        setLoading(true);
+        try {
+          for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+            const catTemplate = DEFAULT_CATEGORIES[i];
+            const { data: catData, error: catError } = await supabase
+              .from('categories')
+              .insert([
+                {
+                  business_id: business.id,
+                  name: catTemplate.name,
+                  image_url: catTemplate.image_url,
+                  order_index: i,
+                  is_active: true,
+                },
+              ])
+              .select()
+              .single();
 
-    try {
-      for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-        const catTemplate = DEFAULT_CATEGORIES[i];
-        const { data: catData, error: catError } = await supabase
-          .from('categories')
-          .insert([
-            {
-              business_id: business.id,
-              name: catTemplate.name,
-              image_url: catTemplate.image_url,
-              order_index: i,
-              is_active: true,
-            },
-          ])
-          .select()
-          .single();
+            if (!catError && catData) {
+              const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
+                business_id: business.id,
+                category_id: catData.id,
+                name: p.name,
+                description: p.description,
+                price: p.price,
+                is_frozen: false,
+                is_active: true,
+                order_index: pIdx,
+              }));
 
-        if (!catError && catData) {
-          const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
-            business_id: business.id,
-            category_id: catData.id,
-            name: p.name,
-            description: p.description,
-            price: p.price,
-            is_frozen: false,
-            is_active: true,
-            order_index: pIdx,
-          }));
+              await supabase.from('products').insert(prodsToInsert);
+            }
+          }
 
-          await supabase.from('products').insert(prodsToInsert);
+          await loadMenuData();
+          toast.success('Hazır zengin menü başarıyla yüklendi!');
+        } finally {
+          setLoading(false);
         }
-      }
-
-      await loadMenuData();
-    } finally {
-      setLoading(false);
-    }
+      },
+    });
   };
 
   const currentCategoryProducts = products.filter((p) => p.category_id === selectedCatId);
@@ -198,7 +238,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         <div className="flex items-center gap-2">
           {categories.length === 0 && (
             <button
-              onClick={handleLoadDefaultCatalog}
+              onClick={promptLoadDefaultCatalog}
               className="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 hover:bg-purple-500/20 text-purple-300 text-xs font-semibold transition flex items-center gap-1.5"
             >
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
@@ -326,7 +366,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                     </button>
 
                     <button
-                      onClick={() => deleteProduct(prod.id)}
+                      onClick={() => promptDeleteProduct(prod)}
                       className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-[#182030] transition"
                       title="Sil"
                     >
@@ -472,6 +512,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
           </div>
         </div>
       )}
+
+      {/* In-app Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        onConfirm={() => {
+          confirmConfig.action();
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+        onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

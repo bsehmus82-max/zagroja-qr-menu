@@ -6,17 +6,35 @@ import {
 import { Business, Table } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { printSingleQrCard, printBatchQrCards } from '../../lib/thermalPrinter';
+import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../common/ConfirmModal';
 
 interface TableManagerProps {
   business: Business;
 }
 
 export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
+  const toast = useToast();
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTableNo, setNewTableNo] = useState('');
   const [batchCount, setBatchCount] = useState<number | ''>(5);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  // In-app Confirm Modal State
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'danger' | 'warning' | 'info';
+    action: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'danger',
+    action: () => {},
+  });
 
   const loadTables = async () => {
     setLoading(true);
@@ -42,7 +60,7 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     if (!newTableNo.trim()) return;
 
     if (business.table_limit && tables.length >= business.table_limit) {
-      alert(`Maksimum masa limitinize (${business.table_limit}) ulaştınız.`);
+      toast.warning(`Maksimum masa limitinize (${business.table_limit}) ulaştınız.`);
       return;
     }
 
@@ -58,6 +76,7 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     if (!error && data) {
       setTables((prev) => [...prev, data as Table]);
       setNewTableNo('');
+      toast.success(`"${data.table_no}" eklendi ve QR kodu üretildi.`);
     }
   };
 
@@ -66,7 +85,7 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     const count = Number(batchCount);
 
     if (business.table_limit && tables.length + count > business.table_limit) {
-      alert(`Maksimum masa limitinizi aşamazsınız. (Mevcut limit: ${business.table_limit})`);
+      toast.warning(`Maksimum masa limitinizi aşamazsınız. (Mevcut limit: ${business.table_limit})`);
       return;
     }
 
@@ -89,21 +108,31 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     const { data, error } = await supabase.from('tables').insert(rows).select();
     if (!error && data) {
       setTables((prev) => [...prev, ...(data as Table[])]);
+      toast.success(`${count} adet yeni masa ve QR kodu başarıyla üretildi.`);
     }
   };
 
-  const handleDeleteTable = async (tableId: string) => {
-    if (!window.confirm('Bu masayı ve QR kodunu silmek istediğinize emin misiniz?')) return;
-    const { error } = await supabase.from('tables').delete().eq('id', tableId);
-    if (!error) {
-      setTables((prev) => prev.filter((t) => t.id !== tableId));
-    }
+  const promptDeleteTable = (table: Table) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Masayı Sil',
+      message: `"${table.table_no}" masasını ve QR kodunu silmek istediğinize emin misiniz?`,
+      type: 'danger',
+      action: async () => {
+        const { error } = await supabase.from('tables').delete().eq('id', table.id);
+        if (!error) {
+          setTables((prev) => prev.filter((t) => t.id !== table.id));
+          toast.success(`"${table.table_no}" silindi.`);
+        }
+      },
+    });
   };
 
   const copyTableLink = (table: Table) => {
     const link = `${window.location.origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
     navigator.clipboard.writeText(link);
     setCopiedToken(table.id);
+    toast.info(`"${table.table_no}" menü bağlantısı panoya kopyalandı.`);
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
@@ -210,7 +239,7 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
                   <div className="flex items-center justify-between w-full mb-2">
                     <span className="font-bold text-xs text-white truncate">{table.table_no}</span>
                     <button
-                      onClick={() => handleDeleteTable(table.id)}
+                      onClick={() => promptDeleteTable(table)}
                       className="p-1 rounded text-slate-500 hover:text-rose-400 transition"
                       title="Sil"
                     >
@@ -259,6 +288,19 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
           })}
         </div>
       )}
+
+      {/* In-app Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmConfig.isOpen}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        type={confirmConfig.type}
+        onConfirm={() => {
+          confirmConfig.action();
+          setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
+        }}
+        onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

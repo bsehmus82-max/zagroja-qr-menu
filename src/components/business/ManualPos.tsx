@@ -6,12 +6,14 @@ import {
 import { Business, Category, Product, OrderItem, Table } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { printKitchenTicket } from '../../lib/thermalPrinter';
+import { useToast } from '../../context/ToastContext';
 
 interface ManualPosProps {
   business: Business;
 }
 
 export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [tables, setTables] = useState<Table[]>([]);
@@ -114,7 +116,9 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
       if (!error && data) {
         printKitchenTicket(business, data);
         setPosItems([]);
-        alert('Adisyon başarıyla kapatıldı ve fiş yazdırıldı.');
+        toast.success('Adisyon başarıyla tahsil edildi ve adisyon fişi yazdırıldı.');
+      } else {
+        toast.error('Adisyon kaydedilirken bir hata oluştu.');
       }
     } finally {
       setSaving(false);
