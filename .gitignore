@@ -21,6 +21,9 @@ dist
 dist-ssr
 build
 *.local
+desktop-app/payload
+*.exe
+*.spec
 
 # Logs
 logs
