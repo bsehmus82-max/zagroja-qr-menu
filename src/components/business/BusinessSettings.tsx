@@ -200,17 +200,19 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     setSaving(true);
 
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         template_id: templateId,
-        logo_url: logoUrl.trim() || null,
         phone: phone.trim(),
         address: address.trim(),
         working_hours: workingHoursDisplay,
         wifi_ssid: showWifi ? wifiSsid.trim() : '',
         wifi_password: showWifi ? wifiPassword.trim() : '',
-        show_wifi: showWifi,
         updated_at: new Date().toISOString(),
       };
+
+      if (logoUrl) {
+        payload.logo_url = logoUrl.trim();
+      }
 
       const { data, error } = await supabase
         .from('businesses')

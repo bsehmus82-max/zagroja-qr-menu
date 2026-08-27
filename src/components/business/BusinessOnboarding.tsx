@@ -149,23 +149,30 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
     setLoading(true);
 
     try {
+      const payload: Record<string, unknown> = {
+        phone: phone.trim(),
+        address: address.trim(),
+        working_hours: workingHoursDisplay,
+        wifi_ssid: showWifi ? wifiSsid.trim() : '',
+        wifi_password: showWifi ? wifiPassword.trim() : '',
+        updated_at: new Date().toISOString(),
+      };
+
+      if (logoUrl) {
+        payload.logo_url = logoUrl.trim();
+      }
+
       const { data: updatedBiz, error: bizError } = await supabase
         .from('businesses')
-        .update({
-          logo_url: logoUrl.trim() || null,
-          phone: phone.trim(),
-          address: address.trim(),
-          working_hours: workingHoursDisplay,
-          wifi_ssid: showWifi ? wifiSsid.trim() : '',
-          wifi_password: showWifi ? wifiPassword.trim() : '',
-          show_wifi: showWifi,
-          updated_at: new Date().toISOString(),
-        })
+        .update(payload)
         .eq('id', business.id)
         .select()
         .single();
 
-      if (bizError) throw bizError;
+      if (bizError) {
+        console.error('Onboarding update error:', bizError);
+        throw bizError;
+      }
 
       // Load Rich Default Catalog if checked
       if (loadDefaultMenu) {
