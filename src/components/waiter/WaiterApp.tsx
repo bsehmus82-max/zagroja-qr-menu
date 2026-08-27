@@ -28,9 +28,9 @@ export const WaiterApp: React.FC = () => {
   const [isSendingOrder, setIsSendingOrder] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Set browser tab title strictly to business name
+  // Set browser tab title to [BusinessName] • Garson Paneli
   useEffect(() => {
-    document.title = business?.name || 'Garson Terminali';
+    document.title = business?.name ? `${business.name} • Garson Paneli` : 'Silvana • Garson Paneli';
   }, [business?.name]);
 
   // Check device validity on mount

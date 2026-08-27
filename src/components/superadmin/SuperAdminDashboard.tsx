@@ -77,6 +77,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
   };
 
   useEffect(() => {
+    document.title = 'Super Admin';
     loadBusinesses();
   }, []);
 

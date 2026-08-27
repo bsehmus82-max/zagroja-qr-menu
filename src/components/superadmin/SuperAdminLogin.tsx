@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Lock, KeyRound, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { hashPassword } from '../../lib/supabase';
 
@@ -12,6 +12,10 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    document.title = 'Super Admin';
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

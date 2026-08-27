@@ -30,16 +30,16 @@ interface GuideSection {
 }
 
 const SYSTEM_GUIDES: GuideSection[] = [
-  // BİLGİLENDİRME KATEGORİSİ
+  // 1. BİLGİLENDİRME KATEGORİSİ
   {
     id: 'bilgi-sistem-nedir',
     category: 'bilgilendirme',
     categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Sistem Nedir ve Nasıl Çalışır?',
+    title: 'Sistem Mimarisi ve Sıfır Ek Donanım Gereksinimi',
     summary: 'Restiva Adisyon ve QR Menü sisteminin temel işleyişi ve donanım gereksinimleri.',
     content: `Restiva, restoran, kafe ve işletmeler için sıfır ek donanım maliyetiyle çalışan bulut tabanlı bir adisyon ve dijital QR menü platformudur.
 
-Temel Özellikler:
+Temel Mimarisi:
 * Ekstra pahalı el terminali veya özel POS cihazı satın alma zorunluluğu yoktur.
 * Tüm garsonlar kendi akıllı telefonlarını kasadaki QR kodu okutarak anında mobil sipariş terminaline dönüştürebilir.
 * Müşteriler masadaki QR kodu okutarak canlı menüye ulaşır, sipariş verebilir veya garson/hesap çağırabilir.
@@ -49,20 +49,20 @@ Temel Özellikler:
     id: 'bilgi-abonelik-deneme',
     category: 'bilgilendirme',
     categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Abonelik ve 14 Günlük Ücretsiz Deneme Süreci',
+    title: '14 Günlük Ücretsiz Deneme ve Süre Takibi',
     summary: 'Deneme süresi bitişi, bildirimler ve işletme askıya alma kuralları.',
     content: `Yeni açılan tüm işletmelere 14 günlük ücretsiz tam erişim deneme paketi tanımlanır.
 
 İşleyiş Kuralları:
-* Deneme süresinin bitimine 3 gün ve daha az kaldığında panelinizde otomatik bitiş uyarıları gösterilir.
+* Deneme süresinin bitimine 3 gün ve daha az kaldığında sol menüdeki Yardım & Bildirimler alanında kırmızı yuvarlak uyarı rozeti ve üst bilgilendirme kutusu belirir.
 * Süre dolduğunda sistem işletmeyi otomatik olarak askıya alır ve QR menü erişimi geçici olarak kapatılır.
-* Aboneliğinizi yenilediğinizde tüm menü, masa ve geçmiş verileriniz korunarak hesabınız anında tekrar aktifleşir.`,
+* Aboneliğinizi yenilediğinizde tüm menü, masa ve geçmiş ciro verileriniz korunarak hesabınız anında tekrar aktifleşir.`,
   },
   {
     id: 'bilgi-sifir-komisyon',
     category: 'bilgilendirme',
     categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Sıfır Komisyon ve Sabit Maliyet Avantajı',
+    title: 'Sıfır Komisyon ve %100 Kazanç Modeli',
     summary: 'Sipariş başına komisyon kesintisi olmadan şeffaf çalışma modeli.',
     content: `Restiva'da verilen hiçbir sipariş üzerinden yüzde veya komisyon kesintisi yapılmaz.
 
@@ -70,25 +70,52 @@ Avantajlar:
 * Sabit paket ücreti dışında gizli maliyet veya ek ödeme bulunmaz.
 * Masalardan veya garsonlardan ne kadar sipariş alınırsa alınsın cironuzun tamamı işletmenize kalır.`,
   },
+  {
+    id: 'bilgi-guvenlik-altyapi',
+    category: 'bilgilendirme',
+    categoryTitle: 'Bilgilendirme & Genel Bakış',
+    title: 'Bulut Altyapı, Cihaz Yetkilendirme ve Veri Güvenliği',
+    summary: 'Personel yetki sınırları ve bulut veritabanı şifreleme standartları.',
+    content: `Güvenlik Standartları:
+* Garsonlar kasa yönetim paneline ve ciro verilerine erişemez; sadece masa ve sipariş alma ekranını görür.
+* Her garson cihazı kasadaki yetkili tarafından onaylanmadan sisteme bağlanamaz.
+* İşten ayrılan personelin yetkisi kasadaki listeden tek tıkla anında iptal edilebilir.
+* Tüm sipariş ve müşteri hareketleri SSL/TLS şifreli bulut altyapısında güvenle korunur.`,
+  },
 
-  // NASIL KULLANIRIM KATEGORİSİ
+  // 2. NASIL KULLANIRIM KATEGORİSİ
   {
     id: 'nasil-menu-urun',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '1. Menü & Ürün Yönetimi (Fotoğraf, Fiyat, Stok)',
-    summary: 'Ürün ekleme, düzenleme, stok görsel bulma ve tükenen ürünleri kapatma adımları.',
+    title: '1. Menü & Ürün Yönetimi (Sıfır Fiyatla Başlama, Fiyat Belirleme, Stok Kapatma)',
+    summary: 'Ürün ekleme, düzenleme, fiyat güncelleme ve tükenen ürünleri satışa kapatma adımları.',
     content: `Menü ve Ürünlerinizi Yönetmek İçin:
 
-1. Fotoğraf Ekleme & Stok Görsel Bulma:
-   * İnternetten ücretsiz stok fotoğraf sitelerine (Unsplash veya Pexels) gidin.
-   * Beğendiğiniz yemeğin görsel bağlantısını kopyalayıp ürün düzenleme kutusuna yapıştırın.
+1. Sıfır Fiyatla Başlama ve Fiyat Güncelleme:
+   * Yeni açılan işletme hesaplarında hazır katalog ürünleri 0 TL olarak listelenir.
+   * "Menü & Ürünler" sekmesine giderek ürünün yanındaki "Düzenle" butonuna basın. Kendi işletmenizin satış fiyatını yazıp kaydedin.
+   * Güncellenen fiyat müşterilerin QR menüsünde anında canlı olarak değişir.
 
-2. Fiyat Güncelleme:
-   * Menü & Ürünler sekmesinde ürünün yanındaki "Düzenle" butonuna basın, yeni fiyatı girip kaydedin. Fiyat müşterilerin menüsünde anında güncellenir.
+2. Tükenen Ürünü Kapatma:
+   * Biten veya gün içinde kalmayan ürünün altındaki "Tükendi Olarak İşaretle" butonuna basınız.
+   * Ürün menünün en altına kayar, pasifleşir ve sepete eklenmesi engellenir. Ürün tekrar hazır olduğunda aynı butondan tek tıkla "Satışa Aç" yapabilirsiniz.`,
+  },
+  {
+    id: 'nasil-urun-fotografi',
+    category: 'nasil_kullanirim',
+    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
+    title: '2. Ürün Fotoğrafları & Stok Görsel Seçimi (Unsplash / Pexels veya Cihaz)',
+    summary: 'Ürünlere fotoğraf ekleme, ücretsiz stok görsel linki alma veya cihazdan yükleme.',
+    content: `Ürün Fotoğrafı Eklemek İçin:
 
-3. Tükenen Ürünü Kapatma:
-   * Biten ürünün altındaki "Tükendi Olarak İşaretle" butonuna bastığınızda ürün menünün en altına kayar ve pasifleşir. Hazır olduğunda aynı butondan tekrar satışa açabilirsiniz.`,
+1. Ücretsiz Stok Fotoğraf Sitelerinden Bağlantı Alma:
+   * [Unsplash Yemek Koleksiyonu](https://unsplash.com/s/photos/food) veya [Pexels](https://www.pexels.com/search/food/) sitelerine gidin.
+   * Beğendiğiniz yemeğin fotoğrafına basılı tutup (veya sağ tıklayıp) "Resim Adresini Kopyala" seçeneğini seçin.
+   * Restiva panelinde ürün düzenleme alanındaki Görsel URL kutusuna yapıştırıp kaydedin.
+
+2. Cihazdan Fotoğraf Seçme:
+   * Ürün düzenleme kutusundan "Cihazdan Fotoğraf Seç" butonuna basarak telefonunuzdaki veya bilgisayarınızdaki fotoğrafı yükleyebilirsiniz.`,
     actionLabel: 'Unsplash Yemek Koleksiyonu',
     actionUrl: 'https://unsplash.com/s/photos/food',
   },
@@ -96,12 +123,12 @@ Avantajlar:
     id: 'nasil-masa-qr',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '2. Masa & QR Kod Yönetimi ve PDF Baskı',
+    title: '3. Masa & QR Kod Yönetimi ve Toplu PDF Baskı Alma',
     summary: 'Masa ekleme, QR kodları PDF olarak indirme ve masa aparatlarına baskı alma.',
     content: `Masa QR Kodlarını Hazırlamak İçin:
 
 1. Masa Ekleme:
-   * "Masa & QR Kodlar" sekmesine giderek işletmenizdeki masa adlarını (Örn: Masa 1, Masa 2, Teras 1) girin.
+   * "Masa & QR Kodlar" sekmesine giderek işletmenizdeki masa adlarını (Örn: Masa 1, Masa 2, Bahçe 1, Teras 3) girin.
 
 2. PDF İndirme ve Çıktı Alma:
    * "Tüm QR Kodları Yazdır / PDF İndir" butonuna basınız.
@@ -112,8 +139,8 @@ Avantajlar:
     id: 'nasil-garson-esleme',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '3. Garson El Terminali ve Cihaz Eşleme (Şifresiz Sipariş)',
-    summary: 'Garsonun telefonunu kasadaki QR ile eşleme ve şifresiz sipariş alma.',
+    title: '4. Garson El Terminali & Cihaz Eşleme (Kamerayla Okutma, Kasadan Onay, PIN\'siz Sipariş)',
+    summary: 'Garsonun telefonunu kasadaki QR ile eşleme ve şifresiz doğrudan sipariş alma.',
     content: `Garson Telefonunu Eşlemek ve Sipariş Almak İçin:
 
 1. Kasadaki QR Kodu Okutma:
@@ -133,7 +160,7 @@ Avantajlar:
     id: 'nasil-canli-siparis',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '4. Canlı Siparişler ve Hesap Kapatma (POS / Nakit)',
+    title: '5. Canlı Siparişler ve POS / Nakit Hesap Kapatma',
     summary: 'Gelen siparişleri yönetme ve ödeme türüne göre tek tıkla hesabı kapatma.',
     content: `Sipariş Takibi ve Hesap Kapatma Adımları:
 
@@ -151,8 +178,8 @@ Avantajlar:
     id: 'nasil-termal-yazici',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '5. Termal Fiş Yazıcıları (80mm / 58mm & Otomatik Fiş)',
-    summary: 'Mutfak yazıcısı genişlik ayarları ve otomatik yazdırma.',
+    title: '6. Termal Fiş Yazıcıları & Masaüstü Yazıcı Programı (.EXE)',
+    summary: 'Mutfak yazıcısı genişlik ayarları, otomatik yazdırma ve masaüstü programı.',
     content: `Yazıcı Ayarlarını Yapılandırmak İçin:
 
 1. Fiş Genişliği Seçimi:
@@ -160,13 +187,16 @@ Avantajlar:
 
 2. Otomatik Yazdırma:
    * "Yeni Siparişte Otomatik Yazdır" ayarını aktif ettiğinizde masadan veya garsondan gelen her sipariş doğrudan mutfak yazıcısına iletilir.
-   * Dilediğiniz zaman sipariş kartlarındaki "Yazdır" butonundan tekrar fiş dökümü alabilirsiniz.`,
+   * Dilediğiniz zaman sipariş kartlarındaki "Yazdır" butonundan tekrar fiş dökümü alabilirsiniz.
+
+3. 7/24 Masaüstü Yazıcı Programı:
+   * Bilgisayarda tarayıcı kapalıyken bile termal fiş dökümü almak için İşletme Ayarları bölümünden "RestivaAdisyonYazici.exe" masaüstü programını kullanabilirsiniz.`,
   },
   {
     id: 'nasil-ciro-rapor',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '6. Gün Sonu, Z Raporu ve Aylık Muhasebe PDF Dökümü',
+    title: '7. Gün Sonu, Z Raporu ve Aylık Muhasebe Satış PDF Dökümü',
     summary: 'Ciro takibi, Z raporu fişi ve her ayın ilk 5 günü indirilebilen muhasebe PDF raporu.',
     content: `Finansal Raporları İncelemek ve İndirmek İçin:
 
@@ -177,24 +207,24 @@ Avantajlar:
    * "Z Raporu Yazdır" butonuna basarak gün sonu kasa kapanış fişini termal yazıcınızdan çıkartabilirsiniz.
 
 3. Aylık Muhasebe PDF Raporu:
-   * Her ayın 1'i ile 5'i arasında geçen ayın tüm sipariş ve ciro dökümünü içeren resmi muhasebe PDF raporunu indirebilirsiniz.`,
+   * Her ayın 1'i ile 5'i arasında geçen ayın tüm sipariş ve ciro dökümünü içeren resmi muhasebe PDF raporunu Yardım & Bildirimler alanından indirebilirsiniz.`,
   },
   {
     id: 'nasil-isletme-wifi',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '7. İşletme Bilgileri ve Müşteri WiFi Ayarları',
-    summary: 'İşletme adı, iletişim bilgileri ve QR menüde gösterilen WiFi adı ve şifresi.',
+    title: '8. İşletme Bilgileri, Çalışma Saatleri ve Müşteri Wi-Fi Yayını',
+    summary: 'İşletme adı, iletişim bilgileri ve QR menüde gösterilen Wi-Fi adı ve şifresi.',
     content: `İşletme Ayarlarını Güncellemek İçin:
 
-* "İşletme Ayarları" sekmesine giderek işletme adı, telefon, adres ve müşteri WiFi adı/şifresini girebilirsiniz.
-* Girilen WiFi bilgileri müşterilerinizin QR menü ekranında pratik bir şekilde görüntülenir.`,
+* "İşletme Ayarları" sekmesine giderek işletme adı, telefon, adres, çalışma saatleri ve müşteri Wi-Fi adı/şifresini girebilirsiniz.
+* Girilen Wi-Fi bilgileri müşterilerinizin QR menü ekranında pratik bir şekilde görüntülenir.`,
   },
   {
     id: 'nasil-musteri-oturum-kapatma',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '8. Hesap Kapatıldığında Müşteri Ekranı ve Oturum Sıfırlama',
+    title: '9. Hesap Kapatıldığında Müşteri Ekranı ve Oturum Sıfırlama',
     summary: 'Kasa hesabı kapattığında müşterinin telefonundaki QR menünün anında algılayıp sıfırlanması.',
     content: `Müşteri Cihazının Otomatik Sıfırlanma Mantığı:
 
@@ -209,18 +239,43 @@ Avantajlar:
    * Müşteriye "Sekmeyi Kapat / Çıkış" butonu sunulur ve masa yeni gelen müşteriler için tamamen temizlenmiş olur.`,
   },
   {
-    id: 'nasil-sekme-basliklari',
+    id: 'nasil-kapak-fotografi',
     category: 'nasil_kullanirim',
     categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '9. Sekme Başlıkları ve İşletme Adı Görünümü',
-    summary: 'Tarayıcı sekmelerinde ve müşteri menülerinde sadece işletme adının yer alması.',
-    content: `Sekme Başlıklarının Özelleştirilmesi:
+    title: '10. İşletme Logosu ve QR Menü Geniş Kapak Fotoğrafı',
+    summary: 'İşletme logosu ve müşterilerin gördüğü en üst geniş arka plan görselini belirleme.',
+    content: `Görsel Kimliğinizi Özelleştirmek İçin:
 
-* Müşteriler masadaki QR kodu okuttuğunda Safari, Chrome veya diğer mobil tarayıcı sekmelerinde doğrudan yalnızca işletmenizin adı (Örn: Bistro Kafe) görünür.
-* Kasa panelinizde ve garson el terminallerinde de sekme başlığı işletme adınızla senkronize çalışır.`,
+1. Logo Ekleme:
+   * "İşletme Ayarları" sekmesinden işletme logonuzu cihazınızdan yükleyebilir veya link olarak girebilirsiniz.
+
+2. Geniş Kapak & Arka Plan Fotoğrafı:
+   * Müşterilerin QR menüyü açtığında en üstte gördüğü geniş kapak fotoğrafını cihazınızdan seçebilir, hazır restoran şablonlarından birini tek tıkla uygulayabilir veya görsel URL'si yapıştırabilirsiniz.`,
+  },
+  {
+    id: 'nasil-yeni-sifre',
+    category: 'nasil_kullanirim',
+    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
+    title: '11. Yeni Şifre Belirleme ve Güvenli Giriş Yönetimi',
+    summary: 'İşletme giriş şifresini değiştirme ve eski şifreyi geçersiz kılma.',
+    content: `Şifrenizi Güncellemek İçin:
+
+* "İşletme Ayarları" sekmesinde yer alan "Yeni Şifre Belirleme" kutusuna yeni şifrenizi iki kez giriniz.
+* Şifre güncellendiği anda eski şifre sistemden tamamen silinir ve yeni şifreniz tek geçerli giriş şifresi olur.`,
+  },
+  {
+    id: 'nasil-coklu-dil',
+    category: 'nasil_kullanirim',
+    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
+    title: '12. Çoklu Dil Desteği (Türkçe, İngilizce, Rusça QR Menü)',
+    summary: 'Yabancı turist ve müşterilerin QR menüyü kendi dillerinde görüntülemesi.',
+    content: `Çoklu Dil Kullanımı:
+
+* Müşteriler masadaki QR menüyü açtığında sağ üst köşede yer alan TR, EN ve RU dil butonlarından birini seçebilir.
+* Menü kategorileri, sepet butonları, servis çağrıları ve çalışma saatleri anında seçilen dile çevrilir.`,
   },
 
-  // BİZİ DEĞERLENDİRİN & GELİŞTİRMEMİZE YARDIMCI OLUN KATEGORİSİ
+  // 3. BİZİ DEĞERLENDİRİN & GELİŞTİRMEMİZE YARDIMCI OLUN KATEGORİSİ
   {
     id: 'degerlendirme-oneri-bildir',
     category: 'degerlendirme',

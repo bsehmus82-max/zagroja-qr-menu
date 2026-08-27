@@ -99,7 +99,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
               category_id: catData.id,
               name: p.name,
               description: p.description,
-              price: p.price,
+              price: 0, // Sıfırdan açılan işletmelerde fiyat bilgisi 0 TL olarak başlar, işletme sonradan düzenler
               is_frozen: false,
               is_active: true,
               order_index: pIdx,
