@@ -222,7 +222,7 @@ export const WaiterApp: React.FC = () => {
             <strong className="text-indigo-400"> "Garson Eşleme QR Kodu"</strong>nu okutunuz.
           </p>
           <a
-            href="/pair-waiter"
+            href="/?mode=pair-waiter"
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition block"
           >
             <span>Eşleme Talebi Ekranına Git</span>

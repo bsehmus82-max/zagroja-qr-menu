@@ -8,6 +8,8 @@ export type TemplateId =
   | 'neon' 
   | 'vintage';
 
+export type SoundPresetKey = 'classic' | 'crystal' | 'digital' | 'woodblock' | 'melodic';
+
 export interface Business {
   id: string;
   name: string;
@@ -25,6 +27,7 @@ export interface Business {
   show_wifi?: boolean;
   table_limit?: number | null;
   pairing_secret?: string;
+  sound_preference?: SoundPresetKey;
   subscription_status: SubscriptionStatus;
   subscription_days: number;
   subscription_expires_at: string;

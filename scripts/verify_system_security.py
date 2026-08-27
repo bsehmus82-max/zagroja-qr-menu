@@ -137,6 +137,34 @@ def main():
         check_file_content("components/business/BusinessSettings.tsx", "localStorage.setItem('restiva_biz_session'")
     )
 
+    print("\n--- 4. 5 BİLDİRİM SESİ PRESETİ VE SES DEĞİŞTİRME ENTEGRASYONU ---")
+
+    # 4.1 5 Distinct Audio Presets in audio.ts
+    test(
+        "Web Audio API 5 zengin ses presetini (Klasik, Kristal, Dijital, Tokmak, Melodik) barındırıyor",
+        check_file_content("lib/audio.ts", "classic") and
+        check_file_content("lib/audio.ts", "crystal") and
+        check_file_content("lib/audio.ts", "digital") and
+        check_file_content("lib/audio.ts", "woodblock") and
+        check_file_content("lib/audio.ts", "melodic")
+    )
+
+    # 4.2 Business Settings Sound Selector
+    test(
+        "İşletme ayarlarında 5 ses seçeneği, önizleme/test butonu ve kalıcı hafıza mevcut",
+        check_file_content("components/business/BusinessSettings.tsx", "SOUND_PRESETS") and
+        check_file_content("components/business/BusinessSettings.tsx", "sound.playSoundPreset") and
+        check_file_content("components/business/BusinessSettings.tsx", "localStorage.setItem('restiva_sound_preference'")
+    )
+
+    # 4.3 Database Schema sound_preference column
+    with open(SCHEMA_FILE, "r", encoding="utf-8", errors="ignore") as f:
+        schema_content = f.read()
+    test(
+        "Supabase veritabanı şemasında sound_preference kolonu mevcut",
+        "sound_preference TEXT DEFAULT 'classic'" in schema_content
+    )
+
     print("\n" + "=" * 65)
     print(f"SONUÇ: {passed_tests} Test Başarılı, {failed_tests} Hata.")
     print("=" * 65 + "\n")

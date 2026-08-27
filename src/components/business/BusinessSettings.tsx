@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wifi, Lock, Check, Save, KeyRound, 
   AlertCircle, Eye, EyeOff, Upload, Link2, Trash2, 
-  Camera, Calendar, Settings
+  Camera, Calendar, Settings, Volume2, Play, Radio
 } from 'lucide-react';
-import { Business } from '../../types';
+import { Business, SoundPresetKey } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { sound, SOUND_PRESETS } from '../../lib/audio';
 
 interface BusinessSettingsProps {
   business: Business;
@@ -60,6 +61,9 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   const [showWifi, setShowWifi] = useState<boolean>(business.show_wifi ?? (business.wifi_ssid ? true : false));
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
+
+  // Sound Preference state
+  const [soundPreference, setSoundPreference] = useState<SoundPresetKey>(() => business.sound_preference || sound.getPreferredSound());
 
   // Password Change state
   const [newPassword, setNewPassword] = useState('');
@@ -233,6 +237,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         working_hours: workingHoursDisplay,
         wifi_ssid: finalWifiSsid,
         wifi_password: finalWifiPassword,
+        sound_preference: soundPreference,
         logo_url: logoUrl ? logoUrl.trim() : null,
         banner_url: bannerUrl ? bannerUrl.trim() : null,
         cover_image_url: bannerUrl ? bannerUrl.trim() : null,
@@ -247,11 +252,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         .single();
 
       if (!error && data) {
+        sound.setPreferredSound(soundPreference);
         sessionStorage.setItem('restiva_biz_session', JSON.stringify(data));
         localStorage.setItem('restiva_biz_session', JSON.stringify(data));
+        localStorage.setItem('restiva_sound_preference', soundPreference);
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('Ayarlar başarıyla kaydedildi!');
+        toast.success('Ayarlar ve bildirim sesi tercihi başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
         toast.error('Ayarlar kaydedilirken bir hata oluştu: ' + (error?.message || ''));
@@ -723,6 +730,77 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               Wi-Fi bilgisi müşteri menüsünde gizlidir.
             </div>
           )}
+        </div>
+
+        {/* 5 Distinct Notification Sound Presets */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                <Volume2 className="w-4 h-4 text-orange-500" />
+                Sipariş ve Çağrı Bildirim Sesi (5 Seçenek)
+              </h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Yeni siparişler, garson çağrıları ve hesap talepleri geldiğinde çalacak bildirim sesini seçiniz.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {SOUND_PRESETS.map((preset) => {
+              const isSelected = soundPreference === preset.id;
+              return (
+                <div
+                  key={preset.id}
+                  onClick={() => {
+                    setSoundPreference(preset.id);
+                    sound.playSoundPreset(preset.id);
+                  }}
+                  className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between relative group ${
+                    isSelected
+                      ? 'border-orange-500 bg-orange-50/50 shadow-xs ring-1 ring-orange-500'
+                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          isSelected ? 'border-orange-500 bg-orange-500 text-white' : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                      </div>
+                      <span className="font-bold text-xs text-slate-900">{preset.name}</span>
+                    </div>
+
+                    <span
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                        isSelected ? 'bg-orange-200 text-orange-800' : 'bg-slate-200/80 text-slate-600'
+                      }`}
+                    >
+                      {preset.tag}
+                    </span>
+                  </div>
+
+                  <p className="text-[10px] text-slate-500 mb-2 leading-relaxed">{preset.description}</p>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSoundPreference(preset.id);
+                      sound.playSoundPreset(preset.id);
+                    }}
+                    className="inline-flex items-center justify-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition active:scale-95 shadow-2xs"
+                  >
+                    <Play className="w-3 h-3 text-orange-500 fill-orange-500" />
+                    <span>Sesi Dinle & Seç</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

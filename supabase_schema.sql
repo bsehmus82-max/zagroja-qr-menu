@@ -36,6 +36,7 @@ ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS wifi_ssid TEXT DEFAULT ''
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS wifi_password TEXT DEFAULT '';
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS cover_image_url TEXT DEFAULT '';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS sound_preference TEXT DEFAULT 'classic';
 
 -- 2. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (

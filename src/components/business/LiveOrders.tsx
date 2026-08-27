@@ -67,7 +67,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
             const newOrder = payload.new as Order;
             setOrders((prev) => [newOrder, ...prev]);
             if (isSoundActive) {
-              sound.playOrderBell();
+              sound.playOrderBell(business.sound_preference);
             }
             printKitchenTicket(business, newOrder);
             toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
@@ -101,7 +101,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
             const newReq = payload.new as ServiceRequest;
             setServiceRequests((prev) => [newReq, ...prev]);
             if (isSoundActive) {
-              sound.playWaiterCall();
+              sound.playWaiterCall(business.sound_preference);
             }
             
             const reqLabel =

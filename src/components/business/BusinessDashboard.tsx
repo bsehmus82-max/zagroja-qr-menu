@@ -106,7 +106,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         },
         (payload) => {
           const newOrder = payload.new as Order;
-          sound.playOrderBell();
+          sound.playOrderBell(business.sound_preference);
           toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
           sendNativeNotification({
             title: `Yeni Sipariş: ${newOrder.table_no}`,
@@ -124,7 +124,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         },
         (payload) => {
           const newReq = payload.new as ServiceRequest;
-          sound.playWaiterCall();
+          sound.playWaiterCall(business.sound_preference);
           const reqLabel =
             newReq.request_type === 'waiter'
               ? 'Garson Çağrısı'
