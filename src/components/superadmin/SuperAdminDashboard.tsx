@@ -113,6 +113,10 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
   };
 
   const handleResetPassword = async (biz: Business) => {
+    if (!window.confirm(`"${biz.name}" işletmesinin şifresini sıfırlayıp yeni bir geçici şifre üretmek istiyor musunuz?`)) {
+      return;
+    }
+
     const newPass = generateTempPassword(8);
     const newHash = await hashPassword(newPass);
 

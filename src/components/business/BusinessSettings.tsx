@@ -1,10 +1,10 @@
 ﻿import React, { useState } from 'react';
 import { 
-  Settings, Palette, Wifi, Clock, Phone, MapPin, 
-  Check, Save, Sparkles, AlertCircle
+  Settings, Palette, Wifi, Phone, Lock, 
+  Check, Save, KeyRound, AlertCircle, Eye, EyeOff
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
-import { supabase } from '../../lib/supabase';
+import { supabase, hashPassword } from '../../lib/supabase';
 
 interface BusinessSettingsProps {
   business: Business;
@@ -18,6 +18,14 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   const [workingHours, setWorkingHours] = useState(business.working_hours || '');
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
+
+  // Password Change state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [passError, setPassError] = useState('');
+  const [passSuccess, setPassSuccess] = useState(false);
+  const [savingPass, setSavingPass] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -67,7 +75,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     },
   ];
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
@@ -99,19 +107,65 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPassError('');
+    setPassSuccess(false);
+
+    if (newPassword.length < 6) {
+      setPassError('Yeni şifreniz en az 6 karakter olmalıdır.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPassError('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
+      return;
+    }
+
+    setSavingPass(true);
+    try {
+      const newHash = await hashPassword(newPassword.trim());
+
+      const { data, error } = await supabase
+        .from('businesses')
+        .update({
+          password_hash: newHash,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', business.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        onUpdate(data as Business);
+        setPassSuccess(true);
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => setPassSuccess(false), 3000);
+      }
+    } catch {
+      setPassError('Şifre güncellenirken bir hata oluştu.');
+    } finally {
+      setSavingPass(false);
+    }
+  };
+
   return (
-    <form onSubmit={handleSave} className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
         <div>
           <h2 className="text-base font-bold text-white">İşletme Ayarları & Görsel Tema</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Müşterilerinizin göreceği QR menü şablonunu ve restoran bilgilerinizi güncelleyin.
+            QR menü şablonunuzu, iletişim bilgilerinizi ve giriş şifrenizi buradan yönetebilirsiniz.
           </p>
         </div>
 
         <button
-          type="submit"
+          type="button"
+          onClick={handleSaveGeneral}
           disabled={saving}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
         >
@@ -166,7 +220,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
       </div>
 
-      {/* Contact & Hours */}
+      {/* Contact & Wi-Fi */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Contact Info */}
         <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
@@ -249,6 +303,85 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           </div>
         </div>
       </div>
-    </form>
+
+      {/* Password Change Form */}
+      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 text-indigo-400" />
+            <div>
+              <h3 className="font-bold text-xs text-white">Kalıcı Giriş Şifresi Belirle</h3>
+              <p className="text-[11px] text-slate-400">
+                Geçici şifrenizi istediğiniz zaman kendi belirlediğiniz kalıcı şifreyle değiştirebilirsiniz.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {passError && (
+          <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{passError}</span>
+          </div>
+        )}
+
+        {passSuccess && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2 text-emerald-400 text-xs">
+            <Check className="w-4 h-4 shrink-0" />
+            <span>Giriş şifreniz başarıyla güncellendi! Bir sonraki girişinizde bu şifreyi kullanabilirsiniz.</span>
+          </div>
+        )}
+
+        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              Yeni Şifre
+            </label>
+            <div className="relative">
+              <input
+                type={showPass ? 'text' : 'password'}
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="En az 6 karakter"
+                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-100 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              >
+                {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              Yeni Şifre Tekrar
+            </label>
+            <input
+              type={showPass ? 'text' : 'password'}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Şifreyi tekrar giriniz"
+              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={savingPass || !newPassword}
+              className="w-full py-2 bg-[#182030] hover:bg-indigo-600 text-slate-200 hover:text-white font-semibold rounded-xl text-xs border border-[#25324A] hover:border-indigo-500 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{savingPass ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
