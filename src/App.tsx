@@ -7,9 +7,13 @@ import { SuperAdminDashboard } from './components/superadmin/SuperAdminDashboard
 import { BusinessLogin } from './components/business/BusinessLogin';
 import { BusinessDashboard } from './components/business/BusinessDashboard';
 import { CustomerMenu } from './components/customer/CustomerMenu';
+import { PairWaiter } from './components/waiter/PairWaiter';
+import { WaiterApp } from './components/waiter/WaiterApp';
 
 export default function App() {
-  const [currentRoute, setCurrentRoute] = useState<'business' | 'superadmin' | 'customer'>('business');
+  const [currentRoute, setCurrentRoute] = useState<
+    'business' | 'superadmin' | 'customer' | 'waiter' | 'pair_waiter'
+  >('business');
   
   // Super Admin state
   const [isSuperAdminAuth, setIsSuperAdminAuth] = useState(
@@ -120,7 +124,11 @@ export default function App() {
     const subdomainSlug = isSubdomain ? parts[0] : null;
 
     // 2. Route Check
-    if (pathname.includes('/superadmin') || pathname.includes('/hq') || searchParams.get('panel') === 'superadmin') {
+    if (pathname.includes('/pair-waiter') || (searchParams.get('token') && searchParams.get('biz'))) {
+      setCurrentRoute('pair_waiter');
+    } else if (pathname.includes('/waiter') || pathname.includes('/garson') || searchParams.get('mode') === 'waiter') {
+      setCurrentRoute('waiter');
+    } else if (pathname.includes('/superadmin') || pathname.includes('/hq') || searchParams.get('panel') === 'superadmin') {
       setCurrentRoute('superadmin');
     } else if (pathname.startsWith('/m/') || searchParams.get('slug') || subdomainSlug) {
       let slug = '';
@@ -171,7 +179,17 @@ export default function App() {
     }
   };
 
-  // 1. SUPER ADMIN PANEL ROUTE
+  // 0. WAITER PAIRING ROUTE
+  if (currentRoute === 'pair_waiter') {
+    return <PairWaiter />;
+  }
+
+  // 1. WAITER MOBILE POS ROUTE
+  if (currentRoute === 'waiter') {
+    return <WaiterApp />;
+  }
+
+  // 2. SUPER ADMIN PANEL ROUTE
   if (currentRoute === 'superadmin') {
     if (!isSuperAdminAuth) {
       return (

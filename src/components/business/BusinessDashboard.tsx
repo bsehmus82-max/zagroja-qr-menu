@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
-  Menu, X
+  Menu, X, Users
 } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -14,6 +14,7 @@ import { TurnoverReport } from './TurnoverReport';
 import { BusinessSettings } from './BusinessSettings';
 import { BusinessSupportChat } from './BusinessSupportChat';
 import { BusinessOnboarding } from './BusinessOnboarding';
+import { WaitersManager } from './WaitersManager';
 import { NotificationPrompt } from '../common/NotificationPrompt';
 import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 
@@ -30,7 +31,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 }) => {
   const [business, setBusiness] = useState<Business>(initialBusiness);
   const [activeTab, setActiveTab] = useState<
-    'orders' | 'pos' | 'menu' | 'tables' | 'turnover' | 'settings' | 'support'
+    'orders' | 'pos' | 'menu' | 'tables' | 'waiters' | 'turnover' | 'settings' | 'support'
   >(() => {
     return (localStorage.getItem('biz_active_tab') as any) || 'orders';
   });
@@ -99,6 +100,12 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       badge: null,
     },
     {
+      id: 'waiters' as const,
+      label: 'Garson & Cihazlar',
+      icon: Users,
+      badge: null,
+    },
+    {
       id: 'turnover' as const,
       label: 'Gün Sonu & Ciro',
       icon: TrendingUp,
@@ -124,6 +131,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       case 'menu': return 'Menü & Çeşit Yönetimi';
       case 'tables': return 'Masa & QR Kodlar';
       case 'pos': return 'Kasa / Hızlı POS Satışı';
+      case 'waiters': return 'Garson & Cihaz Güvenliği';
       case 'turnover': return 'Gün Sonu & Kasa Analizi';
       case 'settings': return 'İşletme & Wi-Fi Ayarları';
       case 'support': return 'Canlı Destek & Bildirimler';
@@ -257,6 +265,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           {activeTab === 'pos' && <ManualPos business={business} />}
           {activeTab === 'menu' && <MenuManager business={business} />}
           {activeTab === 'tables' && <TableManager business={business} />}
+          {activeTab === 'waiters' && <WaitersManager business={business} />}
           {activeTab === 'turnover' && <TurnoverReport business={business} />}
           {activeTab === 'settings' && (
             <BusinessSettings

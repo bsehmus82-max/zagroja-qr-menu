@@ -77,14 +77,38 @@ export interface Order {
   business_id: string;
   table_no: string;
   session_token: string;
-  order_source: 'qr' | 'pos';
+  order_source: 'qr' | 'pos' | 'waiter';
   items: OrderItem[];
   total_amount: number;
   status: 'pending' | 'preparing' | 'served' | 'paid' | 'cancelled';
   payment_method: 'cash' | 'credit_card' | 'online' | 'unpaid';
   customer_notes?: string;
+  waiter_name?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface Waiter {
+  id: string;
+  business_id: string;
+  name: string;
+  pin_hash: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WaiterDevice {
+  id: string;
+  business_id: string;
+  waiter_id?: string;
+  device_token: string;
+  device_name: string;
+  pairing_token?: string;
+  pairing_expires_at?: string;
+  is_trusted: boolean;
+  last_active_at: string;
+  created_at: string;
+  waiters?: Waiter;
 }
 
 export interface ServiceRequest {
