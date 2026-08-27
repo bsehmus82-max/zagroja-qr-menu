@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Link2, Trash2, Camera, 
   ArrowRight, Wifi, Utensils
@@ -430,7 +430,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 </div>
               ) : (
                 <div className="w-full bg-indigo-600/10 border border-indigo-500/25 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
-                  ✨ 24 Saat Açık Hizmet (Haftanın 7 Günü)
+                  24 Saat Açık Hizmet (Haftanın 7 Günü)
                 </div>
               )}
 
