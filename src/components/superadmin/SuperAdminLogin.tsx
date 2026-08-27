@@ -26,12 +26,27 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
       const cleanUser = username.trim().toLowerCase();
       const cleanPass = password.trim();
 
-      const isMasterUser = cleanUser === 'zagroja_owner' || cleanUser === 'zagroja_admin' || cleanUser === 'bsehmus' || cleanUser === 'admin';
-      const isSecurePass = cleanPass === 'Zagroja#Master$2026!HQ' || cleanPass === 'ZagrojaHQ2026!';
+      const isMasterUser = 
+        cleanUser === 'admin' || 
+        cleanUser === 'superadmin' || 
+        cleanUser === 'restivadisyon' || 
+        cleanUser === 'bsehmus' || 
+        cleanUser === 'ynuman' || 
+        cleanUser === 'zagroja_owner' || 
+        cleanUser === 'zagroja_admin';
+
+      const isSecurePass = 
+        cleanPass === 'b.sehmus852' || 
+        cleanPass === 'y.numan852' || 
+        cleanPass === 'Zagroja#Master$2026!HQ' || 
+        cleanPass === 'ZagrojaHQ2026!';
 
       if (isMasterUser && isSecurePass) {
+        const adminName = cleanPass === 'b.sehmus852' ? 'bsehmus' : cleanPass === 'y.numan852' ? 'ynuman' : cleanUser;
         sessionStorage.setItem('restiva_sa_auth', 'true');
-        sessionStorage.setItem('restiva_sa_user', cleanUser);
+        sessionStorage.setItem('restiva_sa_user', adminName);
+        localStorage.setItem('restiva_sa_auth', 'true');
+        localStorage.setItem('restiva_sa_user', adminName);
         onSuccess();
       } else {
         setError('Yetkili kullanıcı adı veya şifre geçersiz.');
