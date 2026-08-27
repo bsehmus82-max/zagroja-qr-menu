@@ -2,12 +2,14 @@
 import { Hand, Banknote, Wifi, Check, X, Copy, CreditCard } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { Language, translations } from '../../lib/translations';
 
 interface ServiceActionsModalProps {
   business: Business;
   tableNo: string;
   isOpen: boolean;
   type: 'waiter' | 'bill' | 'wifi' | null;
+  lang?: Language;
   onClose: () => void;
 }
 
@@ -16,8 +18,10 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   tableNo,
   isOpen,
   type,
+  lang = 'tr',
   onClose,
 }) => {
+  const t = translations[lang] || translations.tr;
   const [billMethod, setBillMethod] = useState<'nakit' | 'pos'>('pos');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -69,9 +73,9 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             {type === 'bill' && <Banknote className="w-4 h-4 text-emerald-600" />}
             {type === 'wifi' && <Wifi className="w-4 h-4 text-sky-500" />}
             <span>
-              {type === 'waiter' && 'Garson Çağır'}
-              {type === 'bill' && 'Hesap İste'}
-              {type === 'wifi' && 'Wi-Fi Bilgisi'}
+              {type === 'waiter' && t.waiterModalTitle}
+              {type === 'bill' && t.billModalTitle}
+              {type === 'wifi' && t.wifiModalTitle}
             </span>
           </h3>
 
@@ -85,22 +89,22 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 border border-emerald-200 animate-bounce">
               <Check className="w-6 h-6" />
             </div>
-            <h4 className="font-extrabold text-sm text-slate-900">İsteğiniz İletildi</h4>
+            <h4 className="font-extrabold text-sm text-slate-900">{t.requestSubmittedTitle}</h4>
             <p className="text-xs text-slate-500">
-              Personelimiz en kısa sürede masanıza gelecektir.
+              {t.requestSubmittedDesc}
             </p>
           </div>
         ) : type === 'wifi' ? (
           <div className="space-y-3.5">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">Wi-Fi Ağı:</span>
+                <span className="text-slate-500 font-semibold">{t.wifiNetwork}</span>
                 <span className="font-extrabold text-slate-900">{business.wifi_ssid || 'Wi-Fi'}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                <span className="text-slate-500 font-semibold">Şifre:</span>
+                <span className="text-slate-500 font-semibold">{t.wifiPassword}</span>
                 <span className="font-mono font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
-                  {business.wifi_password || 'Şifresiz'}
+                  {business.wifi_password || t.noWifiPassword}
                 </span>
               </div>
             </div>
@@ -111,14 +115,14 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
                 className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-sm"
               >
                 {wifiCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{wifiCopied ? 'Şifre Kopyalandı' : 'Şifreyi Panoya Kopyala'}</span>
+                <span>{wifiCopied ? t.wifiCopied : t.copyWifiPassword}</span>
               </button>
             )}
           </div>
         ) : type === 'bill' ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Ödeme Tercihiniz</label>
+              <label className="block text-xs font-bold text-slate-700 mb-2">{t.paymentChoice}</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -130,7 +134,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
                   }`}
                 >
                   <CreditCard className="w-4 h-4" />
-                  <span className="text-xs">Kredi Kartı / POS</span>
+                  <span className="text-xs">{t.posPayment}</span>
                 </button>
 
                 <button
@@ -143,7 +147,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
                   }`}
                 >
                   <Banknote className="w-4 h-4" />
-                  <span className="text-xs">Nakit Ödeme</span>
+                  <span className="text-xs">{t.cashPayment}</span>
                 </button>
               </div>
             </div>
@@ -153,13 +157,13 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
               disabled={loading}
               className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition"
             >
-              {loading ? 'İletiliyor...' : 'Hesap İsteğini Gönder'}
+              {loading ? t.sending : t.sendBillRequest}
             </button>
           </div>
         ) : (
           <div className="space-y-4">
             <p className="text-xs text-slate-600 leading-relaxed">
-              <strong className="text-slate-900 font-extrabold">{tableNo || 'Masanız'}</strong> için servis personelini çağırmak istiyor musunuz?
+              <strong className="text-slate-900 font-extrabold">{tableNo || t.table}</strong> {t.waiterPrompt}
             </p>
 
             <button
@@ -168,7 +172,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
               className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2"
             >
               <Hand className="w-4 h-4" />
-              <span>{loading ? 'İletiliyor...' : 'Garsonu Masaya Çağır'}</span>
+              <span>{loading ? t.sending : t.callWaiterBtn}</span>
             </button>
           </div>
         )}

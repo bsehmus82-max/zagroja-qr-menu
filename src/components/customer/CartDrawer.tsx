@@ -1,15 +1,17 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Trash2 } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
+import { Language, translations } from '../../lib/translations';
 
 interface CartDrawerProps {
   business: Business;
   tableNo: string;
   cart: CartItem[];
   isOpen: boolean;
+  lang?: Language;
   onClose: () => void;
   onUpdateQty: (prodId: string, delta: number) => void;
   onOrderPlaced: (order: Order) => void;
@@ -20,10 +22,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   tableNo,
   cart,
   isOpen,
+  lang = 'tr',
   onClose,
   onUpdateQty,
   onOrderPlaced,
 }) => {
+  const t = translations[lang] || translations.tr;
   const toast = useToast();
   const [customerNotes, setCustomerNotes] = useState('');
   const [sending, setSending] = useState(false);
@@ -83,11 +87,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           // fallback
         }
 
-        toast.success('Siparişiniz mutfağa iletildi! Şeflerimiz hazırlamaya başlıyor.');
+        toast.success(t.orderSuccessToast);
         onOrderPlaced(data as Order);
         onClose();
       } else {
-        toast.error('Sipariş iletilirken bir hata oluştu. Lütfen tekrar deneyiniz.');
+        toast.error(t.orderErrorToast);
       }
     } finally {
       setSending(false);
@@ -103,8 +107,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-orange-500" />
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Sipariş Sepetiniz</h3>
-                <span className="text-[11px] text-slate-400 font-semibold">{tableNo ? tableNo : 'Genel Masa'}</span>
+                <h3 className="font-extrabold text-sm text-slate-900">{t.cartTitle}</h3>
+                <span className="text-[11px] text-slate-400 font-semibold">{tableNo ? tableNo : t.table}</span>
               </div>
             </div>
 
@@ -155,13 +159,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {/* Notes Input */}
           <div className="mt-4 pt-3 border-t border-slate-100">
             <label className="block text-[11px] font-bold text-slate-600 mb-1">
-              Sipariş Notu (Opsiyonel)
+              {t.orderNotes}
             </label>
             <input
               type="text"
               value={customerNotes}
               onChange={(e) => setCustomerNotes(e.target.value)}
-              placeholder="Örn: Az şekerli olsun, acısız olsun..."
+              placeholder={t.orderNotesPlaceholder}
               className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none font-medium"
             />
           </div>
@@ -170,7 +174,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         {/* Footer & Submit */}
         <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Toplam Sepet Tutarı:</span>
+            <span className="text-xs font-bold text-slate-500">{t.totalCartAmount}</span>
             <span className="font-black text-lg text-orange-600">
               {totalAmount.toFixed(2)} ₺
             </span>
@@ -182,7 +186,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-2xl shadow-xl shadow-orange-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            <span>{sending ? 'Mutfağa İletiliyor...' : 'Siparişi Onayla & Mutfağa Gönder'}</span>
+            <span>{sending ? t.sendingOrder : t.confirmOrder}</span>
           </button>
         </div>
       </div>

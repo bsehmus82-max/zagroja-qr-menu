@@ -1,13 +1,14 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
-  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
+  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight, Globe
 } from 'lucide-react';
 import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusTracker } from './OrderStatusTracker';
+import { Language, translations } from '../../lib/translations';
 
 interface CustomerMenuProps {
   business: Business;
@@ -15,6 +16,12 @@ interface CustomerMenuProps {
 }
 
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTable }) => {
+  const [lang, setLang] = useState<Language>(() => {
+    return (localStorage.getItem('menu_lang') as Language) || 'tr';
+  });
+
+  const t = translations[lang] || translations.tr;
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   // Default to null so CATEGORIES view opens first!
@@ -40,6 +47,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   // Active Order Tracker state
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+
+  const handleLanguageChange = (newLang: Language) => {
+    setLang(newLang);
+    localStorage.setItem('menu_lang', newLang);
+  };
 
   // Load Menu Data
   useEffect(() => {
@@ -139,28 +151,65 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-800 antialiased flex justify-center selection:bg-orange-500 selection:text-white">
-      {/* Mobile Screen Shell Container on Desktop / PC */}
-      <div className="w-full max-w-md min-h-screen bg-[#F8FAFC] relative pb-28 shadow-[0_0_60px_rgba(0,0,0,0.6)] border-x border-slate-800/50 flex flex-col justify-between">
+      {/* Mobile Screen Shell Container on Desktop / PC (Soft Muted Off-White #F1F4F9) */}
+      <div className="w-full max-w-md min-h-screen bg-[#F1F4F9] relative pb-28 shadow-[0_0_60px_rgba(0,0,0,0.6)] border-x border-slate-800/50 flex flex-col justify-between">
         <div>
-          {/* Hero Header with Banner */}
+          {/* Hero Header with Vignette Gradient Fadeout */}
           <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
             <img
               src={business.banner_url || defaultBanner}
               alt={business.name}
-              className="w-full h-full object-cover opacity-75"
+              className="w-full h-full object-cover opacity-80"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17] via-black/30 to-black/50" />
 
-            {/* Top-Left Table Badge */}
-            <div className="absolute top-3.5 left-4 z-10">
-              <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-md">
+            {/* Vignette Melt Gradient directly transitioning into #F1F4F9 background */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#F1F4F9] via-[#0B0F17]/40 to-black/70" />
+
+            {/* Top Bar: Left Table Badge, Right TR/EN/RU Language Switcher */}
+            <div className="absolute top-3.5 left-4 right-4 z-20 flex items-center justify-between">
+              {/* Table Pill */}
+              <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
                 <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                <span>{tableNo ? tableNo : 'QR Menü'}</span>
+                <span>{tableNo ? tableNo : t.qrMenu}</span>
+              </div>
+
+              {/* Language Switcher Capsule (TR | EN | RU) */}
+              <div className="bg-black/60 backdrop-blur-md border border-white/20 p-0.5 rounded-full flex items-center gap-0.5 shadow-md text-[10px] font-extrabold text-slate-300">
+                <button
+                  onClick={() => handleLanguageChange('tr')}
+                  className={`px-2 py-0.5 rounded-full transition flex items-center gap-1 ${
+                    lang === 'tr'
+                      ? 'bg-orange-500 text-white shadow-xs'
+                      : 'hover:text-white'
+                  }`}
+                >
+                  <span>TR</span>
+                </button>
+                <button
+                  onClick={() => handleLanguageChange('en')}
+                  className={`px-2 py-0.5 rounded-full transition flex items-center gap-1 ${
+                    lang === 'en'
+                      ? 'bg-orange-500 text-white shadow-xs'
+                      : 'hover:text-white'
+                  }`}
+                >
+                  <span>EN</span>
+                </button>
+                <button
+                  onClick={() => handleLanguageChange('ru')}
+                  className={`px-2 py-0.5 rounded-full transition flex items-center gap-1 ${
+                    lang === 'ru'
+                      ? 'bg-orange-500 text-white shadow-xs'
+                      : 'hover:text-white'
+                  }`}
+                >
+                  <span>RU</span>
+                </button>
               </div>
             </div>
 
-            {/* Bottom Info: Explicitly constrained logo squircle container */}
-            <div className="absolute bottom-3.5 left-4 right-4 z-10 flex items-center gap-3">
+            {/* Bottom Info */}
+            <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center gap-3">
               <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
                 {business.logo_url ? (
                   <img
@@ -173,12 +222,12 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 )}
               </div>
 
-              <div className="text-white min-w-0 flex-1">
-                <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight drop-shadow-sm">
+              <div className="min-w-0 flex-1">
+                <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight text-slate-900 drop-shadow-xs">
                   {business.name}
                 </h1>
                 {business.working_hours && (
-                  <p className="text-[11px] text-slate-200 truncate mt-0.5 font-medium drop-shadow-xs">
+                  <p className="text-[11px] text-slate-600 truncate mt-0.5 font-semibold">
                     {business.working_hours}
                   </p>
                 )}
@@ -186,8 +235,8 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Quick Action Bar (Dark Rounded Card) */}
-          <div className="mx-4 -mt-3.5 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
+          {/* Quick Action Bar */}
+          <div className="mx-4 mt-2 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
             <button
               onClick={() => setServiceModalType('waiter')}
               className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
@@ -195,7 +244,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
                 <Hand className="w-3.5 h-3.5" />
               </div>
-              <span className="text-[10px] font-bold">Garson Çağır</span>
+              <span className="text-[10px] font-bold">{t.callWaiter}</span>
             </button>
 
             <button
@@ -205,7 +254,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
                 <Banknote className="w-3.5 h-3.5" />
               </div>
-              <span className="text-[10px] font-bold">Hesap İste</span>
+              <span className="text-[10px] font-bold">{t.requestBill}</span>
             </button>
 
             {business.wifi_ssid && (
@@ -216,7 +265,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-sky-400">
                   <Wifi className="w-3.5 h-3.5" />
                 </div>
-                <span className="text-[10px] font-bold">Wi-Fi Bilgisi</span>
+                <span className="text-[10px] font-bold">{t.wifiInfo}</span>
               </button>
             )}
           </div>
@@ -236,7 +285,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Yiyecek veya içecek ara..."
+                placeholder={t.searchPlaceholder}
                 className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none font-medium"
               />
             </div>
@@ -247,20 +296,20 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             <div className="px-4 mt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-extrabold text-xs text-slate-800 tracking-wide uppercase">
-                  Menü Kategorileri
+                  {t.menuCategories}
                 </h2>
                 <span className="text-[10px] font-bold text-slate-400">
-                  {categories.length} Kategori
+                  {categories.length} {t.categoryCount}
                 </span>
               </div>
 
               {loading ? (
                 <div className="py-16 text-center text-xs text-slate-400 font-bold">
-                  Kategoriler yükleniyor...
+                  {t.loadingCategories}
                 </div>
               ) : categories.length === 0 ? (
                 <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
-                  Menüde henüz kategori bulunmuyor.
+                  {t.noCategoryItems}
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -289,7 +338,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                         <div className="absolute inset-0 p-4 flex items-center justify-between z-10">
                           <div className="space-y-1.5 max-w-[75%]">
                             <span className="inline-flex items-center gap-1 bg-orange-500 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                              {count} Çeşit
+                              {count} {t.items}
                             </span>
                             <h3 className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-sm group-hover:text-orange-300 transition-colors">
                               {cat.name}
@@ -321,7 +370,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition text-xs font-bold shadow-xs active:scale-95"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-orange-500" />
-                  <span>Kategoriler</span>
+                  <span>{t.categories}</span>
                 </button>
 
                 {selectedCategory && !isSearching && (
@@ -357,13 +406,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <div className="px-4 space-y-2.5">
                 {loading ? (
                   <div className="py-16 text-center text-xs text-slate-400 font-bold">
-                    Ürünler yükleniyor...
+                    {t.loadingMenu}
                   </div>
                 ) : currentProducts.length === 0 ? (
                   <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
-                    {isSearching
-                      ? 'Aradığınız kriterlere uygun ürün bulunamadı.'
-                      : 'Bu kategoride henüz ürün bulunmuyor.'}
+                    {isSearching ? t.noItemsFound : t.noCategoryItems}
                   </div>
                 ) : (
                   currentProducts.map((prod) => (
@@ -383,7 +430,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                         />
                         {prod.is_frozen && (
                           <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
-                            Tükendi
+                            {t.soldOut}
                           </div>
                         )}
                       </div>
@@ -411,7 +458,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                           onClick={() => addToCart(prod)}
                           disabled={prod.is_frozen}
                           className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
-                          title="Sepete Ekle"
+                          title={t.addToCart}
                         >
                           +
                         </button>
@@ -424,7 +471,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           )}
         </div>
 
-        {/* Floating Cart Button (Pinned inside mobile bounds) */}
+        {/* Floating Cart Button */}
         {totalCartCount > 0 && (
           <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40">
             <button
@@ -435,7 +482,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <span className="w-5 h-5 rounded-lg bg-black/20 flex items-center justify-center text-xs font-black">
                   {totalCartCount}
                 </span>
-                <span>Siparişi İncele / Tamamla</span>
+                <span>{t.viewCart}</span>
               </div>
 
               <div className="flex items-center gap-1 font-black text-sm">
@@ -452,6 +499,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           tableNo={tableNo}
           cart={cart}
           isOpen={showCart}
+          lang={lang}
           onClose={() => setShowCart(false)}
           onUpdateQty={updateCartQty}
           onOrderPlaced={() => {
@@ -466,6 +514,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           tableNo={tableNo}
           isOpen={serviceModalType !== null}
           type={serviceModalType}
+          lang={lang}
           onClose={() => setServiceModalType(null)}
         />
       </div>
