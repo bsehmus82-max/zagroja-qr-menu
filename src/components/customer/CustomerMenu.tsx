@@ -1,14 +1,14 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
-  ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
-  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight, Globe
+  ShoppingBag, BellRing, Receipt, Wifi, Snowflake, 
+  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusTracker } from './OrderStatusTracker';
-import { Language, translations } from '../../lib/translations';
+import { Language, translations, getCategoryTitle } from '../../lib/translations';
 
 interface CustomerMenuProps {
   business: Business;
@@ -103,7 +103,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     };
 
     fetchMyActiveOrders();
-    const interval = setInterval(fetchMyActiveOrders, 10000);
+    const interval = setInterval(fetchMyActiveOrders, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -138,6 +138,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const totalCartPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   const isSearching = searchTerm.trim().length > 0;
+  const hasActiveOrders = activeOrders.length > 0;
 
   const currentProducts = products
     .filter((p) => (isSearching ? true : selectedCatId ? p.category_id === selectedCatId : true))
@@ -165,12 +166,25 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             {/* Vignette Melt Gradient directly transitioning into #F1F4F9 background */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#F1F4F9] via-[#0B0F17]/40 to-black/70" />
 
-            {/* Top Bar: Left Table Badge, Right TR/EN/RU Language Switcher */}
+            {/* Top Bar: Left Table Badge & Wi-Fi, Right TR/EN/RU Language Switcher */}
             <div className="absolute top-3.5 left-4 right-4 z-20 flex items-center justify-between">
-              {/* Table Pill */}
-              <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
-                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                <span>{tableNo ? tableNo : t.qrMenu}</span>
+              <div className="flex items-center gap-1.5">
+                {/* Table Pill */}
+                <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-md">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                  <span>{tableNo ? tableNo : t.qrMenu}</span>
+                </div>
+
+                {/* Wi-Fi Quick Pill (If configured and no active order yet) */}
+                {business.wifi_ssid && (
+                  <button
+                    onClick={() => setServiceModalType('wifi')}
+                    className="bg-black/60 backdrop-blur-md text-sky-300 border border-white/20 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md hover:bg-black/80 transition"
+                  >
+                    <Wifi className="w-3 h-3 text-sky-400" />
+                    <span>Wi-Fi</span>
+                  </button>
+                )}
               </div>
 
               {/* Language Switcher Capsule (TR | EN | RU) */}
@@ -235,45 +249,31 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Quick Action Bar */}
-          <div className="mx-4 mt-2 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
-            <button
-              onClick={() => setServiceModalType('waiter')}
-              className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
-            >
-              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
-                <Hand className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[10px] font-bold">{t.callWaiter}</span>
-            </button>
-
-            <button
-              onClick={() => setServiceModalType('bill')}
-              className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
-            >
-              <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-orange-400">
-                <Banknote className="w-3.5 h-3.5" />
-              </div>
-              <span className="text-[10px] font-bold">{t.requestBill}</span>
-            </button>
-
-            {business.wifi_ssid && (
-              <button
-                onClick={() => setServiceModalType('wifi')}
-                className="flex flex-col items-center gap-1 p-1 transition active:scale-95 text-slate-300 hover:text-white"
-              >
-                <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center text-sky-400">
-                  <Wifi className="w-3.5 h-3.5" />
-                </div>
-                <span className="text-[10px] font-bold">{t.wifiInfo}</span>
-              </button>
-            )}
-          </div>
-
-          {/* Active Order Tracker */}
-          {activeOrders.length > 0 && (
-            <div className="mx-4 mt-3">
+          {/* Active Order Status Tracker & Quick Actions (APPEARS ONLY AFTER ORDER IS PLACED) */}
+          {hasActiveOrders && (
+            <div className="mx-4 mt-2 space-y-2">
               <OrderStatusTracker orders={activeOrders} />
+
+              {/* Action Bar (Garson & Hesap) after order */}
+              <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
+                <button
+                  onClick={() => setServiceModalType('waiter')}
+                  className="flex items-center gap-2 py-1 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                >
+                  <BellRing className="w-4 h-4 text-orange-400" />
+                  <span>{t.callWaiter}</span>
+                </button>
+
+                <div className="w-px h-5 bg-slate-800" />
+
+                <button
+                  onClick={() => setServiceModalType('bill')}
+                  className="flex items-center gap-2 py-1 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                >
+                  <Receipt className="w-4 h-4 text-emerald-400" />
+                  <span>{t.requestBill}</span>
+                </button>
+              </div>
             </div>
           )}
 
@@ -315,6 +315,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <div className="space-y-3">
                   {categories.map((cat) => {
                     const count = products.filter((p) => p.category_id === cat.id).length;
+                    const translatedName = getCategoryTitle(cat.name, lang);
                     return (
                       <div
                         key={cat.id}
@@ -327,7 +328,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                             cat.image_url ||
                             'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'
                           }
-                          alt={cat.name}
+                          alt={translatedName}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
 
@@ -341,7 +342,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                               {count} {t.items}
                             </span>
                             <h3 className="text-base sm:text-lg font-black text-white tracking-tight drop-shadow-sm group-hover:text-orange-300 transition-colors">
-                              {cat.name}
+                              {translatedName}
                             </h3>
                           </div>
 
@@ -375,7 +376,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
                 {selectedCategory && !isSearching && (
                   <span className="text-xs font-extrabold text-slate-900 bg-orange-50 border border-orange-200 text-orange-800 px-3 py-1 rounded-xl">
-                    {selectedCategory.name} ({currentProducts.length})
+                    {getCategoryTitle(selectedCategory.name, lang)} ({currentProducts.length})
                   </span>
                 )}
               </div>
@@ -385,6 +386,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <div className="px-4 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
                   {categories.map((cat) => {
                     const isSelected = selectedCatId === cat.id;
+                    const translatedCatName = getCategoryTitle(cat.name, lang);
                     return (
                       <button
                         key={cat.id}
@@ -395,7 +397,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                             : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        <span>{cat.name}</span>
+                        <span>{translatedCatName}</span>
                       </button>
                     );
                   })}
@@ -502,9 +504,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           lang={lang}
           onClose={() => setShowCart(false)}
           onUpdateQty={updateCartQty}
-          onOrderPlaced={() => {
+          onOrderPlaced={(newOrder) => {
             setCart([]);
             setShowCart(false);
+            setActiveOrders((prev) => [newOrder, ...prev]);
           }}
         />
 
