@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
-  Plus, Search, UtensilsCrossed, Sparkles, Check, ChevronRight, Smartphone
+  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -17,7 +17,8 @@ interface CustomerMenuProps {
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTable }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCatId, setSelectedCatId] = useState<string | 'all'>('all');
+  // Default to null so CATEGORIES view opens first!
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -124,13 +125,16 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalCartPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
+  const isSearching = searchTerm.trim().length > 0;
+
   const currentProducts = products
-    .filter((p) => (selectedCatId === 'all' ? true : p.category_id === selectedCatId))
+    .filter((p) => (isSearching ? true : selectedCatId ? p.category_id === selectedCatId : true))
     .filter((p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+  const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
 
   return (
@@ -178,7 +182,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Quick Action Bar (Dark Rounded Card) */}
+          {/* Quick Action Bar */}
           <div className="mx-4 -mt-3.5 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-around shadow-xl border border-slate-800">
             <button
               onClick={() => setServiceModalType('waiter')}
@@ -234,103 +238,176 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Category Navigation Pills */}
-          <div className="px-4 mt-3 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-            <button
-              onClick={() => setSelectedCatId('all')}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
-                selectedCatId === 'all'
-                  ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <UtensilsCrossed className="w-3.5 h-3.5" />
-              <span>Tümü</span>
-            </button>
-
-            {categories.map((cat) => {
-              const isSelected = selectedCatId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCatId(cat.id)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
-                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <span>{cat.name}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Product Items List */}
-          <div className="px-4 mt-3 space-y-2.5">
-            {loading ? (
-              <div className="py-16 text-center text-xs text-slate-400 font-bold">
-                Menü yükleniyor...
+          {/* VIEW 1: CATEGORIES GRID (Opened initially by default) */}
+          {!isSearching && selectedCatId === null && (
+            <div className="px-4 mt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-extrabold text-xs text-slate-800 tracking-wide uppercase">
+                  Menü Kategorileri
+                </h2>
+                <span className="text-[10px] font-bold text-slate-400">
+                  {categories.length} Kategori
+                </span>
               </div>
-            ) : currentProducts.length === 0 ? (
-              <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
-                Aradığınız kriterlere uygun ürün bulunamadı.
-              </div>
-            ) : (
-              currentProducts.map((prod) => (
-                <div
-                  key={prod.id}
-                  className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
-                >
-                  {/* Image on Left */}
-                  <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
-                    <img
-                      src={
-                        categories.find((c) => c.id === prod.category_id)?.image_url ||
-                        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
-                      }
-                      alt={prod.name}
-                      className="w-full h-full object-cover"
-                    />
-                    {prod.is_frozen && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
-                        Tükendi
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Info in Center */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
-                      {prod.name}
-                    </h3>
-                    {prod.description && (
-                      <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
-                        {prod.description}
-                      </p>
-                    )}
-                    <div className="mt-1 flex items-baseline">
-                      <span className="font-black text-xs sm:text-sm text-orange-600">
-                        {prod.price.toFixed(2)} ₺
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Add to Cart Button */}
-                  <div>
-                    <button
-                      onClick={() => addToCart(prod)}
-                      disabled={prod.is_frozen}
-                      className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
-                      title="Sepete Ekle"
-                    >
-                      +
-                    </button>
-                  </div>
+              {loading ? (
+                <div className="py-16 text-center text-xs text-slate-400 font-bold">
+                  Kategoriler yükleniyor...
                 </div>
-              ))
-            )}
-          </div>
+              ) : categories.length === 0 ? (
+                <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
+                  Menüde henüz kategori bulunmuyor.
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {categories.map((cat) => {
+                    const count = products.filter((p) => p.category_id === cat.id).length;
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => setSelectedCatId(cat.id)}
+                        className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition cursor-pointer active:scale-98 group flex flex-col justify-between"
+                      >
+                        <div className="h-28 w-full overflow-hidden relative bg-slate-100">
+                          <img
+                            src={cat.image_url || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'}
+                            alt={cat.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                          <span className="absolute bottom-2 left-2 text-[10px] font-bold text-white bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded-md">
+                            {count} Çeşit
+                          </span>
+                        </div>
+
+                        <div className="p-3 flex items-center justify-between">
+                          <h3 className="font-extrabold text-xs text-slate-900 truncate">
+                            {cat.name}
+                          </h3>
+                          <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-orange-500 group-hover:translate-x-0.5 transition" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW 2: PRODUCTS INSIDE CATEGORY (Opened when category is clicked) */}
+          {(isSearching || selectedCatId !== null) && (
+            <div className="mt-3 space-y-3">
+              {/* Category Breadcrumb / Back Bar */}
+              <div className="px-4 flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    setSelectedCatId(null);
+                    setSearchTerm('');
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition text-xs font-bold shadow-xs active:scale-95"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-orange-500" />
+                  <span>Kategoriler</span>
+                </button>
+
+                {selectedCategory && !isSearching && (
+                  <span className="text-xs font-extrabold text-slate-900 bg-orange-50 border border-orange-200 text-orange-800 px-3 py-1 rounded-xl">
+                    {selectedCategory.name} ({currentProducts.length})
+                  </span>
+                )}
+              </div>
+
+              {/* Horizontal Category Switcher Pills */}
+              {!isSearching && (
+                <div className="px-4 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+                  {categories.map((cat) => {
+                    const isSelected = selectedCatId === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setSelectedCatId(cat.id)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
+                            : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{cat.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Products List */}
+              <div className="px-4 space-y-2.5">
+                {loading ? (
+                  <div className="py-16 text-center text-xs text-slate-400 font-bold">
+                    Ürünler yükleniyor...
+                  </div>
+                ) : currentProducts.length === 0 ? (
+                  <div className="py-14 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-6">
+                    {isSearching
+                      ? 'Aradığınız kriterlere uygun ürün bulunamadı.'
+                      : 'Bu kategoride henüz ürün bulunmuyor.'}
+                  </div>
+                ) : (
+                  currentProducts.map((prod) => (
+                    <div
+                      key={prod.id}
+                      className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
+                    >
+                      {/* Image on Left */}
+                      <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                        <img
+                          src={
+                            categories.find((c) => c.id === prod.category_id)?.image_url ||
+                            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                          }
+                          alt={prod.name}
+                          className="w-full h-full object-cover"
+                        />
+                        {prod.is_frozen && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
+                            Tükendi
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info in Center */}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                          {prod.name}
+                        </h3>
+                        {prod.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
+                            {prod.description}
+                          </p>
+                        )}
+                        <div className="mt-1 flex items-baseline">
+                          <span className="font-black text-xs sm:text-sm text-orange-600">
+                            {prod.price.toFixed(2)} ₺
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Add to Cart Button */}
+                      <div>
+                        <button
+                          onClick={() => addToCart(prod)}
+                          disabled={prod.is_frozen}
+                          className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
+                          title="Sepete Ekle"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Floating Cart Button (Pinned inside mobile bounds) */}
