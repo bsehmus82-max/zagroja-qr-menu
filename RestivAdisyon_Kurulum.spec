@@ -35,5 +35,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    uac_admin=True,
     icon=['C:/Users/bsehm/OneDrive/Masaüstü/qr menu/desktop-app/app_icon.ico'],
 )

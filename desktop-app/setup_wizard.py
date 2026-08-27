@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 RESTIVADISYON - PROFESYONEL WINDOWS KURULUM SİHİRBAZI (SETUP WIZARD)
-- Modern Dark/Clean Arayüz (Tkinter/ttk)
-- Disk ve Klasör Seçimi (C:, D: vb.) + Boş Alan Göstergesi
-- Masaüstü Kısayolu, Başlat Menüsü ve Başlangıçta Otomatik Başlatma
-- Windows Program Ekle/Kaldır Kaydı (Uninstall Entegrasyonu)
-- Kurulum Sonrası Otomatik Başlatma Seçeneği
+- Otomatik Kurulum Dizini: C:\\Program Files\\RestivAdisyon
+- Gelişmiş Modern Wizard UI (DPI Duyarlı, Sabit Buton Yerleşimi)
+- Masaüstü Kısayolu + Masaüstü 'RestivAdisyon - Belgeler & Kılavuz' Klasörü
+- Windows Program Ekle/Kaldır (Uninstall Registry) Entegrasyonu
+- Başlat Menüsü ve Başlangıçta Otomatik Başlatma Seçenekleri
 """
 
 import sys
@@ -15,16 +15,56 @@ import subprocess
 import threading
 import time
 import winreg
+import ctypes
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 
+# Enable DPI Awareness for crisp fonts on Windows 10/11
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
 APP_NAME = "RestivAdisyon"
+APP_DISPLAY_NAME = "RestivAdisyon POS & Adisyon Sistemi"
 APP_VERSION = "2.0.0"
 APP_PUBLISHER = "RestivAdisyon"
 
 def get_default_install_dir():
-    local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
-    return os.path.join(local_app_data, "Programs", APP_NAME)
+    program_files = os.environ.get("ProgramFiles", r"C:\Program Files")
+    return os.path.join(program_files, APP_NAME)
+
+def get_all_desktop_folders():
+    folders = []
+    # 1. Active desktop from registry (Handles OneDrive & localized Desktop)
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER, 
+            r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders"
+        )
+        val, _ = winreg.QueryValueEx(key, "Desktop")
+        expanded = os.path.expandvars(val)
+        if os.path.exists(expanded) and expanded not in folders:
+            folders.append(expanded)
+        winreg.CloseKey(key)
+    except Exception:
+        pass
+
+    # 2. Known standard paths fallback
+    u = os.environ.get("USERPROFILE", "")
+    for sub in [
+        os.path.join(u, "OneDrive", "Masaüstü"),
+        os.path.join(u, "OneDrive", "Desktop"),
+        os.path.join(u, "Masaüstü"),
+        os.path.join(u, "Desktop"),
+    ]:
+        if os.path.exists(sub) and sub not in folders:
+            folders.append(sub)
+
+    return folders
 
 def get_free_space_gb(folder):
     try:
@@ -34,28 +74,35 @@ def get_free_space_gb(folder):
     except Exception:
         return 50.0
 
-def create_shortcut(target_exe, shortcut_path, icon_path, working_dir="", description=""):
+def create_windows_shortcut(target, link_path, icon_path="", working_dir="", description=""):
     try:
-        os.makedirs(os.path.dirname(shortcut_path), exist_ok=True)
-        vbs_content = f"""
-Set oWS = WScript.CreateObject("WScript.Shell")
-sLinkFile = "{shortcut_path}"
-Set oLink = oWS.CreateShortcut(sLinkFile)
-oLink.TargetPath = "{target_exe}"
-oLink.WorkingDirectory = "{working_dir or os.path.dirname(target_exe)}"
-oLink.Description = "{description}"
-oLink.IconLocation = "{icon_path}, 0"
-oLink.Save
-"""
-        temp_vbs = os.path.join(os.environ.get("TEMP", "."), f"make_lnk_{int(time.time()*1000)}.vbs")
-        with open(temp_vbs, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(link_path), exist_ok=True)
+        vbs_lines = [
+            'Set oWS = CreateObject("WScript.Shell")',
+            f'Set oLink = oWS.CreateShortcut("{link_path}")',
+            f'oLink.TargetPath = "{target}"',
+            f'oLink.WorkingDirectory = "{working_dir or os.path.dirname(target)}"',
+            f'oLink.Description = "{description}"'
+        ]
+        if icon_path and os.path.exists(icon_path):
+            vbs_lines.append(f'oLink.IconLocation = "{icon_path},0"')
+        vbs_lines.append('oLink.Save')
+
+        vbs_content = "\r\n".join(vbs_lines)
+        temp_vbs = os.path.join(os.environ.get("TEMP", "."), f"lnk_{int(time.time()*1000)}.vbs")
+        with open(temp_vbs, "w", encoding="cp1254", errors="ignore") as f:
             f.write(vbs_content)
-        subprocess.run(["cscript", "//nologo", temp_vbs], check=False, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+
+        subprocess.run(
+            ["cscript", "//nologo", temp_vbs],
+            check=False,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        )
         try:
             os.remove(temp_vbs)
         except Exception:
             pass
-        return True
+        return os.path.exists(link_path)
     except Exception:
         return False
 
@@ -68,7 +115,7 @@ def register_uninstall_entry(install_dir):
         uninstall_exe = os.path.join(install_dir, "Uninstall.exe")
         icon_path = os.path.join(install_dir, "app_icon.ico")
         
-        winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, f"{APP_NAME} POS & Adisyon Sistemi")
+        winreg.SetValueEx(key, "DisplayName", 0, winreg.REG_SZ, APP_DISPLAY_NAME)
         winreg.SetValueEx(key, "DisplayVersion", 0, winreg.REG_SZ, APP_VERSION)
         winreg.SetValueEx(key, "Publisher", 0, winreg.REG_SZ, APP_PUBLISHER)
         winreg.SetValueEx(key, "DisplayIcon", 0, winreg.REG_SZ, icon_path)
@@ -84,7 +131,8 @@ class SetupWizardApp:
     def __init__(self, root):
         self.root = root
         self.root.title(f"{APP_NAME} - Kurulum Sihirbazı")
-        self.root.geometry("640x480")
+        self.root.geometry("640x490")
+        self.root.minsize(640, 490)
         self.root.resizable(False, False)
         self.root.configure(bg="#0B0F17")
 
@@ -94,6 +142,7 @@ class SetupWizardApp:
         # State Variables
         self.install_dir_var = tk.StringVar(value=get_default_install_dir())
         self.shortcut_desktop_var = tk.BooleanVar(value=True)
+        self.shortcut_desktop_docs_var = tk.BooleanVar(value=True)
         self.shortcut_startmenu_var = tk.BooleanVar(value=True)
         self.shortcut_startup_var = tk.BooleanVar(value=True)
         self.launch_app_var = tk.BooleanVar(value=True)
@@ -108,21 +157,20 @@ class SetupWizardApp:
             self.payload_dir = os.path.join(self.base_dir, "payload")
         else:
             self.base_dir = os.path.dirname(os.path.abspath(__file__))
-            self.payload_dir = os.path.join(self.base_dir, "..", "dist", "RestivAdisyon-Paket")
+            self.payload_dir = os.path.join(self.base_dir, "payload")
 
-        # Fallback payload check
         if not os.path.exists(self.payload_dir):
             self.payload_dir = self.base_dir
 
         self.update_free_space()
 
-        # Setup Container UI
+        # Build Fixed Header & Footer
         self.build_header()
-        
-        self.content_frame = tk.Frame(self.root, bg="#0B0F17")
-        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=15)
-
         self.build_footer()
+        
+        # Content Container (Scrollable or dynamic)
+        self.content_frame = tk.Frame(self.root, bg="#0B0F17")
+        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=10)
 
         # Show initial step
         self.show_step(1)
@@ -130,46 +178,58 @@ class SetupWizardApp:
     def center_window(self):
         self.root.update_idletasks()
         w = 640
-        h = 480
+        h = 490
         x = (self.root.winfo_screenwidth() // 2) - (w // 2)
         y = (self.root.winfo_screenheight() // 2) - (h // 2)
         self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def build_header(self):
-        self.header_frame = tk.Frame(self.root, bg="#12161F", height=75)
+        self.header_frame = tk.Frame(self.root, bg="#111827", height=80)
         self.header_frame.pack(fill=tk.X, side=tk.TOP)
+        self.header_frame.pack_propagate(False)
+
+        header_inner = tk.Frame(self.header_frame, bg="#111827")
+        header_inner.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
 
         self.header_title_label = tk.Label(
-            self.header_frame,
+            header_inner,
             text=f"{APP_NAME} Kurulum Sihirbazı",
-            font=("Segoe UI", 13, "bold"),
+            font=("Segoe UI", 12, "bold"),
             fg="#F8FAFC",
-            bg="#12161F"
+            bg="#111827",
+            anchor="w"
         )
-        self.header_title_label.place(x=25, y=14)
+        self.header_title_label.pack(fill=tk.X)
 
         self.header_desc_label = tk.Label(
-            self.header_frame,
+            header_inner,
             text="Bağımsız Masaüstü POS & Otomatik Termal Fiş Yazıcı Sistemi",
             font=("Segoe UI", 9),
             fg="#94A3B8",
-            bg="#12161F"
+            bg="#111827",
+            anchor="w"
         )
-        self.header_desc_label.place(x=25, y=40)
+        self.header_desc_label.pack(fill=tk.X, pady=(2, 0))
 
-        # Indigo accent line
+        # Indigo accent border line
         self.accent_line = tk.Frame(self.root, bg="#4F46E5", height=2)
         self.accent_line.pack(fill=tk.X, side=tk.TOP)
 
     def build_footer(self):
+        # Footer container stuck at bottom
+        self.footer_container = tk.Frame(self.root, bg="#111827", height=65)
+        self.footer_container.pack(fill=tk.X, side=tk.BOTTOM)
+        self.footer_container.pack_propagate(False)
+
         self.footer_line = tk.Frame(self.root, bg="#1E293B", height=1)
         self.footer_line.pack(fill=tk.X, side=tk.BOTTOM)
 
-        self.footer_frame = tk.Frame(self.root, bg="#12161F", height=60)
-        self.footer_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        footer_inner = tk.Frame(self.footer_container, bg="#111827")
+        footer_inner.pack(fill=tk.BOTH, expand=True, padx=25, pady=12)
 
+        # Left: Cancel
         self.cancel_btn = tk.Button(
-            self.footer_frame,
+            footer_inner,
             text="İptal",
             command=self.root.quit,
             font=("Segoe UI", 9),
@@ -178,14 +238,15 @@ class SetupWizardApp:
             activebackground="#334155",
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
-            padx=16,
+            padx=18,
             pady=5,
             cursor="hand2"
         )
-        self.cancel_btn.place(x=25, y=14)
+        self.cancel_btn.pack(side=tk.LEFT)
 
+        # Right: Next & Back
         self.next_btn = tk.Button(
-            self.footer_frame,
+            footer_inner,
             text="İleri >",
             command=self.go_next,
             font=("Segoe UI", 9, "bold"),
@@ -194,14 +255,14 @@ class SetupWizardApp:
             activebackground="#4338CA",
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
-            padx=22,
+            padx=24,
             pady=5,
             cursor="hand2"
         )
-        self.next_btn.place(x=525, y=14)
+        self.next_btn.pack(side=tk.RIGHT)
 
         self.back_btn = tk.Button(
-            self.footer_frame,
+            footer_inner,
             text="< Geri",
             command=self.go_back,
             font=("Segoe UI", 9),
@@ -210,11 +271,11 @@ class SetupWizardApp:
             activebackground="#334155",
             activeforeground="#FFFFFF",
             relief=tk.FLAT,
-            padx=16,
+            padx=18,
             pady=5,
             cursor="hand2"
         )
-        self.back_btn.place(x=435, y=14)
+        self.back_btn.pack(side=tk.RIGHT, padx=(0, 10))
 
     def clear_content(self):
         for widget in self.content_frame.winfo_children():
@@ -222,12 +283,12 @@ class SetupWizardApp:
 
     def update_free_space(self, *args):
         free_gb = get_free_space_gb(self.install_dir_var.get())
-        self.free_space_var.set(f"Kullanılabilir Disk Alanı: {free_gb:.1f} GB (Gereken Alan: ~65 MB)")
+        self.free_space_var.set(f"Hedef Sürücü Boş Alanı: {free_gb:.1f} GB (Gereken: ~65 MB)")
 
     def browse_folder(self):
         chosen = filedialog.askdirectory(
             title="Kurulum Klasörünü Seçin",
-            initialdir=self.install_dir_var.get()
+            initialdir=os.path.dirname(self.install_dir_var.get())
         )
         if chosen:
             clean_path = os.path.join(chosen, APP_NAME) if not chosen.endswith(APP_NAME) else chosen
@@ -240,28 +301,28 @@ class SetupWizardApp:
 
         if step == 1:
             # STEP 1: WELCOME
-            self.header_title_label.config(text=f"{APP_NAME} v{APP_VERSION} Kurulumu")
-            self.header_desc_label.config(text="Kurulum Sihirbazına Hoş Geldiniz")
+            self.header_title_label.config(text=f"{APP_NAME} v{APP_VERSION} Kurulumuna Hoş Geldiniz")
+            self.header_desc_label.config(text="Sistem bileşenleri ve masaüstü kısayolları hazırlanıyor")
             self.back_btn.config(state=tk.DISABLED)
-            self.next_btn.config(text="İleri >", state=tk.NORMAL)
+            self.next_btn.config(text="İleri >", state=tk.NORMAL, bg="#4F46E5")
 
-            card = tk.Frame(self.content_frame, bg="#12161F", relief=tk.FLAT, bd=1)
-            card.pack(fill=tk.BOTH, expand=True, pady=10)
+            card = tk.Frame(self.content_frame, bg="#111827", padx=20, pady=18)
+            card.pack(fill=tk.BOTH, expand=True)
 
             tk.Label(
                 card,
-                text="Bu sihirbaz, RestivAdisyon uygulamasını ve arka plan termal fiş yazıcı\nmotorunu bilgisayarınıza kuracaktır.",
+                text="Bu sihirbaz, RestivAdisyon Bağımsız POS ve Otomatik Yazıcı Motorunu\nbilgisayarınıza güvenle kuracaktır.",
                 font=("Segoe UI", 10),
                 fg="#E2E8F0",
-                bg="#12161F",
+                bg="#111827",
                 justify=tk.LEFT
-            ).pack(anchor="w", padx=25, pady=(25, 15))
+            ).pack(anchor="w", pady=(0, 15))
 
             features = [
-                "• Gömülü yerel arayüz (Harici web sitesine gitmez, bağımsız çalışır)",
-                "• Windows RAW ESC/POS CP857 Türkçe termal fiş dökümü ve kağıt kesme",
-                "• Süper Admin, Kasa POS, Masa QR Menü ve Garson Terminali entegrasyonu",
-                "• Masaüstü kısayolu oluşturarak tek tıkla kesintisiz erişim"
+                "• SSD / Program Files dizinine yerel ve hızlı kurulum",
+                "• Windows ESC/POS RAW CP857 Türkçe termal fiş dökümü ve kağıt kesme",
+                "• Masaüstüne logolu ana kısayol ve 'Belgeler & Kılavuz' klasörü oluşturma",
+                "• Tek tıkla çalışma: Kurulumdan sonra yükleme dosyasına gerek kalmaz"
             ]
 
             for feat in features:
@@ -270,47 +331,50 @@ class SetupWizardApp:
                     text=feat,
                     font=("Segoe UI", 9),
                     fg="#94A3B8",
-                    bg="#12161F"
-                ).pack(anchor="w", padx=30, pady=3)
+                    bg="#111827"
+                ).pack(anchor="w", pady=3)
 
             tk.Label(
                 card,
-                text="Devam etmek için 'İleri' butonuna tıklayınız.",
+                text="Kuruluma devam etmek için lütfen 'İleri' butonuna tıklayınız.",
                 font=("Segoe UI", 9, "italic"),
                 fg="#64748B",
-                bg="#12161F"
-            ).pack(anchor="w", padx=25, pady=(20, 15))
+                bg="#111827"
+            ).pack(anchor="w", pady=(15, 0))
 
         elif step == 2:
             # STEP 2: INSTALLATION DIRECTORY
             self.header_title_label.config(text="Kurulum Hedef Konumu")
-            self.header_desc_label.config(text="Uygulamanın kurulacağı sürücü ve klasörü seçin")
+            self.header_desc_label.config(text="Uygulamanın kurulacağı SSD / Program Files dizini")
             self.back_btn.config(state=tk.NORMAL)
-            self.next_btn.config(text="İleri >", state=tk.NORMAL)
+            self.next_btn.config(text="İleri >", state=tk.NORMAL, bg="#4F46E5")
+
+            card = tk.Frame(self.content_frame, bg="#111827", padx=20, pady=18)
+            card.pack(fill=tk.BOTH, expand=True)
 
             tk.Label(
-                self.content_frame,
-                text=f"{APP_NAME} aşağıdaki klasöre kurulacaktır. Farklı bir diske veya klasöre kurmak için 'Gözat' butonuna tıklayınız:",
+                card,
+                text=f"{APP_NAME} varsayılan olarak aşağıdaki 'Program Files' klasörüne kurulacaktır.\nFarklı bir diske (D:, E: vb.) kurmak isterseniz 'Gözat' butonunu kullanabilirsiniz:",
                 font=("Segoe UI", 9),
                 fg="#CBD5E1",
-                bg="#0B0F17",
+                bg="#111827",
                 justify=tk.LEFT
-            ).pack(anchor="w", pady=(5, 12))
+            ).pack(anchor="w", pady=(0, 12))
 
-            dir_box = tk.Frame(self.content_frame, bg="#0B0F17")
+            dir_box = tk.Frame(card, bg="#111827")
             dir_box.pack(fill=tk.X, pady=5)
 
             dir_entry = tk.Entry(
                 dir_box,
                 textvariable=self.install_dir_var,
                 font=("Segoe UI", 9),
-                bg="#12161F",
+                bg="#0B0F17",
                 fg="#F8FAFC",
                 insertbackground="#FFFFFF",
                 relief=tk.FLAT,
                 bd=6
             )
-            dir_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=4)
+            dir_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=3)
 
             browse_btn = tk.Button(
                 dir_box,
@@ -326,127 +390,136 @@ class SetupWizardApp:
             browse_btn.pack(side=tk.RIGHT, padx=(10, 0))
 
             space_label = tk.Label(
-                self.content_frame,
+                card,
                 textvariable=self.free_space_var,
                 font=("Segoe UI", 9, "bold"),
                 fg="#38BDF8",
-                bg="#0B0F17"
+                bg="#111827"
             )
-            space_label.pack(anchor="w", pady=(18, 0))
+            space_label.pack(anchor="w", pady=(15, 0))
 
         elif step == 3:
-            # STEP 3: ADDITIONAL OPTIONS & SHORTCUTS
-            self.header_title_label.config(text="Ek Kısayol & Başlangıç Seçenekleri")
-            self.header_desc_label.config(text="Masaüstü kısayolu ve başlangıç tercihlerini belirleyin")
+            # STEP 3: SHORTCUTS & OPTIONS
+            self.header_title_label.config(text="Masaüstü & Kısayol Seçenekleri")
+            self.header_desc_label.config(text="Masaüstü simgesi ve başlangıç tercihlerini belirleyin")
             self.back_btn.config(state=tk.NORMAL)
-            self.next_btn.config(text="Kurulumu Başlat", state=tk.NORMAL)
+            self.next_btn.config(text="Kurulumu Başlat", state=tk.NORMAL, bg="#4F46E5")
+
+            card = tk.Frame(self.content_frame, bg="#111827", padx=20, pady=18)
+            card.pack(fill=tk.BOTH, expand=True)
 
             tk.Label(
-                self.content_frame,
-                text="Kurulum sırasında oluşturulmasını istediğiniz ek kısayolları seçiniz:",
+                card,
+                text="Kurulum sırasında oluşturulacak kısayol ve klasörleri seçiniz:",
                 font=("Segoe UI", 9),
                 fg="#CBD5E1",
-                bg="#0B0F17"
-            ).pack(anchor="w", pady=(5, 15))
-
-            opt_card = tk.Frame(self.content_frame, bg="#12161F", bd=1)
-            opt_card.pack(fill=tk.BOTH, expand=True, pady=5)
+                bg="#111827"
+            ).pack(anchor="w", pady=(0, 10))
 
             cb_style = {
                 "font": ("Segoe UI", 9, "bold"),
                 "fg": "#F8FAFC",
-                "bg": "#12161F",
+                "bg": "#111827",
                 "selectcolor": "#0B0F17",
-                "activebackground": "#12161F",
+                "activebackground": "#111827",
                 "activeforeground": "#FFFFFF"
             }
 
             tk.Checkbutton(
-                opt_card,
-                text="Masaüstünde Kısayol Oluştur (RestivAdisyon)",
+                card,
+                text="Masaüstünde 'RestivAdisyon' Ana Kısayolu Oluştur",
                 variable=self.shortcut_desktop_var,
                 **cb_style
-            ).pack(anchor="w", padx=20, pady=(20, 10))
+            ).pack(anchor="w", pady=4)
 
             tk.Checkbutton(
-                opt_card,
+                card,
+                text="Masaüstünde 'RestivAdisyon - Belgeler & Kılavuz' Klasörü Oluştur (PDF & Kılavuzlar)",
+                variable=self.shortcut_desktop_docs_var,
+                **cb_style
+            ).pack(anchor="w", pady=4)
+
+            tk.Checkbutton(
+                card,
                 text="Başlat Menüsü Programlar Listesine Ekle",
                 variable=self.shortcut_startmenu_var,
                 **cb_style
-            ).pack(anchor="w", padx=20, pady=10)
+            ).pack(anchor="w", pady=4)
 
             tk.Checkbutton(
-                opt_card,
+                card,
                 text="Windows Başlangıcında Otomatik Başlat (Önerilen)",
                 variable=self.shortcut_startup_var,
                 **cb_style
-            ).pack(anchor="w", padx=20, pady=10)
+            ).pack(anchor="w", pady=4)
 
             tk.Label(
-                opt_card,
+                card,
                 text="* Otomatik başlatma, sistem açıldığında sipariş fişlerini arka planda dinlemeyi sağlar.",
                 font=("Segoe UI", 8, "italic"),
                 fg="#64748B",
-                bg="#12161F"
-            ).pack(anchor="w", padx=25, pady=(5, 15))
+                bg="#111827"
+            ).pack(anchor="w", pady=(8, 0))
 
         elif step == 4:
-            # STEP 4: INSTALLATION PROGRESS
-            self.header_title_label.config(text="Kuruluyor...")
+            # STEP 4: PROGRESS
+            self.header_title_label.config(text="Yükleniyor...")
             self.header_desc_label.config(text="Dosyalar kopyalanıyor ve sistem yapılandırılıyor")
             self.back_btn.config(state=tk.DISABLED)
             self.next_btn.config(state=tk.DISABLED)
             self.cancel_btn.config(state=tk.DISABLED)
 
+            card = tk.Frame(self.content_frame, bg="#111827", padx=20, pady=25)
+            card.pack(fill=tk.BOTH, expand=True)
+
             self.status_label = tk.Label(
-                self.content_frame,
+                card,
                 text="Kuruluma başlanıyor...",
                 font=("Segoe UI", 9),
                 fg="#CBD5E1",
-                bg="#0B0F17"
+                bg="#111827"
             )
-            self.status_label.pack(anchor="w", pady=(30, 10))
+            self.status_label.pack(anchor="w", pady=(10, 10))
 
-            self.prog_bar = ttk.Progressbar(self.content_frame, orient="horizontal", mode="determinate", length=560)
+            self.prog_bar = ttk.Progressbar(card, orient="horizontal", mode="determinate", length=540)
             self.prog_bar.pack(fill=tk.X, pady=10)
 
-            # Start installation in background thread
             threading.Thread(target=self.execute_installation, daemon=True).start()
 
         elif step == 5:
             # STEP 5: FINISH
-            self.header_title_label.config(text="Kurulum Tamamlandı")
-            self.header_desc_label.config(text="RestivAdisyon başarıyla bilgisayarınıza yüklendi")
+            self.header_title_label.config(text="Kurulum Başarıyla Tamamlandı")
+            self.header_desc_label.config(text="RestivAdisyon bilgisayarınıza hazırlandı")
             self.back_btn.config(state=tk.DISABLED)
             self.cancel_btn.config(state=tk.DISABLED)
             self.next_btn.config(text="Bitir", state=tk.NORMAL, bg="#059669")
 
-            card = tk.Frame(self.content_frame, bg="#12161F", bd=1)
-            card.pack(fill=tk.BOTH, expand=True, pady=10)
+            card = tk.Frame(self.content_frame, bg="#111827", padx=20, pady=18)
+            card.pack(fill=tk.BOTH, expand=True)
 
             tk.Label(
                 card,
-                text="Kurulum Başarıyla Tamamlandı!",
-                font=("Segoe UI", 12, "bold"),
+                text="Tebrikler! Kurulum Başarıyla Tamamlandı.",
+                font=("Segoe UI", 11, "bold"),
                 fg="#34D399",
-                bg="#12161F"
-            ).pack(anchor="w", padx=25, pady=(25, 10))
+                bg="#111827"
+            ).pack(anchor="w", pady=(0, 10))
 
             tk.Label(
                 card,
-                text=f"{APP_NAME} bilgisayarınıza başarıyla kuruldu ve masaüstü kısayolu oluşturuldu.\nArtık doğrudan masaüstündeki kısayola çift tıklayarak giriş yapabilirsiniz.",
+                text=f"{APP_NAME} başarıyla Program Files dizinine kuruldu.\nMasaüstünüze resmi logolu 'RestivAdisyon' kısayolu ve 'Belgeler & Kılavuz' klasörü eklendi.\nArtık doğrudan masaüstünden tek tıkla kullanabilirsiniz.",
                 font=("Segoe UI", 9),
                 fg="#CBD5E1",
-                bg="#12161F",
+                bg="#111827",
                 justify=tk.LEFT
-            ).pack(anchor="w", padx=25, pady=(0, 20))
+            ).pack(anchor="w", pady=(0, 15))
 
             cb_style = {
                 "font": ("Segoe UI", 9, "bold"),
                 "fg": "#F8FAFC",
-                "bg": "#12161F",
+                "bg": "#111827",
                 "selectcolor": "#0B0F17",
-                "activebackground": "#12161F",
+                "activebackground": "#111827",
                 "activeforeground": "#FFFFFF"
             }
 
@@ -455,18 +528,28 @@ class SetupWizardApp:
                 text=f"{APP_NAME}'u Şimdi Başlat",
                 variable=self.launch_app_var,
                 **cb_style
-            ).pack(anchor="w", padx=25, pady=5)
+            ).pack(anchor="w", pady=4)
 
             tk.Checkbutton(
                 card,
                 text="Resmi Kullanım Kılavuzunu Görüntüle (PDF)",
                 variable=self.open_manual_var,
                 **cb_style
-            ).pack(anchor="w", padx=25, pady=5)
+            ).pack(anchor="w", pady=4)
 
     def execute_installation(self):
         install_dir = os.path.abspath(self.install_dir_var.get())
-        os.makedirs(install_dir, exist_ok=True)
+        try:
+            os.makedirs(install_dir, exist_ok=True)
+        except Exception as e:
+            # Fallback to local appdata if Program Files permission issue
+            fallback_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "Programs", APP_NAME)
+            try:
+                os.makedirs(fallback_dir, exist_ok=True)
+                install_dir = fallback_dir
+                self.install_dir_var.set(install_dir)
+            except Exception:
+                pass
 
         files_to_copy = [
             f"{APP_NAME}.exe",
@@ -479,7 +562,7 @@ class SetupWizardApp:
         total_steps = len(files_to_copy) + 4
         current = 0
 
-        # Copy Payload Files
+        # 1. Copy Files to Installation Directory
         for fname in files_to_copy:
             current += 1
             src_path = os.path.join(self.payload_dir, fname)
@@ -493,48 +576,64 @@ class SetupWizardApp:
                 except Exception as err:
                     print(f"Kopyalama uyarısı ({fname}):", err)
             else:
-                # If running directly, check local desktop-app
                 local_src = os.path.join(self.base_dir, fname)
                 if os.path.exists(local_src):
                     try:
                         shutil.copyfile(local_src, dst_path)
                     except Exception:
                         pass
-            time.sleep(0.1)
+            time.sleep(0.08)
 
-        # 1. Desktop Shortcut
-        current += 1
-        self.root.after(0, self.update_progress, (current / total_steps) * 100, "Masaüstü kısayolları oluşturuluyor...")
         target_exe = os.path.join(install_dir, f"{APP_NAME}.exe")
         icon_path = os.path.join(install_dir, "app_icon.ico")
+        pdf_path = os.path.join(install_dir, "RestivaAdisyon_Kilavuzu.pdf")
+        txt_path = os.path.join(install_dir, "BENI_OKU.txt")
+        uninst_exe = os.path.join(install_dir, "Uninstall.exe")
 
-        if self.shortcut_desktop_var.get():
-            desktop_dir = os.path.join(os.environ.get("USERPROFILE", ""), "Desktop")
-            onedrive_desktop = os.path.join(os.environ.get("USERPROFILE", ""), "OneDrive", "Masaüstü")
-            
-            create_shortcut(target_exe, os.path.join(desktop_dir, f"{APP_NAME}.lnk"), icon_path, install_dir, f"{APP_NAME} POS")
-            if os.path.exists(os.path.join(os.environ.get("USERPROFILE", ""), "OneDrive")):
-                create_shortcut(target_exe, os.path.join(onedrive_desktop, f"{APP_NAME}.lnk"), icon_path, install_dir, f"{APP_NAME} POS")
+        # 2. Desktop Shortcuts & Documents Folder
+        current += 1
+        self.root.after(0, self.update_progress, (current / total_steps) * 100, "Masaüstü kısayolları ve belgeler klasörü oluşturuluyor...")
+        
+        desktop_folders = get_all_desktop_folders()
+        for d in desktop_folders:
+            # 2.1 Main Desktop Shortcut
+            if self.shortcut_desktop_var.get():
+                main_lnk = os.path.join(d, f"{APP_NAME}.lnk")
+                create_windows_shortcut(target_exe, main_lnk, icon_path, install_dir, APP_DISPLAY_NAME)
 
-        # 2. Start Menu Shortcut
+            # 2.2 Desktop Documents Folder
+            if self.shortcut_desktop_docs_var.get():
+                docs_folder = os.path.join(d, f"{APP_NAME} - Belgeler & Kılavuz")
+                try:
+                    os.makedirs(docs_folder, exist_ok=True)
+                    if os.path.exists(pdf_path):
+                        shutil.copyfile(pdf_path, os.path.join(docs_folder, "RestivaAdisyon_Kilavuzu.pdf"))
+                    if os.path.exists(txt_path):
+                        shutil.copyfile(txt_path, os.path.join(docs_folder, "BENI_OKU.txt"))
+                    # Inner shortcuts
+                    create_windows_shortcut(target_exe, os.path.join(docs_folder, f"{APP_NAME} Başlat.lnk"), icon_path, install_dir, APP_DISPLAY_NAME)
+                    create_windows_shortcut(uninst_exe, os.path.join(docs_folder, f"{APP_NAME} Kaldır (Uninstall).lnk"), icon_path, install_dir, "Kaldır")
+                except Exception:
+                    pass
+
+        # 3. Start Menu Shortcuts
         current += 1
         self.root.after(0, self.update_progress, (current / total_steps) * 100, "Başlat menüsü yapılandırılıyor...")
         if self.shortcut_startmenu_var.get():
             start_menu_dir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", APP_NAME)
-            create_shortcut(target_exe, os.path.join(start_menu_dir, f"{APP_NAME}.lnk"), icon_path, install_dir, f"{APP_NAME} POS")
-            create_shortcut(os.path.join(install_dir, "Uninstall.exe"), os.path.join(start_menu_dir, f"{APP_NAME} Kaldır.lnk"), icon_path, install_dir, "Kaldır")
+            create_windows_shortcut(target_exe, os.path.join(start_menu_dir, f"{APP_NAME}.lnk"), icon_path, install_dir, APP_DISPLAY_NAME)
+            create_windows_shortcut(uninst_exe, os.path.join(start_menu_dir, f"{APP_NAME} Kaldır.lnk"), icon_path, install_dir, "Kaldır")
 
-        # 3. Startup Shortcut
+        # 4. Windows Startup
         current += 1
         self.root.after(0, self.update_progress, (current / total_steps) * 100, "Başlangıç ayarları kaydediliyor...")
         if self.shortcut_startup_var.get():
             startup_dir = os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "Startup")
-            create_shortcut(target_exe, os.path.join(startup_dir, f"{APP_NAME}.lnk"), icon_path, install_dir, f"{APP_NAME} POS")
+            create_windows_shortcut(target_exe, os.path.join(startup_dir, f"{APP_NAME}.lnk"), icon_path, install_dir, APP_DISPLAY_NAME)
 
-        # 4. Registry Uninstall Entry
-        current += 1
-        self.root.after(0, self.update_progress, 100, "Kurulum tamamlandı.")
+        # 5. Registry Uninstall Entry
         register_uninstall_entry(install_dir)
+        self.root.after(0, self.update_progress, 100, "Kurulum tamamlandı.")
         time.sleep(0.3)
 
         self.root.after(0, self.show_step, 5)
@@ -555,7 +654,6 @@ class SetupWizardApp:
         elif self.current_step == 3:
             self.show_step(4)
         elif self.current_step == 5:
-            # Finish action
             install_dir = os.path.abspath(self.install_dir_var.get())
             target_exe = os.path.join(install_dir, f"{APP_NAME}.exe")
             pdf_path = os.path.join(install_dir, "RestivaAdisyon_Kilavuzu.pdf")

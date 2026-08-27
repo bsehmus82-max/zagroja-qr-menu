@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-RESTIVADISYON - DAĞITIM PAKETİ & KURULUM SİHİRBAZI ÜRETİCİSİ
+RESTIVADISYON - TEK PARÇA KURULUM SİHİRBAZI (ALL-IN-ONE SETUP WIZARD) ÜRETİCİSİ
 - Resmi Vektör Logosu ile .ico ikon üretimi
 - Resmi PDF Kılavuzu & Beni Oku belgesi
 - Uninstall.exe (Temiz Kaldırıcı)
 - RestivAdisyon.exe (Bağımsız POS & Arka Plan ESC/POS Yazıcı Motoru)
-- RestivAdisyon_Kurulum.exe (Disk Seçimi, Kısayol ve Otomatik Başlangıç Sihirbazı)
+- RestivAdisyon_Kurulum.exe (Tüm bileşenleri içine gömen Tek Parça Windows Kurulum Sihirbazı)
 """
 
 import sys
@@ -33,24 +33,20 @@ def main():
     # 1. Official Logo Icon Generation
     icon_path = os.path.join(DESKTOP_APP_DIR, "app_icon.ico")
     subprocess.run([sys.executable, os.path.join(DESKTOP_APP_DIR, "generate_icon.py")], check=True)
-    shutil.copyfile(icon_path, os.path.join(OUTPUT_PACKAGE_DIR, "app_icon.ico"))
     shutil.copyfile(icon_path, os.path.join(PAYLOAD_DIR, "app_icon.ico"))
 
     # 2. PDF Guide Generation
     step("2. Resmi PDF Kullanım Kılavuzu Üretimi")
-    pdf_out = os.path.join(OUTPUT_PACKAGE_DIR, "RestivaAdisyon_Kilavuzu.pdf")
+    pdf_temp = os.path.join(DESKTOP_APP_DIR, "RestivaAdisyon_Kilavuzu.pdf")
     subprocess.run([sys.executable, os.path.join(DESKTOP_APP_DIR, "generate_pdf_manual.py")], check=True)
-    shutil.copyfile(os.path.join(DESKTOP_APP_DIR, "RestivaAdisyon_Kilavuzu.pdf"), pdf_out)
-    shutil.copyfile(pdf_out, os.path.join(PAYLOAD_DIR, "RestivaAdisyon_Kilavuzu.pdf"))
-    print(f"[OK] Kılavuz kopyalandı -> {pdf_out}")
+    shutil.copyfile(pdf_temp, os.path.join(PAYLOAD_DIR, "RestivaAdisyon_Kilavuzu.pdf"))
+    print(f"[OK] Kılavuz payload klasörüne eklendi -> {os.path.join(PAYLOAD_DIR, 'RestivaAdisyon_Kilavuzu.pdf')}")
 
     # 3. Copy BENI_OKU.txt
     step("3. BENI_OKU.txt Dosyası Hazırlığı")
     beni_oku_src = os.path.join(DESKTOP_APP_DIR, "BENI_OKU.txt")
-    beni_oku_dst = os.path.join(OUTPUT_PACKAGE_DIR, "BENI_OKU.txt")
-    shutil.copyfile(beni_oku_src, beni_oku_dst)
     shutil.copyfile(beni_oku_src, os.path.join(PAYLOAD_DIR, "BENI_OKU.txt"))
-    print(f"[OK] BENI_OKU.txt kopyalandı -> {beni_oku_dst}")
+    print(f"[OK] BENI_OKU.txt payload klasörüne eklendi -> {os.path.join(PAYLOAD_DIR, 'BENI_OKU.txt')}")
 
     # 4. Compile Uninstall.exe
     step("4. Uninstall.exe (Temiz Kaldırıcı) Derleniyor")
@@ -63,13 +59,11 @@ def main():
         "--windowed",
         f"--icon={icon_path}",
         "--name=Uninstall",
-        f"--distpath={OUTPUT_PACKAGE_DIR}",
+        f"--distpath={PAYLOAD_DIR}",
         uninstaller_py
     ]
     subprocess.run(uninst_cmd, check=True)
-    uninst_exe = os.path.join(OUTPUT_PACKAGE_DIR, "Uninstall.exe")
-    shutil.copyfile(uninst_exe, os.path.join(PAYLOAD_DIR, "Uninstall.exe"))
-    print(f"[OK] Uninstall.exe derlendi -> {uninst_exe}")
+    print(f"[OK] Uninstall.exe derlendi -> {os.path.join(PAYLOAD_DIR, 'Uninstall.exe')}")
 
     # 5. Compile RestivAdisyon.exe (Embedded Assets)
     step("5. RestivAdisyon.exe (Gömülü Arayüz & ESC/POS Motoru) Derleniyor")
@@ -85,7 +79,7 @@ def main():
         f"--icon={icon_path}",
         f"--add-data={add_data_arg}",
         "--name=RestivAdisyon",
-        f"--distpath={OUTPUT_PACKAGE_DIR}",
+        f"--distpath={PAYLOAD_DIR}",
         "--hidden-import=webview.platforms.winforms",
         "--hidden-import=webview.platforms.edgechromium",
         "--hidden-import=websocket",
@@ -94,12 +88,10 @@ def main():
         main_py
     ]
     subprocess.run(pos_cmd, check=True)
-    app_exe = os.path.join(OUTPUT_PACKAGE_DIR, "RestivAdisyon.exe")
-    shutil.copyfile(app_exe, os.path.join(PAYLOAD_DIR, "RestivAdisyon.exe"))
-    print(f"[OK] RestivAdisyon.exe derlendi -> {app_exe}")
+    print(f"[OK] RestivAdisyon.exe derlendi -> {os.path.join(PAYLOAD_DIR, 'RestivAdisyon.exe')}")
 
-    # 6. Compile RestivAdisyon_Kurulum.exe (Setup Wizard Installer)
-    step("6. RestivAdisyon_Kurulum.exe (Kurulum Sihirbazı & Kısayol Oluşturucu) Derleniyor")
+    # 6. Compile RestivAdisyon_Kurulum.exe (All-In-One Setup Wizard)
+    step("6. RestivAdisyon_Kurulum.exe (Tek Parça Kurulum Sihirbazı) Derleniyor")
     setup_py = os.path.join(DESKTOP_APP_DIR, "setup_wizard.py")
     payload_arg = f"{PAYLOAD_DIR};payload"
 
@@ -109,6 +101,7 @@ def main():
         "--clean",
         "--onefile",
         "--windowed",
+        "--uac-admin",
         f"--icon={icon_path}",
         f"--add-data={payload_arg}",
         "--name=RestivAdisyon_Kurulum",
@@ -120,34 +113,14 @@ def main():
     print(f"[OK] RestivAdisyon_Kurulum.exe derlendi -> {setup_exe}")
 
     # 7. Verification
-    step("7. Dağıtım Paketi Doğrulaması (Verification)")
-    expected_files = [
-        "RestivAdisyon_Kurulum.exe",
-        "RestivAdisyon.exe",
-        "BENI_OKU.txt",
-        "RestivaAdisyon_Kilavuzu.pdf",
-        "Uninstall.exe",
-        "app_icon.ico"
-    ]
-
-    all_ok = True
-    for fname in expected_files:
-        fpath = os.path.join(OUTPUT_PACKAGE_DIR, fname)
-        if os.path.exists(fpath):
-            size_mb = os.path.getsize(fpath) / (1024 * 1024)
-            size_kb = os.path.getsize(fpath) / 1024
-            if size_mb >= 1.0:
-                print(f"[MEVCUT] {fname} ({size_mb:.2f} MB)")
-            else:
-                print(f"[MEVCUT] {fname} ({size_kb:.1f} KB)")
-        else:
-            print(f"[HATA] Eksik dosya: {fname}")
-            all_ok = False
-
-    if all_ok:
-        print(f"\n[BAŞARILI] RestivAdisyon-Paket ve Kurulum Sihirbazı eksiksiz olarak oluşturuldu:")
-        print(f"Klasör Konumu: {OUTPUT_PACKAGE_DIR}")
+    step("7. Kurulum Dosyası Doğrulaması (Verification)")
+    if os.path.exists(setup_exe):
+        size_mb = os.path.getsize(setup_exe) / (1024 * 1024)
+        print(f"\n[BAŞARILI] Tek Parça Kurulum Sihirbazı Eksiksiz Olarak Üretildi:")
+        print(f"Dosya: {setup_exe} ({size_mb:.2f} MB)")
+        print(f"Klasör: {OUTPUT_PACKAGE_DIR}")
     else:
+        print(f"[HATA] Kurulum dosyası üretilemedi!")
         sys.exit(1)
 
 if __name__ == "__main__":
