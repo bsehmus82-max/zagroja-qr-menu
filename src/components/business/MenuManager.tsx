@@ -23,8 +23,15 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(() => {
+    return localStorage.getItem(`menu_selected_cat_${business.id}`) || null;
+  });
   const [loading, setLoading] = useState(true);
+
+  const handleSelectCategory = (id: string) => {
+    setSelectedCatId(id);
+    localStorage.setItem(`menu_selected_cat_${business.id}`, id);
+  };
 
   // Live Phone Preview Toggle
   const [showLivePreview, setShowLivePreview] = useState(false);
@@ -76,8 +83,12 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
       if (catsRes.data) {
         setCategories(catsRes.data as Category[]);
-        if (catsRes.data.length > 0 && (!selectedCatId || !catsRes.data.some(c => c.id === selectedCatId))) {
+        const savedCatId = localStorage.getItem(`menu_selected_cat_${business.id}`);
+        if (savedCatId && catsRes.data.some((c) => c.id === savedCatId)) {
+          setSelectedCatId(savedCatId);
+        } else if (catsRes.data.length > 0) {
           setSelectedCatId(catsRes.data[0].id);
+          localStorage.setItem(`menu_selected_cat_${business.id}`, catsRes.data[0].id);
         }
       }
       if (prodsRes.data) {
@@ -442,7 +453,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                     return (
                       <button
                         key={cat.id}
-                        onClick={() => setSelectedCatId(cat.id)}
+                        onClick={() => handleSelectCategory(cat.id)}
                         className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
                           isSelected
                             ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
@@ -31,9 +31,17 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const [business, setBusiness] = useState<Business>(initialBusiness);
   const [activeTab, setActiveTab] = useState<
     'orders' | 'pos' | 'menu' | 'tables' | 'turnover' | 'settings' | 'support'
-  >('orders');
+  >(() => {
+    return (localStorage.getItem('biz_active_tab') as any) || 'orders';
+  });
   const [tableCount, setTableCount] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    localStorage.setItem('biz_active_tab', tab);
+    setIsMobileMenuOpen(false);
+  };
 
   const isFirstTime = !business.phone && !business.address;
   const [showOnboarding, setShowOnboarding] = useState(isFirstTime);
@@ -179,10 +187,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               return (
                 <button
                   key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id);
-                    setIsMobileMenuOpen(false);
-                  }}
+                  onClick={() => handleTabChange(item.id)}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                     isActive
                       ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'

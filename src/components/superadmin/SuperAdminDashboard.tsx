@@ -23,10 +23,17 @@ interface SuperAdminDashboardProps {
 
 export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogout }) => {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'businesses' | 'chat' | 'database'>('businesses');
+  const [activeTab, setActiveTab] = useState<'businesses' | 'chat' | 'database'>(() => {
+    return (localStorage.getItem('superadmin_active_tab') as any) || 'businesses';
+  });
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    localStorage.setItem('superadmin_active_tab', tab);
+  };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
@@ -232,7 +239,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
         {/* Center Tabs */}
         <div className="flex items-center gap-1 bg-[#0A0D14] p-1 rounded-xl border border-[#212634] order-3 sm:order-2 w-full sm:w-auto overflow-x-auto">
           <button
-            onClick={() => setActiveTab('businesses')}
+            onClick={() => handleTabChange('businesses')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'businesses' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -241,7 +248,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
             İşletmeler ({businesses.length})
           </button>
           <button
-            onClick={() => setActiveTab('chat')}
+            onClick={() => handleTabChange('chat')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'chat' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -250,7 +257,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
             Canlı Destek
           </button>
           <button
-            onClick={() => setActiveTab('database')}
+            onClick={() => handleTabChange('database')}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'database' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
