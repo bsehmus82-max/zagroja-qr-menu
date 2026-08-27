@@ -175,12 +175,39 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
     }
   };
 
+  const [closingOrder, setClosingOrder] = useState<Order | null>(null);
+  const [isClosingPayment, setIsClosingPayment] = useState(false);
+
+  const handleCloseOrderWithPayment = async (orderId: string, paymentMethod: 'cash' | 'credit_card') => {
+    try {
+      setIsClosingPayment(true);
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'paid', 
+          payment_method: paymentMethod, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      toast.success(`Hesap ${paymentMethod === 'credit_card' ? 'POS / Kredi Kartı' : 'Nakit'} ile başarıyla kapatıldı.`);
+      setClosingOrder(null);
+    } catch (err: any) {
+      toast.error('Hesap kapatılırken hata oluştu: ' + err.message);
+    } finally {
+      setIsClosingPayment(false);
+    }
+  };
+
   const pendingOrders = orders.filter((o) => o.status === 'pending');
   const preparingOrders = orders.filter((o) => o.status === 'preparing');
 
   const filteredOrders = orders.filter((o) => {
     if (activeFilter === 'pending') return o.status === 'pending';
-    if (activeFilter === 'preparing') return o.status === 'preparing' || o.status === 'served';
+    if (activeFilter === 'preparing') return o.status === 'preparing';
     return true;
   });
 
@@ -317,7 +344,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
           </div>
           <h3 className="font-extrabold text-sm text-slate-800">Aktif Sipariş Bulunmuyor</h3>
           <p className="text-xs text-slate-400 mt-0.5">
-            QR menüden veya POS masasından verilen siparişler anında burada belirecektir.
+            QR menüden veya Garson terminalinden verilen siparişler anında burada belirecektir.
           </p>
         </div>
       ) : (
@@ -338,9 +365,14 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       <span className="font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl">
                         {order.table_no}
                       </span>
+                      {order.order_source === 'waiter' && (
+                        <span className="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded">
+                          Garson
+                        </span>
+                      )}
                       {order.order_source === 'pos' && (
                         <span className="text-[9px] font-bold bg-slate-800 text-white px-1.5 py-0.5 rounded">
-                          POS
+                          Kasa POS
                         </span>
                       )}
                     </div>
@@ -348,11 +380,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                     <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
                       isPending
                         ? 'bg-amber-100 text-amber-800'
-                        : isPreparing
-                        ? 'bg-sky-100 text-sky-800'
-                        : 'bg-emerald-100 text-emerald-800'
+                        : 'bg-sky-100 text-sky-800'
                     }`}>
-                      {isPending ? 'Bekliyor' : isPreparing ? 'Hazırlanıyor' : 'Teslim Edildi'}
+                      {isPending ? 'Bekliyor' : 'Hazırlanıyor'}
                     </span>
                   </div>
 
@@ -390,47 +420,122 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                   </div>
 
                   <div className="grid grid-cols-2 gap-1.5">
-                    {isPending && (
+                    {isPending ? (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
                         className="py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-xs transition"
                       >
                         Hazırla
                       </button>
-                    )}
-
-                    {isPreparing && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'served')}
-                        className="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition"
-                      >
-                        Teslim Et
-                      </button>
-                    )}
+                    ) : null}
 
                     <button
-                      onClick={() => updateOrderStatus(order.id, 'paid')}
+                      onClick={() => setClosingOrder(order)}
                       className={`py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition ${
-                        !isPending && !isPreparing ? 'col-span-2' : ''
+                        !isPending ? 'col-span-1' : ''
                       }`}
                     >
                       Hesabı Kapat
                     </button>
 
-                    {(isPending || isPreparing) && (
-                      <button
-                        onClick={() => printKitchenTicket(business, order)}
-                        className="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Yazdır</span>
-                      </button>
-                    )}
+                    <button
+                      onClick={() => printKitchenTicket(business, order)}
+                      className={`py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 ${
+                        !isPending ? 'col-span-1' : 'col-span-2'
+                      }`}
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>Yazdır</span>
+                    </button>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* HESABI KAPAT POP-UP / MODAL */}
+      {closingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  Hesabı Kapat — {closingOrder.table_no}
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Ödeme türünü seçerek masanın hesabını kapatınız.
+                </p>
+              </div>
+              <button
+                onClick={() => setClosingOrder(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Order Items Breakdown */}
+            <div className="bg-slate-50 rounded-2xl p-3.5 max-h-48 overflow-y-auto space-y-2 border border-slate-100">
+              {closingOrder.items.map((item, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <span className="text-slate-700 font-bold truncate">
+                    {item.quantity}x {item.name}
+                  </span>
+                  <span className="text-slate-900 font-black shrink-0">
+                    {(item.price * item.quantity).toFixed(2)} ₺
+                  </span>
+                </div>
+              ))}
+
+              {closingOrder.customer_notes && (
+                <div className="pt-2 border-t border-slate-200 text-[11px] text-amber-900">
+                  <strong>Not:</strong> {closingOrder.customer_notes}
+                </div>
+              )}
+            </div>
+
+            {/* Total Amount Banner */}
+            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-200/80 flex items-center justify-between">
+              <span className="text-xs font-bold text-orange-950">Ödenecek Tutar:</span>
+              <span className="text-xl font-black text-orange-600">
+                {closingOrder.total_amount.toFixed(2)} ₺
+              </span>
+            </div>
+
+            {/* Payment Method Action Buttons */}
+            <div className="space-y-2 pt-1">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  disabled={isClosingPayment}
+                  onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'credit_card')}
+                  className="p-3.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-indigo-600/20 transition flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <CreditCard className="w-5 h-5" />
+                  <span>POS / Kredi Kartı</span>
+                </button>
+
+                <button
+                  disabled={isClosingPayment}
+                  onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'cash')}
+                  className="p-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-emerald-600/20 transition flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <Banknote className="w-5 h-5" />
+                  <span>Nakit Ödeme</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setClosingOrder(null)}
+                className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition"
+              >
+                Vazgeç
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

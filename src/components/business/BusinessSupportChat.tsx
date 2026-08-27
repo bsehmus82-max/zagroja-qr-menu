@@ -3,7 +3,8 @@ import {
   Send, MessageSquare, ShieldCheck, RefreshCw, CheckCheck, 
   Bot, HelpCircle, AlertTriangle, Image as ImageIcon, QrCode, 
   DollarSign, Sparkles, ExternalLink, ChevronRight, BookOpen,
-  Headphones, Lightbulb, ArrowRight, User
+  Headphones, Lightbulb, ArrowRight, User, XCircle, Trash2, CheckCircle2,
+  Printer, Smartphone, Settings, Utensils
 } from 'lucide-react';
 import { Business, SupportMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -17,13 +18,75 @@ interface BusinessSupportChatProps {
 
 interface ChatMessage {
   id: string;
-  sender: 'bot' | 'user' | 'admin';
+  sender: 'bot' | 'user' | 'admin' | 'system';
   text: string;
   timestamp: string;
   quickActions?: Array<{ label: string; url?: string; actionType?: string }>;
 }
 
 const FAQ_DATABASE = [
+  {
+    keywords: ['garson', 'terminal', 'telefon', 'eşle', 'pin', 'garson ekle', 'el terminali'],
+    title: 'Garson Paneli ve Cihaz Eşleme',
+    response: `**Garson Terminali ve Cihaz Eşleme Rehberi:**
+
+1. **Kasada Manuel Ekleme Gerekmez:**
+   * Garson kendi telefonundan kasadaki "Garson Eşleme QR Kodu"nu okutur.
+   * Telefonuna adını ve soyadını yazıp "Yetki Talebi Gönder" butonuna basar.
+
+2. **Kasa Onayı:**
+   * Kasa panelindeki "Garsonlar & Terminaller" sekmesine talep anında düşer.
+   * "Yetkiyi Onayla" butonuna bastığınız anda garsonun telefonu doğrudan masa ve sipariş POS ekranına dönüşür.
+
+3. **PIN'siz Doğrudan Sipariş:**
+   * Cihaz bir kez onaylandıktan sonra her girişte PIN sormaz; garson doğrudan masa seçip sipariş girer.
+   * Siparişler kasaya ve mutfak yazıcısına garsonun adıyla iletilir.`,
+    quickActions: [
+      { label: 'Garson Paneline Git', actionType: 'navigate_waiters' },
+    ],
+  },
+  {
+    keywords: ['hesap', 'ödendi', 'kapat', 'nakit', 'pos', 'kredi kartı', 'kart'],
+    title: 'Sipariş ve Hesap Kapatma (Nakit / POS)',
+    response: `**Canlı Siparişler ve Hesap Kapatma:**
+
+1. **Sipariş Durumu:**
+   * Gelen sipariş "Bekliyor" durumundayken "Hazırla" butonuna basılır.
+   * Hazırlanan veya bekleyen sipariş için doğrudan **"Hesabı Kapat"** butonuna basılır.
+
+2. **Ödeme Türü Seçimi:**
+   * Açılan pencerede sipariş detayları ve ödenecek tutar gösterilir.
+   * **"POS / Kredi Kartı"** veya **"Nakit Ödeme"** butonlarından biri seçilerek hesap kapatılır.
+   * Yapılan ödeme anında ilgili ciro kalemine (Kredi Kartı veya Nakit) otomatik işlenir.`,
+    quickActions: [
+      { label: 'Canlı Siparişlere Git', actionType: 'navigate_orders' },
+      { label: 'Ciro Raporunu Gör', actionType: 'navigate_turnover' },
+    ],
+  },
+  {
+    keywords: ['yazıcı', 'termal', 'çıktı', 'fiş', 'printer', 'mutfak fişi', '80mm', '58mm'],
+    title: 'Termal Fiş Yazıcı Ayarları',
+    response: `**Yazıcı ve Termal Fiş Ayarları:**
+
+* Paneldeki **"İşletme Ayarları"** sekmesinden Fiş Genişliğini (80mm veya 58mm) seçebilirsiniz.
+* "Yeni Siparişte Otomatik Yazdır" seçeneğini aktif ettiğinizde masadan veya garsondan gelen her yeni sipariş otomatik olarak mutfak yazıcısına gönderilir.
+* Sipariş kartlarındaki "Yazdır" butonuyla dilediğiniz zaman tekrar fiş çıktısı alabilirsiniz.`,
+    quickActions: [
+      { label: 'İşletme Ayarlarına Git', actionType: 'navigate_settings' },
+    ],
+  },
+  {
+    keywords: ['qr', 'karekod', 'yazdır', 'masa', 'çıktı', 'pdf', 'baskı'],
+    title: 'Masa QR Kodları ve Baskı Alma',
+    response: `**Masa QR Kodları ve Baskı:**
+
+* Paneldeki **"Masa & QR Kodlar"** sekmesine gidin.
+* **"Tüm QR Kodları Yazdır / PDF İndir"** butonuna basarak masa aparatlarına uygun formatta çıktı alabilirsiniz.
+* Masaya oturan müşteri QR kodu okuttuğunda o masanın sipariş menüsü doğrudan açılır.`,
+    quickActions: [
+      { label: 'Masa & QR Kodlara Git', actionType: 'navigate_tables' },
+    ],
+  },
   {
     keywords: ['görsel', 'fotoğraf', 'resim', 'stok', 'url', 'foto', 'unsplash', 'pexels'],
     title: 'Görsel Bulma & Stok URL Rehberi',
@@ -59,34 +122,28 @@ Menüdeki ürünlerinize internet üzerindeki ücretsiz stok fotoğrafların ba�
     ],
   },
   {
-    keywords: ['qr', 'karekod', 'yazdır', 'masa', 'çıktı', 'pdf', 'baskı'],
-    title: 'Masa QR Çıktısı Alma',
-    response: `**Masa QR Kodları ve Baskı:**
+    keywords: ['ciro', 'rapor', 'z raporu', 'gün sonu', 'aylık', 'pdf'],
+    title: 'Ciro ve Z Raporu',
+    response: `**Ciro ve Kasa Raporları:**
 
-* Paneldeki **"Masa & QR Kodlar"** sekmesine gidin.
-* **"Tüm QR Kodları Yazdır / PDF İndir"** butonuna basarak doğrudan masa aparatlarına uygun formatta çıktı alabilirsiniz.
-* Masaya oturan müşteri QR kodu okuttuğunda o masanın sipariş ekranı açılır.`,
+* **Ciro & Raporlar** sekmesinden günlük, haftalık ve aylık toplam gelirinizi görebilirsiniz.
+* Toplam tutar Nakit ve POS/Kredi Kartı olarak ayrı ayrı dökülür.
+* **"Z Raporu Yazdır"** butonuyla gün sonu kasa fişi çıktısı alabilir, **"Aylık PDF İndir"** butonuyla muhasebe dökümünü kaydedebilirsiniz.`,
     quickActions: [
-      { label: 'Masa & QR Kodlara Git', actionType: 'navigate_tables' },
+      { label: 'Ciro Raporuna Git', actionType: 'navigate_turnover' },
     ],
   },
   {
-    keywords: ['fiyat', 'fiyatlar', 'zam', 'indirim', 'güncelle', 'değiştir', 'düzenle'],
-    title: 'Fiyat ve Ürün Güncelleme',
-    response: `**Fiyat ve Menü Güncelleme:**
+    keywords: ['wifi', 'şifre', 'işletme adı', 'adres', 'telefon', 'ayar'],
+    title: 'İşletme Bilgileri ve Müşteri WiFi',
+    response: `**İşletme ve WiFi Ayarları:**
 
-* **Menü & Ürünler** sekmesine gidin.
-* Düzenlemek istediğiniz ürünün yanındaki **"Düzenle"** butonuna basın.
-* Fiyat veya açıklama bilgisini güncelleyip **"Değişiklikleri Kaydet"** butonuna basın.`,
-  },
-  {
-    keywords: ['hesap', 'ödendi', 'kapat', 'adisyon', 'ciro', 'kasa'],
-    title: 'Masa Hesabını Kapatma',
-    response: `**Masa Hesabını Kapatma:**
-
-* **Canlı Siparişler** veya **Masa Yönetimi** ekranında ilgili masayı seçin.
-* Ödeme alındığında **"Hesabı Kapat / Ödendi"** butonuna basın.
-* Tutar otomatik olarak gün sonu cironuza işlenir ve masa yeni müşteriye hazır hale gelir.`,
+* **İşletme Ayarları** sekmesine gidin.
+* İşletme adı, telefon, adres ve müşteri WiFi adı/şifresini güncelleyebilirsiniz.
+* WiFi bilgileri müşterilerin QR menü ekranında pratik şekilde gösterilir.`,
+    quickActions: [
+      { label: 'İşletme Ayarlarına Git', actionType: 'navigate_settings' },
+    ],
   },
 ];
 
@@ -96,26 +153,36 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: `Merhaba. Restiva Destek Asistanına hoş geldiniz.\n\nSistem kullanımı, menü yönetimi, QR kodlar veya teknik konular hakkında bilgi almak için yukarıdaki hızlı başlıklardan birini seçebilir veya sorunuzu doğrudan yazabilirsiniz.`,
+      text: `Merhaba. Restiva Destek Asistanına hoş geldiniz.\n\nSistem kullanımı, garson eşleme, canlı siparişler, termal yazıcı, menü veya ciro yönetimi hakkında bilgi almak için aşağıdaki hızlı başlıklardan birini seçebilir veya sorunuzu doğrudan yazabilirsiniz.`,
       timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
 
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isEndingChat, setIsEndingChat] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Realtime Supabase live messages sync with SuperAdmin
+  // Realtime Supabase live messages sync with SuperAdmin & Auto-clean
   useEffect(() => {
     const fetchAdminMessages = async () => {
+      // 1. Trigger DB cleanup for resolved chats older than 2h & chats older than 3 days
+      try {
+        await supabase.rpc('cleanup_old_support_messages');
+      } catch {
+        // Fallback if RPC is not yet applied
+      }
+
+      // 2. Fetch active messages
       const { data } = await supabase
         .from('support_messages')
         .select('*')
         .eq('business_id', business.id)
+        .eq('status', 'open')
         .order('created_at', { ascending: true });
 
       if (data && data.length > 0) {
@@ -183,6 +250,39 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     scrollToBottom();
   }, [messages, isTyping]);
 
+  // Handle Ending / Resolving Chat
+  const handleEndChat = async () => {
+    try {
+      setIsEndingChat(true);
+      const { error } = await supabase.rpc('end_support_chat', {
+        p_business_id: business.id,
+      });
+
+      if (error) {
+        // Fallback direct update
+        await supabase
+          .from('support_messages')
+          .update({ is_resolved: true, status: 'closed', updated_at: new Date().toISOString() })
+          .eq('business_id', business.id)
+          .eq('status', 'open');
+      }
+
+      setMessages([
+        {
+          id: `system-${Date.now()}`,
+          sender: 'system',
+          text: 'Sohbet başarıyla sonlandırıldı. Geçmiş mesajlar 2 saat içerisinde otomatik olarak temizlenecektir. İhtiyaç duyduğunuzda yeni bir soru sorarak yeni bir sohbet başlatabilirsiniz.',
+          timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
+      toast.success('Sohbet sonlandırıldı.');
+    } catch (err: any) {
+      toast.error('Sohbet sonlandırılırken hata oluştu.');
+    } finally {
+      setIsEndingChat(false);
+    }
+  };
+
   // Handle Bot Answer or Send to Superadmin
   const handleQuery = async (queryText: string) => {
     if (!queryText.trim()) return;
@@ -198,13 +298,15 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     setInputVal('');
     setIsTyping(true);
 
-    // Save to Supabase support_messages so SuperAdmin can also see and respond live!
+    // Save to Supabase support_messages
     await supabase.from('support_messages').insert([
       {
         business_id: business.id,
         sender: 'business',
         message: queryText.trim(),
         is_read: false,
+        status: 'open',
+        is_resolved: false,
       },
     ]);
 
@@ -234,13 +336,13 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           {
             id: `bot-${Date.now()}`,
             sender: 'bot',
-            text: `Mesajınız sistem yöneticisine ve teknik destek ekibine iletildi. 👨‍💻\n\nEn kısa sürede buradan yanıt verilecektir. Dilerseniz yukarıdaki hazır yardım konularını da inceleyebilirsiniz.`,
+            text: `Mesajınız sistem yöneticisine ve teknik destek ekibine iletildi.\n\nEn kısa sürede buradan yanıt verilecektir. Dilerseniz yukarıdaki hazır yardım konularını da inceleyebilirsiniz.`,
             timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
           },
         ]);
         sound.playMessageTone();
       }
-    }, 600);
+    }, 500);
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -258,15 +360,27 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           </div>
           <div>
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-              <span>Restiva Akıllı Müşteri Temsilcisi</span>
+              <span>Restiva Destek Asistanı</span>
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             </h3>
-            <p className="text-xs text-slate-500">7/24 Kullanım ipuçları, stok görsel bulma ve canlı teknik destek</p>
+            <p className="text-xs text-slate-500">Sistem kullanımı, garson terminalleri, yazıcı ve canlı teknik destek</p>
           </div>
         </div>
 
-        <div className="text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
-          Canlı & Çevrimiçi
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleEndChat}
+            disabled={isEndingChat}
+            className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
+            title="Mevcut sohbeti sonlandırır ve geçmişi temizleme kuyruğuna alır"
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>Sohbeti Sonlandır</span>
+          </button>
+
+          <div className="hidden sm:block text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl">
+            Çevrimiçi
+          </div>
         </div>
       </div>
 
@@ -276,19 +390,19 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           Hızlı Konular:
         </span>
         <button
-          onClick={() => handleQuery('Ürünlerime nasıl fotoğraf eklerim veya nereden görsel bulurum?')}
+          onClick={() => handleQuery('Garson terminalini nasıl eşlerim ve nasıl sipariş alırım?')}
           className="px-3 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 text-slate-700 hover:text-orange-700 text-[11px] font-bold rounded-xl transition shrink-0 flex items-center gap-1 shadow-xs"
         >
-          <ImageIcon className="w-3 h-3 text-orange-500" />
-          <span>Görsel Bulma & Stok URL Rehberi</span>
+          <Smartphone className="w-3 h-3 text-orange-500" />
+          <span>Garson Terminali & Eşleme</span>
         </button>
 
         <button
-          onClick={() => handleQuery('Tükenen ürünü nasıl kapatırım / en alta düşürürüm?')}
+          onClick={() => handleQuery('Hesabı kapatırken Nakit veya Kredi Kartı POS seçimi nasıl işler?')}
           className="px-3 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 text-slate-700 hover:text-orange-700 text-[11px] font-bold rounded-xl transition shrink-0 flex items-center gap-1 shadow-xs"
         >
-          <Sparkles className="w-3 h-3 text-orange-500" />
-          <span>Tükenen Ürün Yönetimi</span>
+          <DollarSign className="w-3 h-3 text-orange-500" />
+          <span>Sipariş & Hesap Kapatma</span>
         </button>
 
         <button
@@ -300,11 +414,19 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         </button>
 
         <button
-          onClick={() => handleQuery('Sistemde bir sorun veya hata bildirmek istiyorum')}
+          onClick={() => handleQuery('Termal fiş yazıcısı ayarları ve mutfak fişi nasıl çalışır?')}
           className="px-3 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 text-slate-700 hover:text-orange-700 text-[11px] font-bold rounded-xl transition shrink-0 flex items-center gap-1 shadow-xs"
         >
-          <AlertTriangle className="w-3 h-3 text-amber-500" />
-          <span>Sorun Bildir</span>
+          <Printer className="w-3 h-3 text-orange-500" />
+          <span>Termal Yazıcı Ayarları</span>
+        </button>
+
+        <button
+          onClick={() => handleQuery('Tükenen ürünü nasıl kapatırım / en alta düşürürüm?')}
+          className="px-3 py-1 bg-white hover:bg-orange-50 border border-slate-200 hover:border-orange-300 text-slate-700 hover:text-orange-700 text-[11px] font-bold rounded-xl transition shrink-0 flex items-center gap-1 shadow-xs"
+        >
+          <Sparkles className="w-3 h-3 text-orange-500" />
+          <span>Tükenen Ürün Yönetimi</span>
         </button>
       </div>
 
@@ -314,6 +436,17 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           const isUser = msg.sender === 'user';
           const isAdmin = msg.sender === 'admin';
           const isBot = msg.sender === 'bot';
+          const isSystem = msg.sender === 'system';
+
+          if (isSystem) {
+            return (
+              <div key={msg.id} className="flex justify-center my-2">
+                <div className="bg-slate-200/80 text-slate-700 px-4 py-2 rounded-2xl text-[11px] font-semibold max-w-lg text-center shadow-xs">
+                  {msg.text}
+                </div>
+              </div>
+            );
+          }
 
           return (
             <div
@@ -336,7 +469,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     {isAdmin && <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />}
                     {isUser && <User className="w-3.5 h-3.5 text-orange-200" />}
                     <span>
-                      {isBot ? 'Restiva Akıllı Asistan' : isAdmin ? 'Süper Admin (Canlı Destek)' : 'Siz'}
+                      {isBot ? 'Restiva Asistan' : isAdmin ? 'Sistem Yöneticisi (Canlı Destek)' : 'Siz'}
                     </span>
                   </div>
                   <span className={isUser ? 'text-orange-100' : 'text-slate-400'}>
@@ -390,7 +523,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           type="text"
           value={inputVal}
           onChange={(e) => setInputVal(e.target.value)}
-          placeholder="Sormak istediğiniz konuyu yazın (Örn: Görsel nasıl eklenir? Stok bitti ne yapmalıyım?)..."
+          placeholder="Sormak istediğiniz konuyu yazınız (Örn: Garson eşleme nasıl yapılır?)..."
           className="flex-1 bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none font-medium placeholder:text-slate-400"
         />
         <button

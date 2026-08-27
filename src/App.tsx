@@ -145,8 +145,17 @@ export default function App() {
       loadCustomerBusiness(slug);
       setCurrentRoute('customer');
     } else {
-      // Default directly to Business Login / Dashboard
-      setCurrentRoute('business');
+      // If this device is an approved waiter terminal and not logged in as business admin
+      const hasWaiterToken = localStorage.getItem('restiva_waiter_device_token');
+      const hasBizSession = sessionStorage.getItem('restiva_biz_session') || localStorage.getItem('restiva_biz_session');
+      const hasSaAuth = sessionStorage.getItem('restiva_sa_auth') || localStorage.getItem('restiva_sa_auth');
+
+      if (hasWaiterToken && !hasBizSession && !hasSaAuth) {
+        setCurrentRoute('waiter');
+      } else {
+        // Default directly to Business Login / Dashboard
+        setCurrentRoute('business');
+      }
     }
   }, []);
 

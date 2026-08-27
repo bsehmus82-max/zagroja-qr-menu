@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- RESTIVA ADISYON & QR MENU - PRODUCTION DATABASE SCHEMA
 -- ============================================================
 
@@ -1437,8 +1437,59 @@ BEGIN
 END;
 $$;
 
+-- 9. DESTEK SOHBETİ SONLANDIRMA VE OTOMATİK GEÇMİŞ TEMİZLİĞİ
+ALTER TABLE public.support_messages 
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'open',
+ADD COLUMN IF NOT EXISTS is_resolved BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+CREATE OR REPLACE FUNCTION public.end_support_chat(p_business_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    UPDATE public.support_messages
+    SET status = 'closed',
+        is_resolved = true,
+        updated_at = now()
+    WHERE business_id = p_business_id
+      AND status = 'open';
+
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cleanup_old_support_messages()
+RETURNS INT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_deleted_count INT := 0;
+BEGIN
+    -- 1. Sonlandırılmış/kapatılmış ve üzerinden 2 saat geçmiş mesajları sil
+    DELETE FROM public.support_messages
+    WHERE (status = 'closed' OR is_resolved = true)
+      AND updated_at < (now() - interval '2 hours');
+
+    GET DIAGNOSTICS v_deleted_count = ROW_COUNT;
+
+    -- 2. 3 günden uzun süredir açık veya sahipsiz kalan mesajları sil/temizle
+    DELETE FROM public.support_messages
+    WHERE created_at < (now() - interval '3 days');
+
+    RETURN v_deleted_count;
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.request_waiter_pairing TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.approve_waiter_device TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.reject_waiter_device TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_device_pairing_status TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.end_support_chat TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_support_messages TO anon, authenticated;
+
