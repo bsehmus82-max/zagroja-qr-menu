@@ -1,0 +1,19 @@
+﻿{
+  "short_name": "Restiva",
+  "name": "Restiva - Restoran & Adisyon Portalı",
+  "description": "Yeni Nesil QR Menü, Canlı Mutfak ve POS Adisyon Sistemi",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#080B10",
+  "theme_color": "#080B10",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}

@@ -7,12 +7,15 @@ import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
 import { printKitchenTicket } from '../../lib/thermalPrinter';
+import { sendNativeNotification } from '../../lib/notifications';
+import { useToast } from '../../context/ToastContext';
 
 interface LiveOrdersProps {
   business: Business;
 }
 
 export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
+  const toast = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +64,14 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
             setOrders((prev) => [newOrder, ...prev]);
             sound.playOrderBell();
             printKitchenTicket(business, newOrder);
+            toast.info(`🔔 ${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
+            
+            // Native Background / OS Push Notification
+            sendNativeNotification({
+              title: `🔔 Yeni Sipariş: ${newOrder.table_no}`,
+              body: `${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} (${newOrder.total_amount.toFixed(2)} ₺)`,
+              url: '/admin',
+            });
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as Order;
             setOrders((prev) =>
@@ -84,6 +95,22 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
             const newReq = payload.new as ServiceRequest;
             setServiceRequests((prev) => [newReq, ...prev]);
             sound.playWaiterCall();
+            
+            const reqLabel =
+              newReq.request_type === 'waiter'
+                ? 'Garson Çağrısı'
+                : newReq.request_type === 'bill_cash'
+                ? 'Hesap İste (Nakit)'
+                : 'Hesap İste (POS / Kart)';
+
+            toast.warning(`🛎️ ${newReq.table_no}: ${reqLabel}`);
+
+            // Native Background Push Notification
+            sendNativeNotification({
+              title: `🛎️ ${newReq.table_no}: ${reqLabel}`,
+              body: `${newReq.table_no} masası servis personeli bekliyor.`,
+              url: '/admin',
+            });
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as ServiceRequest;
             setServiceRequests((prev) =>
@@ -97,7 +124,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [business.id]);
+  }, [business.id, toast]);
 
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     const { error } = await supabase
@@ -111,6 +138,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           ? prev.filter((o) => o.id !== orderId)
           : prev.map((o) => (o.id === orderId ? { ...o, status } : o))
       );
+      if (status === 'preparing') toast.info('Sipariş mutfakta hazırlanıyor olarak işaretlendi.');
+      if (status === 'served') toast.success('Sipariş masaya servis edildi.');
+      if (status === 'paid') toast.success('Hesap kapatıldı.');
     }
   };
 
@@ -122,6 +152,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
 
     if (!error) {
       setServiceRequests((prev) => prev.filter((r) => r.id !== reqId));
+      toast.success('Masa çağrısı tamamlandı.');
     }
   };
 
@@ -139,7 +170,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Yeni siparişlerde otomatik adisyon fişi açılır ve akustik mutfak zili çalar.
+              Yeni siparişlerde otomatik adisyon fişi açılır, akustik zil çalar ve kilitli ekrana bildirim gider.
             </p>
           </div>
         </div>

@@ -12,6 +12,8 @@ import { TurnoverReport } from './TurnoverReport';
 import { BusinessSettings } from './BusinessSettings';
 import { BusinessSupportChat } from './BusinessSupportChat';
 import { BusinessOnboarding } from './BusinessOnboarding';
+import { NotificationPrompt } from '../common/NotificationPrompt';
+import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 
 interface BusinessDashboardProps {
   initialBusiness: Business;
@@ -47,7 +49,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   return (
     <div className="min-h-screen bg-[#080B10] text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Header */}
-      <header className="border-b border-[#1E2638] bg-[#10141E]/80 backdrop-blur-md sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
+      <header className="border-b border-[#1E2638] bg-[#10141E]/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
             {business.name.charAt(0)}
@@ -63,8 +65,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </div>
         </div>
 
-        {/* Live Menu Link & Logout */}
-        <div className="flex items-center gap-2.5">
+        {/* Action buttons: Notifications, Install PWA, Live Menu & Logout */}
+        <div className="flex items-center gap-2">
+          <NotificationPrompt />
+          <PwaInstallPrompt panelName={business.name} />
+
           <a
             href={menuLiveUrl}
             target="_blank"
@@ -87,7 +92,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       </header>
 
       {/* Modern Navigation Tabs */}
-      <nav className="border-b border-[#1E2638] bg-[#0C1018] px-6 py-2 overflow-x-auto scrollbar-none">
+      <nav className="border-b border-[#1E2638] bg-[#0C1018] px-4 sm:px-6 py-2 overflow-x-auto scrollbar-none">
         <div className="max-w-7xl mx-auto flex items-center gap-1">
           <button
             onClick={() => setActiveTab('orders')}
@@ -176,7 +181,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       </nav>
 
       {/* Main Body */}
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full">
         {activeTab === 'orders' && <LiveOrders business={business} />}
         {activeTab === 'pos' && <ManualPos business={business} />}
         {activeTab === 'menu' && <MenuManager business={business} />}

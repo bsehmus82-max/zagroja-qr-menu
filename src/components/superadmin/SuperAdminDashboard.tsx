@@ -7,8 +7,11 @@ import {
 import { supabase, hashPassword, generateTempPassword } from '../../lib/supabase';
 import { Business } from '../../types';
 import { sound } from '../../lib/audio';
+import { sendNativeNotification } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common/ConfirmModal';
+import { NotificationPrompt } from '../common/NotificationPrompt';
+import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 import { CreateBusinessModal } from './CreateBusinessModal';
 import { CreatedCredentialsModal } from './CreatedCredentialsModal';
 import { BroadcastModal } from './BroadcastModal';
@@ -70,7 +73,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
     loadBusinesses();
   }, []);
 
-  // Realtime notification
+  // Realtime notification & Background Push
   useEffect(() => {
     const channel = supabase
       .channel('superadmin-notifications')
@@ -81,6 +84,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
           if (payload.new && (payload.new as { sender: string }).sender === 'business') {
             sound.playMessageTone();
             toast.info('İşletmeden yeni bir destek mesajı geldi.');
+            sendNativeNotification({
+              title: '💬 Yeni Destek Mesajı',
+              body: 'Bir işletme platform yöneticisine mesaj gönderdi.',
+              url: '/superadmin',
+            });
           }
         }
       )
@@ -192,22 +200,22 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
   return (
     <div className="min-h-screen bg-[#090C10] text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Header */}
-      <header className="border-b border-[#212634] bg-[#12161F]/80 backdrop-blur-md sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
+      <header className="border-b border-[#212634] bg-[#12161F]/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <Shield className="w-4 h-4" />
           </div>
           <div>
             <h1 className="font-bold text-sm tracking-tight text-slate-100">Yönetim Merkezi</h1>
-            <p className="text-[11px] text-slate-400">İşletme ve Sistem Kontrol Paneli</p>
+            <p className="text-[11px] text-slate-400">Platform Kontrol Paneli</p>
           </div>
         </div>
 
         {/* Center Tabs */}
-        <div className="flex items-center gap-1 bg-[#0A0D14] p-1 rounded-xl border border-[#212634]">
+        <div className="flex items-center gap-1 bg-[#0A0D14] p-1 rounded-xl border border-[#212634] order-3 sm:order-2 w-full sm:w-auto overflow-x-auto">
           <button
             onClick={() => setActiveTab('businesses')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'businesses' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -216,7 +224,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
           </button>
           <button
             onClick={() => setActiveTab('chat')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'chat' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -225,7 +233,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
           </button>
           <button
             onClick={() => setActiveTab('database')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
               activeTab === 'database' ? 'bg-[#1E2433] text-slate-100 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -234,21 +242,24 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
           </button>
         </div>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-2">
+        {/* Right Actions: Notifications, PWA Install & Actions */}
+        <div className="flex items-center gap-2 order-2 sm:order-3">
+          <NotificationPrompt />
+          <PwaInstallPrompt panelName="Super Admin" />
+
           <button
             onClick={() => setShowBroadcastModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 hover:bg-purple-500/20 text-xs font-medium transition"
           >
             <Radio className="w-3.5 h-3.5 text-purple-400" />
-            Toplu Duyuru
+            <span className="hidden md:inline">Toplu Duyuru</span>
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
           >
             <Plus className="w-3.5 h-3.5" />
-            Yeni İşletme
+            <span className="hidden sm:inline">Yeni İşletme</span>
           </button>
           <button
             onClick={onLogout}
@@ -261,11 +272,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
       </header>
 
       {/* Main Area */}
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full">
         {activeTab === 'businesses' && (
           <div className="space-y-5">
             {/* Metric KPI cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-[#12161F] border border-[#212634] p-4 rounded-2xl">
                 <span className="text-[11px] font-medium text-slate-400">Toplam İşletme</span>
                 <p className="text-2xl font-bold text-slate-100 mt-0.5">{businesses.length}</p>
@@ -282,14 +293,14 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
                   {businesses.filter((b) => b.subscription_status === 'suspended').length}
                 </p>
               </div>
-              <div className="bg-[#12161F] border border-[#212634] p-4 rounded-2xl flex items-center">
+              <div className="bg-[#12161F] border border-[#212634] p-4 rounded-2xl flex items-center col-span-2 md:col-span-1">
                 <div className="relative w-full">
                   <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="İşletme veya kullanıcı ara..."
+                    placeholder="İşletme ara..."
                     className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
                   />
                 </div>

@@ -3,12 +3,15 @@ import { Send, MessageSquare, RefreshCw, AlertTriangle, ShieldCheck } from 'luci
 import { Business, SupportMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
+import { sendNativeNotification } from '../../lib/notifications';
+import { useToast } from '../../context/ToastContext';
 
 interface BusinessSupportChatProps {
   business: Business;
 }
 
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
+  const toast = useToast();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -52,6 +55,12 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           setMessages((prev) => [...prev, newMsg]);
           if (newMsg.sender === 'superadmin') {
             sound.playMessageTone();
+            toast.info('Sistem Yöneticisinden yeni mesaj geldi.');
+            sendNativeNotification({
+              title: '📢 Sistem Yöneticisinden Mesaj',
+              body: newMsg.message.slice(0, 100),
+              url: '/admin',
+            });
           }
         }
       )
@@ -60,7 +69,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [business.id]);
+  }, [business.id, toast]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
