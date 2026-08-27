@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, BellRing, Receipt, Wifi, Snowflake, 
-  Plus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
+  Plus, Minus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
 } from 'lucide-react';
 import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -137,6 +137,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     );
   };
 
+  const getItemQtyInCart = (prodId: string) => {
+    const found = cart.find((item) => item.product.id === prodId);
+    return found ? found.quantity : 0;
+  };
+
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalCartPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
@@ -262,7 +267,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
                 <button
                   onClick={() => setServiceModalType('waiter')}
-                  className="flex items-center gap-2 py-1 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                  className="flex items-center gap-2 py-1.5 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
                 >
                   <BellRing className="w-4 h-4 text-orange-400" />
                   <span>{t.callWaiter}</span>
@@ -272,7 +277,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
                 <button
                   onClick={() => setServiceModalType('bill')}
-                  className="flex items-center gap-2 py-1 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                  className="flex items-center gap-2 py-1.5 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
                 >
                   <Receipt className="w-4 h-4 text-emerald-400" />
                   <span>{t.requestBill}</span>
@@ -362,7 +367,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           )}
 
-          {/* VIEW 2: PRODUCTS INSIDE CATEGORY */}
+          {/* VIEW 2: PRODUCTS INSIDE CATEGORY (COMPACT HORIZONTAL RECTANGULAR CARDS) */}
           {(isSearching || selectedCatId !== null) && (
             <div className="mt-3 space-y-3">
               {/* Category Breadcrumb / Back Bar */}
@@ -372,7 +377,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     setSelectedCatId(null);
                     setSearchTerm('');
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition text-xs font-bold shadow-xs active:scale-95"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 transition text-xs font-bold shadow-xs active:scale-95"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-orange-500" />
                   <span>{t.categories}</span>
@@ -397,7 +402,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                         onClick={() => setSelectedCatId(cat.id)}
                         className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
+                            ? 'bg-slate-900 text-white shadow-sm'
                             : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
@@ -408,7 +413,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 </div>
               )}
 
-              {/* Products List */}
+              {/* Products List (Compact Gourmet Rectangles) */}
               <div className="px-4 space-y-2.5">
                 {loading ? (
                   <div className="py-16 text-center text-xs text-slate-400 font-bold">
@@ -421,13 +426,15 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 ) : (
                   currentProducts.map((prod) => {
                     const translatedDesc = getTranslatedDescription(prod.description, lang);
+                    const qtyInCart = getItemQtyInCart(prod.id);
+
                     return (
                       <div
                         key={prod.id}
-                        className="bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs hover:shadow-sm transition flex items-center gap-3 relative overflow-hidden"
+                        className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs hover:shadow-sm transition flex items-center justify-between gap-3 overflow-hidden relative"
                       >
-                        {/* Image on Left */}
-                        <div className="w-18 h-18 rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                        {/* Food Thumbnail on Left (Strictly Constrained 80x80px with right vignette) */}
+                        <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-200/60 shadow-xs">
                           <img
                             src={
                               categories.find((c) => c.id === prod.category_id)?.image_url ||
@@ -436,16 +443,19 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                             alt={prod.name}
                             className="w-full h-full object-cover"
                           />
+                          {/* Right Vignette on Food Image */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
+
                           {prod.is_frozen && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-[9px] font-bold">
+                            <div className="absolute inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold">
                               {t.soldOut}
                             </div>
                           )}
                         </div>
 
-                        {/* Info in Center: Product Name (Original) + Translated Description */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                        {/* Info in Center: Product Name (Original) + Translated Description + Price */}
+                        <div className="flex-1 min-w-0 pr-1">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate leading-snug">
                             {prod.name}
                           </h3>
                           {translatedDesc && (
@@ -460,16 +470,38 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                           </div>
                         </div>
 
-                        {/* Add to Cart Button */}
-                        <div>
-                          <button
-                            onClick={() => addToCart(prod)}
-                            disabled={prod.is_frozen}
-                            className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none shrink-0"
-                            title={t.addToCart}
-                          >
-                            +
-                          </button>
+                        {/* Action Buttons on Right: Quantity Stepper or Plus Button */}
+                        <div className="shrink-0">
+                          {qtyInCart > 0 ? (
+                            <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                              <button
+                                onClick={() => updateCartQty(prod.id, -1)}
+                                className="w-6 h-6 rounded-lg bg-white shadow-xs flex items-center justify-center text-slate-800 font-bold hover:bg-slate-50 active:scale-95 transition"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+
+                              <span className="text-xs font-black text-slate-900 w-4 text-center">
+                                {qtyInCart}
+                              </span>
+
+                              <button
+                                onClick={() => updateCartQty(prod.id, 1)}
+                                className="w-6 h-6 rounded-lg bg-slate-900 shadow-xs flex items-center justify-center text-white font-bold hover:bg-slate-800 active:scale-95 transition"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => addToCart(prod)}
+                              disabled={prod.is_frozen}
+                              className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-orange-600 text-white flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none"
+                              title={t.addToCart}
+                            >
+                              +
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -485,18 +517,18 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40">
             <button
               onClick={() => setShowCart(true)}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 px-5 rounded-2xl shadow-xl shadow-orange-500/35 flex items-center justify-between transition active:scale-[0.98] font-bold text-xs"
+              className="w-full bg-slate-900 hover:bg-orange-600 text-white py-3.5 px-5 rounded-2xl shadow-xl shadow-slate-900/30 flex items-center justify-between transition active:scale-[0.98] font-bold text-xs"
             >
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-lg bg-black/20 flex items-center justify-center text-xs font-black">
+                <span className="w-5 h-5 rounded-lg bg-orange-500 flex items-center justify-center text-xs font-black text-white">
                   {totalCartCount}
                 </span>
                 <span>{t.viewCart}</span>
               </div>
 
-              <div className="flex items-center gap-1 font-black text-sm">
+              <div className="flex items-center gap-1 font-black text-sm text-orange-400">
                 <span>{totalCartPrice.toFixed(2)} ₺</span>
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 text-white" />
               </div>
             </button>
           </div>
