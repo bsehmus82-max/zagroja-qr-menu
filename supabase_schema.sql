@@ -2,7 +2,7 @@
 -- RESTIVA ADISYON & QR MENU - PRODUCTION DATABASE SCHEMA
 -- ============================================================
 
--- Enable UUID extension
+-- Enable Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     template_id TEXT DEFAULT 'clean',
     font_family TEXT DEFAULT 'Plus Jakarta Sans',
     table_limit INT DEFAULT 20,
-    subscription_status TEXT DEFAULT 'active', -- active, suspended, expired
+    subscription_status TEXT DEFAULT 'active',
     subscription_days INT DEFAULT 30,
     subscription_expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
     is_onboarded BOOLEAN DEFAULT false,
@@ -75,11 +75,11 @@ CREATE TABLE IF NOT EXISTS public.orders (
     table_id UUID REFERENCES public.tables(id) ON DELETE SET NULL,
     table_no TEXT NOT NULL,
     session_token TEXT,
-    order_source TEXT DEFAULT 'qr', -- 'qr' | 'pos' | 'waiter'
+    order_source TEXT DEFAULT 'qr',
     items JSONB NOT NULL DEFAULT '[]'::jsonb,
     total_amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    status TEXT DEFAULT 'pending', -- pending, preparing, served, paid, cancelled
-    payment_method TEXT DEFAULT 'unpaid', -- unpaid, cash, credit_card
+    status TEXT DEFAULT 'pending',
+    payment_method TEXT DEFAULT 'unpaid',
     customer_notes TEXT DEFAULT '',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -92,8 +92,8 @@ CREATE TABLE IF NOT EXISTS public.service_requests (
     table_id UUID REFERENCES public.tables(id) ON DELETE SET NULL,
     table_no TEXT NOT NULL,
     session_token TEXT,
-    request_type TEXT NOT NULL, -- 'waiter', 'bill_cash', 'bill_card'
-    status TEXT DEFAULT 'pending', -- 'pending', 'resolved'
+    request_type TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS public.service_requests (
 CREATE TABLE IF NOT EXISTS public.support_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-    sender TEXT NOT NULL, -- 'superadmin' | 'business'
+    sender TEXT NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS public.waiters (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 9. WAITER DEVICES (Cihaz Eşleme & Sunucu Taraflı PIN Kilit Tablosu)
+-- 9. WAITER DEVICES
 CREATE TABLE IF NOT EXISTS public.waiter_devices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
@@ -133,14 +133,63 @@ CREATE TABLE IF NOT EXISTS public.waiter_devices (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Realtime Replication
-ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.service_requests;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tables;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.waiter_devices;
+-- 10. DAILY SUMMARY (Günlük Ciro & Satış Defteri)
+CREATE TABLE IF NOT EXISTS public.daily_summary (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    summary_date DATE NOT NULL,
+    total_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    cash_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    card_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    total_orders INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (business_id, summary_date)
+);
 
--- Row Level Security (RLS)
+-- ============================================================
+-- SAFE REALTIME REPLICATION (Hatasız Replikasyon Ekleme)
+-- ============================================================
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'orders'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'service_requests'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.service_requests;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'support_messages'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.support_messages;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'tables'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.tables;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'waiter_devices'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.waiter_devices;
+    END IF;
+END $$;
+
+-- ============================================================
+-- ROW LEVEL SECURITY (RLS) ETKİNLEŞTİRME
+-- ============================================================
 ALTER TABLE public.businesses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
@@ -150,9 +199,10 @@ ALTER TABLE public.service_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.waiters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.waiter_devices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.daily_summary ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================
--- HELPER FUNCTION: İŞLETME AKTİFLİK KONTROLÜ (RLS & RPC İÇİN)
+-- HELPER FUNCTION: İŞLETME AKTİFLİK KONTROLÜ
 -- ============================================================
 CREATE OR REPLACE FUNCTION public.is_business_active(p_business_id UUID)
 RETURNS BOOLEAN
@@ -172,35 +222,47 @@ BEGIN
 END;
 $$;
 
--- RLS Policies
+-- ============================================================
+-- RLS POLİTİKALARI (Tekrarlanabilir / Idempotent)
+-- ============================================================
+
+-- Businesses
+DROP POLICY IF EXISTS "Allow public read for businesses" ON public.businesses;
 CREATE POLICY "Allow public read for businesses" ON public.businesses FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow service role all for businesses" ON public.businesses;
 CREATE POLICY "Allow service role all for businesses" ON public.businesses FOR ALL USING (true);
 
+-- Categories
+DROP POLICY IF EXISTS "Allow public read for categories" ON public.categories;
 CREATE POLICY "Allow public read for categories" ON public.categories FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow service role all for categories" ON public.categories;
 CREATE POLICY "Allow service role all for categories" ON public.categories FOR ALL USING (true);
 
+-- Products
+DROP POLICY IF EXISTS "Allow public read for products" ON public.products;
 CREATE POLICY "Allow public read for products" ON public.products FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow service role all for products" ON public.products;
 CREATE POLICY "Allow service role all for products" ON public.products FOR ALL USING (true);
 
+-- Tables
+DROP POLICY IF EXISTS "Allow public read for tables" ON public.tables;
 CREATE POLICY "Allow public read for tables" ON public.tables FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow service role all for tables" ON public.tables;
 CREATE POLICY "Allow service role all for tables" ON public.tables FOR ALL USING (true);
 
--- ORDERS RLS SIKILAŞTIRMASI:
--- 1. Okuma: Sadece aktif ve süresi geçerli (suspended olmayan) işletmelerin siparişleri Realtime/SELECT edilebilir
+-- Orders
 DROP POLICY IF EXISTS "Allow select orders" ON public.orders;
 CREATE POLICY "Allow select orders" 
 ON public.orders 
 FOR SELECT 
 USING (public.is_business_active(business_id));
 
--- 2. Doğrudan INSERT Engeli: anon/authenticated doğrudan INSERT atamaz
 DROP POLICY IF EXISTS "Deny direct anon order inserts" ON public.orders;
 CREATE POLICY "Deny direct anon order inserts" 
 ON public.orders 
 FOR INSERT 
 WITH CHECK (false);
 
--- 3. Güncelleme: Sipariş durumunu güncelleme
 DROP POLICY IF EXISTS "Allow update order status" ON public.orders;
 CREATE POLICY "Allow update order status" 
 ON public.orders 
@@ -208,14 +270,38 @@ FOR UPDATE
 USING (true)
 WITH CHECK (true);
 
+-- Service Requests
+DROP POLICY IF EXISTS "Allow public insert and read for service_requests" ON public.service_requests;
 CREATE POLICY "Allow public insert and read for service_requests" ON public.service_requests FOR ALL USING (true);
+
+-- Support Messages
+DROP POLICY IF EXISTS "Allow all for support_messages" ON public.support_messages;
 CREATE POLICY "Allow all for support_messages" ON public.support_messages FOR ALL USING (true);
 
+-- Waiters
+DROP POLICY IF EXISTS "Allow select waiters" ON public.waiters;
 CREATE POLICY "Allow select waiters" ON public.waiters FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow manage waiters" ON public.waiters;
 CREATE POLICY "Allow manage waiters" ON public.waiters FOR ALL USING (true) WITH CHECK (true);
 
+-- Waiter Devices
+DROP POLICY IF EXISTS "Allow select waiter_devices" ON public.waiter_devices;
 CREATE POLICY "Allow select waiter_devices" ON public.waiter_devices FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Allow manage waiter_devices" ON public.waiter_devices;
 CREATE POLICY "Allow manage waiter_devices" ON public.waiter_devices FOR ALL USING (true) WITH CHECK (true);
+
+-- Daily Summary
+DROP POLICY IF EXISTS "Allow select daily_summary" ON public.daily_summary;
+CREATE POLICY "Allow select daily_summary" 
+ON public.daily_summary 
+FOR SELECT 
+USING (public.is_business_active(business_id));
+
+DROP POLICY IF EXISTS "Allow service role all daily_summary" ON public.daily_summary;
+CREATE POLICY "Allow service role all daily_summary" 
+ON public.daily_summary 
+FOR ALL 
+USING (true);
 
 -- ============================================================
 -- 1. RPC: 5 DAKİKALIK İMZALI CİHAZ EŞLEME QR ÜRET
@@ -347,7 +433,6 @@ DECLARE
     v_waiter RECORD;
     v_remaining_secs INT;
 BEGIN
-    -- 1. Cihaz güvenilir mi?
     SELECT * INTO v_device 
     FROM public.waiter_devices 
     WHERE business_id = p_business_id AND device_token = p_device_token AND is_trusted = true;
@@ -356,18 +441,15 @@ BEGIN
         RAISE EXCEPTION 'Cihazınızın işletme yetkisi kaldırılmış veya eşleşme geçersiz.';
     END IF;
 
-    -- 2. Sunucu taraflı PIN kilit kontrolü
     IF v_device.pin_locked_until IS NOT NULL AND v_device.pin_locked_until > now() THEN
         v_remaining_secs := EXTRACT(EPOCH FROM (v_device.pin_locked_until - now()))::INT;
         RAISE EXCEPTION 'Cihaz çok sayıda hatalı deneme nedeniyle kilitlendi. Lütfen % saniye sonra tekrar deneyiniz.', v_remaining_secs;
     END IF;
 
-    -- 3. PIN doğru mu?
     SELECT * INTO v_waiter 
     FROM public.waiters 
     WHERE business_id = p_business_id AND pin_hash = p_pin_hash AND is_active = true;
 
-    -- 4. Hatalı PIN durumu (3 denemede 5 dakika kilit)
     IF NOT FOUND THEN
         IF COALESCE(v_device.failed_pin_attempts, 0) + 1 >= 3 THEN
             UPDATE public.waiter_devices 
@@ -385,7 +467,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- 5. Başarılı PIN: Sayacı ve kilidi sıfırla, aktifliği güncelle
     UPDATE public.waiter_devices 
     SET waiter_id = v_waiter.id,
         failed_pin_attempts = 0,
@@ -429,12 +510,10 @@ DECLARE
     v_qty INT;
     v_waiter_name TEXT := NULL;
 BEGIN
-    -- 1. İşletme Kontrolü (Suspended / Pasif kontrolü)
     IF NOT public.is_business_active(p_business_id) THEN
         RAISE EXCEPTION 'İşletme bulunamadı veya hesabı aktif değil.';
     END IF;
 
-    -- 2. RATE LIMITING: QR siparişleri için aynı masaya son 10 saniyede sipariş geldiyse engelle
     IF p_order_source = 'qr' THEN
         IF EXISTS (
             SELECT 1 FROM public.orders 
@@ -446,7 +525,6 @@ BEGIN
         END IF;
     END IF;
 
-    -- 3. GARSON SİPARİŞİ İSE CİHAZ VE PIN YETKİSİ KONTROLÜ
     IF p_order_source = 'waiter' THEN
         IF p_device_token IS NULL OR NOT EXISTS (
             SELECT 1 FROM public.waiter_devices 
@@ -463,7 +541,6 @@ BEGIN
         UPDATE public.waiter_devices SET last_active_at = now() WHERE device_token = p_device_token;
     END IF;
 
-    -- 4. Ürün ve Fiyat Doğrulama (Server-Side)
     FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
     LOOP
         v_qty := COALESCE((v_item->>'quantity')::INT, 1);
@@ -500,7 +577,6 @@ BEGIN
         RAISE EXCEPTION 'Sipariş için geçerli ürün bulunamadı.';
     END IF;
 
-    -- 5. Güvenli Sipariş Kaydı
     INSERT INTO public.orders (
         business_id,
         table_no,
@@ -531,45 +607,11 @@ BEGIN
 END;
 $$;
 
--- İzinler
-GRANT EXECUTE ON FUNCTION public.is_business_active TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.generate_waiter_pairing_token TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.pair_waiter_device TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.verify_waiter_pin TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
-
 -- ============================================================
--- 11. GÜNLÜK ÖZET (DAILY_SUMMARY) & OTOMATİK CRON GÖREVLERİ
+-- 5. CRON FONKSİYONLARI (ZAMANLANMIŞ GÖREVLER)
 -- ============================================================
 
--- 1. Günlük Ciro ve Satış Özeti Tablosu
-CREATE TABLE IF NOT EXISTS public.daily_summary (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
-    summary_date DATE NOT NULL,
-    total_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    cash_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    card_revenue NUMERIC(10,2) NOT NULL DEFAULT 0.00,
-    total_orders INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE (business_id, summary_date)
-);
-
-ALTER TABLE public.daily_summary ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Allow select daily_summary" ON public.daily_summary;
-CREATE POLICY "Allow select daily_summary" 
-ON public.daily_summary 
-FOR SELECT 
-USING (public.is_business_active(business_id));
-
-DROP POLICY IF EXISTS "Allow service role all daily_summary" ON public.daily_summary;
-CREATE POLICY "Allow service role all daily_summary" 
-ON public.daily_summary 
-FOR ALL 
-USING (true);
-
--- 2. CRON 1: SÜRESİ DOLAN İŞLETMELERİ OTOMATİK ASKIYA ALMA (Her Gece 00:05)
+-- A. Süresi Dolan İşletmeleri Askıya Al
 CREATE OR REPLACE FUNCTION public.cron_auto_suspend_expired_businesses()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -585,7 +627,7 @@ BEGIN
 END;
 $$;
 
--- 3. CRON 2: GÜNLÜK GÜN KAPATMA VE CİRO ÖZETİ DERLEME (Her Gece 00:00)
+-- B. Günlük Ciro ve Satış Özeti Çıkar
 CREATE OR REPLACE FUNCTION public.cron_generate_daily_summary(p_target_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 day')::DATE)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -622,9 +664,7 @@ BEGIN
 END;
 $$;
 
--- 4. CRON 3: BİTEN AYIN CİRO DEFTERİNİ (DAILY_SUMMARY) OTOMATİK SİLME (Her Ayın 6'sı Saat 00:05)
--- DİKKAT: Sadece daily_summary tablosundan siler. public.orders HAM verisine KESİNLİKLE DOKUNMAZ.
--- İşletmenin durumundan (aktif/askıya alınmış) bağımsız çalışır.
+-- C. Biten Ayın Ciro Defterini Sil (Ham Siparişlere Dokunmaz)
 CREATE OR REPLACE FUNCTION public.cron_purge_previous_month_daily_summary()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -637,16 +677,14 @@ BEGIN
 END;
 $$;
 
--- PG_CRON ZAMANLANMIŞ GÖREV TANIMLARI (Supabase pg_cron eklentisi aktif olduğunda)
--- 1. Her gece 00:00 -> Günlük ciro özetini çıkar
--- SELECT cron.schedule('generate_daily_summary_job', '0 0 * * *', 'SELECT public.cron_generate_daily_summary();');
-
--- 2. Her gece 00:05 -> Süresi dolan işletmeleri otomatik askıya al
--- SELECT cron.schedule('auto_suspend_expired_businesses_job', '5 0 * * *', 'SELECT public.cron_auto_suspend_expired_businesses();');
-
--- 3. Her ayın 6'sı 00:05 (5 günlük indirme penceresi bitince) -> Eski ayın daily_summary kayıtlarını sil
--- SELECT cron.schedule('purge_old_daily_summary_job', '5 0 6 * *', 'SELECT public.cron_purge_previous_month_daily_summary();');
-
+-- ============================================================
+-- İZİNLER (GRANTS)
+-- ============================================================
+GRANT EXECUTE ON FUNCTION public.is_business_active TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.generate_waiter_pairing_token TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.pair_waiter_device TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.verify_waiter_pin TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cron_auto_suspend_expired_businesses TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cron_generate_daily_summary TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cron_purge_previous_month_daily_summary TO anon, authenticated;
