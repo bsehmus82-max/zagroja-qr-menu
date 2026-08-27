@@ -605,6 +605,49 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           </div>
         </form>
       </div>
+
+      {/* Standalone Thermal Print Agent Setup Card */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6 text-white shadow-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
+              <Settings className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm sm:text-base text-white flex items-center gap-2">
+                <span>7/24 Otomatik Adisyon Yazıcı Programı (.EXE)</span>
+                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Tarayıcı Kapalıyken de Basar
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Müşteri masadan sipariş verdiği an bilgisayarda tarayıcı (Chrome) açık olmasa bile termal fiş anında yazıcıdan çıkar.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-1.5">
+            <span className="text-orange-400 font-bold text-[11px] block">İşletme Eşleşme Kodunuz:</span>
+            <div className="bg-black/40 px-3 py-2 rounded-xl text-white font-mono font-bold text-xs border border-white/10">
+              {business.slug}
+            </div>
+            <span className="text-[10px] text-slate-400 block">
+              Programı ilk açtığınızda işletmenizi seçin veya bu kodu girin.
+            </span>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-1.5 sm:col-span-2">
+            <span className="text-orange-400 font-bold text-[11px] block">Nasıl Kurulur? (Sıfır Ek Maliyet):</span>
+            <ul className="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+              <li>Masaüstü bilgisayarınızda <strong className="text-white">RestivaAdisyonYazici.exe</strong> programını çalıştırın.</li>
+              <li>Termal yazıcınızı (Epson, Xprinter, Bixolon vb.) seçip <strong className="text-emerald-400">&quot;Bağlantıyı Başlat&quot;</strong> butonuna basın.</li>
+              <li>Artık QR menüden sipariş geldiğinde program sesi çalar ve fişi saniyesinde basar!</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
