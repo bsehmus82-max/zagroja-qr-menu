@@ -1,9 +1,39 @@
-﻿import { Business, Order, Table } from '../types';
+import { Business, Order, Table } from '../types';
 
 /**
  * 80mm / 58mm ESC/POS Thermal Receipt & Order Ticket Printing Utility
  */
-export function printKitchenTicket(business: Business, order: Order) {
+export async function printKitchenTicket(business: Business, order: Order) {
+  // 1. Try local Windows Print Bridge Agent (http://localhost:9100/print)
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 700);
+    const res = await fetch('http://localhost:9100/print', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'kitchen_ticket',
+        business_name: business.name,
+        business_phone: business.phone,
+        table_no: order.table_no,
+        order_id: order.id,
+        order_source: order.order_source,
+        items: order.items,
+        total_amount: order.total_amount,
+        customer_notes: order.customer_notes,
+        created_at: order.created_at,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      console.log('Printed silently via Restiva Print Bridge Agent');
+      return;
+    }
+  } catch {
+    // Local agent not running, fallback to standard browser popup print
+  }
+
   const printWindow = window.open('', '_blank', 'width=350,height=600');
   if (!printWindow) return;
 
