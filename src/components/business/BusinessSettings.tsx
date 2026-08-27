@@ -1,8 +1,8 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Palette, Wifi, Phone, Lock, 
-  Check, Save, KeyRound, AlertCircle, Eye, EyeOff, 
-  Image as ImageIcon, Upload, Link2, Trash2, Camera, Calendar
+  Palette, Wifi, Lock, Check, Save, KeyRound, 
+  AlertCircle, Eye, EyeOff, Upload, Link2, Trash2, 
+  Camera, Calendar, Shield
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
@@ -33,6 +33,8 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     business.working_hours?.toLowerCase().includes('24 saat') || false
   );
 
+  // Wi-Fi State & Toggle
+  const [showWifi, setShowWifi] = useState<boolean>(business.show_wifi ?? true);
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
 
@@ -47,7 +49,6 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  // When 24 Hours is toggled ON, automatically select all 7 days
   useEffect(() => {
     if (is24Hours) {
       setSelectedDays(ALL_DAYS);
@@ -56,7 +57,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
   const toggleDay = (day: string) => {
     if (is24Hours) {
-      toast.info('24 Saat Açık işletmelerde çalışma günleri otomatik olarak "Her Gün"dür.');
+      toast.info('24 Saat Açık seçildiğinde çalışma günleri otomatik olarak "Her Gün"dür.');
       return;
     }
     setSelectedDays((prev) =>
@@ -187,7 +188,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
         const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
         setLogoUrl(optimizedBase64);
-        toast.success('Logo fotoğrafı başarıyla yüklendi!');
+        toast.success('Logo başarıyla yüklendi!');
       };
       img.src = event.target?.result as string;
     };
@@ -205,8 +206,9 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         phone: phone.trim(),
         address: address.trim(),
         working_hours: workingHoursDisplay,
-        wifi_ssid: wifiSsid.trim(),
-        wifi_password: wifiPassword.trim(),
+        wifi_ssid: showWifi ? wifiSsid.trim() : '',
+        wifi_password: showWifi ? wifiPassword.trim() : '',
+        show_wifi: showWifi,
         updated_at: new Date().toISOString(),
       };
 
@@ -220,7 +222,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       if (!error && data) {
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('İşletme ayarları ve çalışma saatleri başarıyla kaydedildi!');
+        toast.success('İşletme ayarları başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
         toast.error('Ayarlar kaydedilirken bir hata oluştu.');
@@ -282,11 +284,11 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
   return (
     <div className="space-y-6 max-w-4xl">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-white/[0.08] p-4 sm:p-5 rounded-2xl">
         <div>
           <h2 className="text-base font-bold text-white">İşletme Ayarları & Görsel Tema</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Logonuzu, haftalık çalışma günlerinizi, saatlerinizi, temanızı ve şifrenizi buradan yönetebilirsiniz.
+            Logonuzu, çalışma saatlerinizi, Wi-Fi görünürlüğünü, temanızı ve şifrenizi buradan yönetebilirsiniz.
           </p>
         </div>
 
@@ -302,20 +304,17 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* Dual Logo Field: Photo Upload & URL */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
+      <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-bold text-xs text-white">İşletme Logosu (Fotoğraf veya URL)</h3>
-          </div>
+          <span className="text-xs font-semibold text-white">İşletme Logosu</span>
 
-          <div className="flex items-center gap-1 bg-[#151C2C] p-1 rounded-xl border border-[#212C42]">
+          <div className="flex items-center gap-1 bg-[#090C12] p-1 rounded-xl border border-white/[0.08]">
             <button
               type="button"
               onClick={() => setLogoMode('upload')}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
                 logoMode === 'upload'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -327,18 +326,18 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               onClick={() => setLogoMode('url')}
               className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
                 logoMode === 'url'
-                  ? 'bg-indigo-600 text-white shadow-sm'
+                  ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <Link2 className="w-3 h-3" />
-              URL Yapıştır
+              Görsel URL
             </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638]">
-          <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+        <div className="flex items-center gap-4 bg-[#090C12] p-4 rounded-2xl border border-white/[0.06]">
+          <div className="w-16 h-16 rounded-2xl bg-[#121724] border border-white/[0.08] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
             {logoUrl ? (
               <>
                 <img
@@ -349,7 +348,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 <button
                   type="button"
                   onClick={() => setLogoUrl('')}
-                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
+                  className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
                   title="Logoyu Kaldır"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -371,10 +370,10 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               />
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border border-dashed border-[#25324A] hover:border-indigo-500/60 bg-[#111622] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
+                className="border border-dashed border-white/[0.12] hover:border-indigo-500/60 bg-[#121724] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
               >
                 <Upload className="w-4 h-4 text-indigo-400" />
-                <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Telefondan veya Bilgisayardan Logo Fotoğrafı Seç'}</span>
+                <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
               </div>
             </div>
           ) : (
@@ -383,8 +382,8 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 type="url"
                 value={logoUrl}
                 onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://... /logo.png (Görsel URL)"
-                className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                placeholder="https://... /logo.png"
+                className="w-full bg-[#121724] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
             </div>
           )}
@@ -392,17 +391,16 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* Working Schedule Card: Days & Hours */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
+      <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-indigo-400" />
             <h3 className="font-bold text-xs text-white">Çalışma Günleri & Saatleri</h3>
           </div>
-          <span className="text-[11px] font-bold text-indigo-400">{workingHoursDisplay}</span>
+          <span className="text-[11px] font-bold text-indigo-400 font-mono">{workingHoursDisplay}</span>
         </div>
 
-        <div className="bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638] space-y-3">
-          {/* Days Selector */}
+        <div className="bg-[#090C12] p-4 rounded-2xl border border-white/[0.06] space-y-3">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-[11px] font-medium text-slate-300">Haftalık Çalışma Günleri</span>
@@ -410,21 +408,21 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('all')}
-                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#121724] hover:bg-white/5 text-slate-300 border border-white/[0.08]"
                 >
                   Her Gün
                 </button>
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('weekdays')}
-                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#121724] hover:bg-white/5 text-slate-300 border border-white/[0.08]"
                 >
                   Hafta İçi
                 </button>
                 <button
                   type="button"
                   onClick={() => applyDaysPreset('mon_sat')}
-                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                  className="text-[10px] px-2 py-0.5 rounded-lg bg-[#121724] hover:bg-white/5 text-slate-300 border border-white/[0.08]"
                 >
                   Pzt - Cmt
                 </button>
@@ -442,7 +440,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                     className={`py-2 rounded-xl text-xs font-semibold transition border text-center ${
                       isSelected
                         ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
-                        : 'bg-[#111622] border-[#1E2638] text-slate-400 hover:text-slate-200'
+                        : 'bg-[#121724] border-white/[0.06] text-slate-400 hover:text-slate-200'
                     }`}
                   >
                     {day}
@@ -452,8 +450,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             </div>
           </div>
 
-          {/* Time pickers or 24h info */}
-          <div className="pt-2 border-t border-[#1E2638]">
+          <div className="pt-2 border-t border-white/[0.06]">
             {!is24Hours ? (
               <div className="grid grid-cols-2 gap-3 mb-2">
                 <div>
@@ -462,7 +459,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                     type="time"
                     value={openTime}
                     onChange={(e) => setOpenTime(e.target.value)}
-                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-[#121724] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -471,13 +468,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                     type="time"
                     value={closeTime}
                     onChange={(e) => setCloseTime(e.target.value)}
-                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-[#121724] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
                   />
                 </div>
               </div>
             ) : (
-              <div className="w-full bg-[#111622] border border-indigo-500/30 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
-                ✨ 24 Saat Açık Hizmet (Tüm Hafta Aktif)
+              <div className="w-full bg-indigo-600/10 border border-indigo-500/25 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
+                ✨ 24 Saat Açık Hizmet (Haftanın 7 Günü)
               </div>
             )}
 
@@ -492,7 +489,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                   key={preset.val}
                   type="button"
                   onClick={() => applyPresetHours(preset.val)}
-                  className="py-1.5 px-1 rounded-xl bg-[#111622] hover:bg-[#182030] text-[10px] text-slate-400 hover:text-slate-200 border border-[#1E2638] transition truncate text-center"
+                  className="py-1.5 px-1 rounded-xl bg-[#121724] hover:bg-white/5 text-[10px] text-slate-400 hover:text-slate-200 border border-white/[0.06] transition truncate text-center"
                 >
                   {preset.label}
                 </button>
@@ -502,8 +499,99 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
       </div>
 
+      {/* Wi-Fi & Contact */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Contact Info */}
+        <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-3.5">
+          <h3 className="font-bold text-xs text-white">İletişim & Açık Adres</h3>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              Telefon Numarası
+            </label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0 (212) 000 00 00"
+              className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              Açık Adres
+            </label>
+            <textarea
+              rows={2}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="İşletme açık adresi..."
+              className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Wi-Fi Info with Toggle */}
+        <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-xs text-white flex items-center gap-1.5">
+                <Wifi className="w-3.5 h-3.5 text-indigo-400" />
+                Müşteri Wi-Fi Bilgileri
+              </h3>
+              <p className="text-[10px] text-slate-400">QR menüde misafirlere gösterilsin mi?</p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showWifi}
+                onChange={(e) => setShowWifi(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-[#090C12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 border border-white/[0.08]"></div>
+            </label>
+          </div>
+
+          {showWifi ? (
+            <div className="space-y-3 pt-1 animate-in fade-in">
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Wi-Fi Ağ Adı (SSID)
+                </label>
+                <input
+                  type="text"
+                  value={wifiSsid}
+                  onChange={(e) => setWifiSsid(e.target.value)}
+                  placeholder="Restoran_Misafir"
+                  className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                  Wi-Fi Şifresi
+                </label>
+                <input
+                  type="text"
+                  value={wifiPassword}
+                  onChange={(e) => setWifiPassword(e.target.value)}
+                  placeholder="Misafir1234"
+                  className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-[#090C12] rounded-xl border border-white/[0.06] text-center text-xs text-slate-500">
+              Wi-Fi bilgisi müşteri QR menüsünde gizlenmiştir.
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 6 Luxury Themes Selector */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
+      <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Palette className="w-4 h-4 text-indigo-400" />
           <h3 className="font-bold text-xs text-white">QR Menü Görsel Şablonu (6 Seçenek)</h3>
@@ -519,7 +607,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col justify-between ${
                   isSelected
                     ? 'border-indigo-500 bg-[#151C2C] ring-2 ring-indigo-500/20 shadow-lg'
-                    : 'border-[#1E2638] bg-[#0B0E14] hover:border-[#2C3B59]'
+                    : 'border-white/[0.08] bg-[#090C12] hover:border-white/[0.16]'
                 }`}
               >
                 <div>
@@ -548,79 +636,8 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
       </div>
 
-      {/* Contact & Wi-Fi */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Contact Info */}
-        <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-bold text-xs text-white">İletişim & Adres</h3>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">
-              Telefon Numarası
-            </label>
-            <input
-              type="text"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="0 (212) 000 00 00"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">
-              Adres
-            </label>
-            <textarea
-              rows={2}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder="İşletme açık adresi..."
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Wi-Fi Info */}
-        <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
-          <div className="flex items-center gap-2">
-            <Wifi className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-bold text-xs text-white">Müşteri Wi-Fi Bilgileri</h3>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">
-              Wi-Fi Ağ Adı (SSID)
-            </label>
-            <input
-              type="text"
-              value={wifiSsid}
-              onChange={(e) => setWifiSsid(e.target.value)}
-              placeholder="Restoran_Misafir_Wifi"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">
-              Wi-Fi Şifresi
-            </label>
-            <input
-              type="text"
-              value={wifiPassword}
-              onChange={(e) => setWifiPassword(e.target.value)}
-              placeholder="Misafir1234"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Password Change Form */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
+      <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4 text-indigo-400" />
@@ -659,7 +676,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="En az 6 karakter"
-                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-100 focus:outline-none"
+                className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl pl-3 pr-8 py-2 text-xs text-slate-100 focus:outline-none"
               />
               <button
                 type="button"
@@ -681,7 +698,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Şifreyi tekrar giriniz"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
+              className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/50 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none"
             />
           </div>
 

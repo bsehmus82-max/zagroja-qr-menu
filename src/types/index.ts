@@ -1,4 +1,4 @@
-﻿export type SubscriptionStatus = 'active' | 'suspended' | 'expired';
+export type SubscriptionStatus = 'active' | 'suspended' | 'expired';
 
 export type TemplateId = 
   | 'clean' 
@@ -20,6 +20,7 @@ export interface Business {
   working_hours?: string;
   wifi_ssid?: string;
   wifi_password?: string;
+  show_wifi?: boolean;
   table_limit?: number | null;
   subscription_status: SubscriptionStatus;
   subscription_days: number;

@@ -225,7 +225,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           </div>
 
           {/* Wi-Fi Action Button */}
-          {business.wifi_ssid && (
+          {(business.show_wifi ?? true) && business.wifi_ssid && (
             <button
               onClick={() => setServiceModalType('wifi')}
               className="p-2 rounded-xl bg-[#182030]/80 border border-[#26334D] text-slate-300 hover:text-white transition active:scale-95"

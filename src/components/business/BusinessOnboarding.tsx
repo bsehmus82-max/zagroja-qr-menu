@@ -1,8 +1,7 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { 
-  Phone, MapPin, Clock, Wifi, Sparkles, 
-  CheckCircle2, ArrowRight, Shield, Image as ImageIcon, 
-  Upload, Link2, Trash2, Camera, Calendar
+  Upload, Link2, Trash2, Camera, 
+  Sparkles, ArrowRight, Check, Wifi, Utensils
 } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -28,18 +27,22 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
   
-  // Working Days & Hours State
+  // Working Schedule State
   const [selectedDays, setSelectedDays] = useState<string[]>(ALL_DAYS);
   const [openTime, setOpenTime] = useState('09:00');
   const [closeTime, setCloseTime] = useState('00:00');
   const [is24Hours, setIs24Hours] = useState(false);
 
+  // Wi-Fi State & Toggle
+  const [showWifi, setShowWifi] = useState<boolean>(true);
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
+
+  // Sample Catalog State
   const [loadDefaultMenu, setLoadDefaultMenu] = useState<boolean>(true);
   const [loading, setLoading] = useState(false);
 
-  // When 24 Hours is toggled ON, automatically select all 7 days
+  // 24 Hours Auto-Sync: automatically select all days
   useEffect(() => {
     if (is24Hours) {
       setSelectedDays(ALL_DAYS);
@@ -48,7 +51,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
 
   const toggleDay = (day: string) => {
     if (is24Hours) {
-      toast.info('24 Saat Açık işletmelerde çalışma günleri otomatik olarak "Her Gün"dür.');
+      toast.info('24 Saat Açık seçildiğinde çalışma günleri otomatik olarak "Her Gün"dür.');
       return;
     }
     setSelectedDays((prev) =>
@@ -134,7 +137,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
 
         const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
         setLogoUrl(optimizedBase64);
-        toast.success('Logo fotoğrafı başarıyla yüklendi!');
+        toast.success('Logo başarıyla yüklendi!');
       };
       img.src = event.target?.result as string;
     };
@@ -153,8 +156,9 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
           phone: phone.trim(),
           address: address.trim(),
           working_hours: workingHoursDisplay,
-          wifi_ssid: wifiSsid.trim(),
-          wifi_password: wifiPassword.trim(),
+          wifi_ssid: showWifi ? wifiSsid.trim() : '',
+          wifi_password: showWifi ? wifiPassword.trim() : '',
+          show_wifi: showWifi,
           updated_at: new Date().toISOString(),
         })
         .eq('id', business.id)
@@ -208,35 +212,35 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#080B10] flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
-      <div className="w-full max-w-2xl bg-[#111622] border border-[#1E2638] rounded-3xl p-6 sm:p-8 shadow-2xl relative">
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-3 shadow-sm">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">İşletme Kurulum Sihirbazı</h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-            <strong className="text-slate-200">{business.name}</strong> için temel bilgileri girerek sisteminizi 1 dakikada hazır hale getirin.
+    <div className="min-h-screen bg-[#07090E] flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-500/30 selection:text-indigo-200">
+      {/* Background ambient lighting */}
+      <div className="fixed inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
+        <div className="w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px]" />
+      </div>
+
+      <div className="w-full max-w-xl bg-[#0D111A]/95 border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 relative z-10 space-y-6">
+        {/* Clean Header */}
+        <div className="text-center space-y-1.5 pb-2 border-b border-white/[0.06]">
+          <h1 className="text-xl font-bold tracking-tight text-white">İşletmeniz İçin Gerekli Bilgiler</h1>
+          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+            <strong className="text-slate-200 font-semibold">{business.name}</strong> misafirlerine kusursuz bir dijital menü deneyimi sunmak için temel bilgileri tamamlayın.
           </p>
         </div>
 
         <form onSubmit={handleFinishOnboarding} className="space-y-4">
-          {/* Dual Logo Field: Photo Upload & URL */}
-          <div className="p-4 bg-[#0B0E14] border border-[#1E2638] rounded-2xl space-y-3">
+          {/* Logo Section (Clean Tech-Giant Style) */}
+          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
-                İşletme Logosu
-              </label>
+              <span className="text-xs font-semibold text-slate-200">İşletme Logosu</span>
 
-              {/* Mode Toggle Tabs */}
-              <div className="flex items-center gap-1 bg-[#151C2C] p-1 rounded-xl border border-[#212C42]">
+              {/* Mode Toggle */}
+              <div className="flex items-center gap-1 bg-[#090C12] p-1 rounded-xl border border-white/[0.06]">
                 <button
                   type="button"
                   onClick={() => setLogoMode('upload')}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
                     logoMode === 'upload'
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -248,19 +252,19 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   onClick={() => setLogoMode('url')}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
                     logoMode === 'url'
-                      ? 'bg-indigo-600 text-white shadow-sm'
+                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Link2 className="w-3 h-3" />
-                  URL Yapıştır
+                  Görsel URL
                 </button>
               </div>
             </div>
 
             <div className="flex items-center gap-3.5">
-              {/* Live Preview Avatar */}
-              <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+              {/* Squircle Preview */}
+              <div className="w-14 h-14 rounded-2xl bg-[#090C12] border border-white/[0.08] flex items-center justify-center overflow-hidden shrink-0 shadow-md relative group">
                 {logoUrl ? (
                   <>
                     <img
@@ -271,18 +275,17 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     <button
                       type="button"
                       onClick={() => setLogoUrl('')}
-                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
+                      className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
                       title="Logoyu Kaldır"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </>
                 ) : (
-                  <Camera className="w-6 h-6 text-slate-500" />
+                  <Camera className="w-5 h-5 text-slate-500" />
                 )}
               </div>
 
-              {/* Upload Input Mode */}
               {logoMode === 'upload' ? (
                 <div className="flex-1">
                   <input
@@ -294,55 +297,89 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   />
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border border-dashed border-[#25324A] hover:border-indigo-500/60 bg-[#111622] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
+                    className="border border-dashed border-white/[0.12] hover:border-indigo-500/60 bg-[#090C12]/80 rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
                   >
-                    <Upload className="w-4 h-4 text-indigo-400" />
-                    <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Cihazdan Fotoğraf / Logo Seç'}</span>
+                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{logoUrl ? 'Logoyu Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
                   </div>
                 </div>
               ) : (
-                /* URL Input Mode */
                 <div className="flex-1">
                   <input
                     type="url"
                     value={logoUrl}
                     onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://... /logo.png (Görsel URL)"
-                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    placeholder="https://... /logo.png"
+                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
                   />
                 </div>
               )}
             </div>
           </div>
 
-          {/* Working Schedule Card: Days & Hours */}
-          <div className="p-4 bg-[#0B0E14] border border-[#1E2638] rounded-2xl space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-indigo-400" />
-                Çalışma Günleri & Saatleri
+          {/* Contact Fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                İşletme Telefonu
               </label>
-              <span className="text-[10px] font-bold text-indigo-400">{workingHoursDisplay}</span>
+              <input
+                type="text"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="0 (212) 000 00 00"
+                className="w-full bg-[#121724]/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+              />
             </div>
 
-            {/* Weekly Days Selector */}
+            <div>
+              <label className="block text-[11px] font-medium text-slate-300 mb-1">
+                Açık Adres
+              </label>
+              <input
+                type="text"
+                required
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Mahalle, Cadde, No, İlçe"
+                className="w-full bg-[#121724]/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+              />
+            </div>
+          </div>
+
+          {/* Working Schedule */}
+          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-200">Çalışma Günleri & Saatleri</span>
+              <span className="text-[10px] font-bold text-indigo-400 font-mono">{workingHoursDisplay}</span>
+            </div>
+
+            {/* Days Pills */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-slate-400">Haftalık Çalışma Günleri</span>
+                <span className="text-[10px] text-slate-400">Haftalık Günler</span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => applyDaysPreset('all')}
-                    className="text-[9px] px-1.5 py-0.5 rounded bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
                   >
                     Her Gün
                   </button>
                   <button
                     type="button"
                     onClick={() => applyDaysPreset('weekdays')}
-                    className="text-[9px] px-1.5 py-0.5 rounded bg-[#151C2C] hover:bg-[#1E273D] text-slate-300 border border-[#212C42]"
+                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
                   >
                     Hafta İçi
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyDaysPreset('mon_sat')}
+                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
+                  >
+                    Pzt - Cmt
                   </button>
                 </div>
               </div>
@@ -358,7 +395,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                       className={`py-1.5 rounded-xl text-xs font-semibold transition border text-center ${
                         isSelected
                           ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
-                          : 'bg-[#111622] border-[#1E2638] text-slate-400 hover:text-slate-200'
+                          : 'bg-[#090C12] border-white/[0.06] text-slate-400 hover:text-slate-200'
                       }`}
                     >
                       {day}
@@ -368,32 +405,32 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
               </div>
             </div>
 
-            {/* Working Hours Pickers */}
+            {/* Time Pickers or 24h Message */}
             <div>
               {!is24Hours ? (
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Açılış Saati</span>
+                    <span className="block text-[10px] text-slate-400 mb-1">Açılış</span>
                     <input
                       type="time"
                       value={openTime}
                       onChange={(e) => setOpenTime(e.target.value)}
-                      className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                      className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Kapanış Saati</span>
+                    <span className="block text-[10px] text-slate-400 mb-1">Kapanış</span>
                     <input
                       type="time"
                       value={closeTime}
                       onChange={(e) => setCloseTime(e.target.value)}
-                      className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                      className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
                     />
                   </div>
                 </div>
               ) : (
-                <div className="w-full bg-[#111622] border border-indigo-500/30 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
-                  ✨ 24 Saat Açık Hizmet (Tüm Hafta Aktif)
+                <div className="w-full bg-indigo-600/10 border border-indigo-500/25 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
+                  ✨ 24 Saat Açık Hizmet (Haftanın 7 Günü)
                 </div>
               )}
 
@@ -409,7 +446,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     key={preset.val}
                     type="button"
                     onClick={() => applyPresetHours(preset.val)}
-                    className="py-1 px-1 rounded-lg bg-[#111622] hover:bg-[#182030] text-[10px] text-slate-400 hover:text-slate-200 border border-[#1E2638] transition truncate text-center"
+                    className="py-1 px-1 rounded-lg bg-[#090C12] hover:bg-white/5 text-[10px] text-slate-400 hover:text-slate-200 border border-white/[0.06] transition truncate text-center"
                   >
                     {preset.label}
                   </button>
@@ -418,97 +455,86 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Phone */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-indigo-400" />
-                İşletme Telefonu
+          {/* Wi-Fi Section with Switch / Checkbox */}
+          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                  <Wifi className="w-3.5 h-3.5 text-indigo-400" />
+                  Müşteri Wi-Fi Bilgisi
+                </span>
+                <p className="text-[10px] text-slate-400">QR menüde misafirlere gösterilsin mi?</p>
+              </div>
+
+              {/* iOS Style Pill Switch */}
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showWifi}
+                  onChange={(e) => setShowWifi(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-[#090C12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 border border-white/[0.08]"></div>
               </label>
-              <input
-                type="text"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="0 (212) 000 00 00"
-                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-              />
             </div>
 
-            {/* Address */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-indigo-400" />
-                Açık Adres
-              </label>
-              <input
-                type="text"
-                required
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Mahalle, Cadde, No, İlçe / Şehir"
-                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-              />
-            </div>
+            {showWifi && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/[0.06] animate-in fade-in duration-200">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Wi-Fi Ağ Adı (SSID)</label>
+                  <input
+                    type="text"
+                    value={wifiSsid}
+                    onChange={(e) => setWifiSsid(e.target.value)}
+                    placeholder="Restoran_Misafir"
+                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1">Wi-Fi Şifresi</label>
+                  <input
+                    type="text"
+                    value={wifiPassword}
+                    onChange={(e) => setWifiPassword(e.target.value)}
+                    placeholder="Misafir1234"
+                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            {/* Wi-Fi SSID */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Wifi className="w-3.5 h-3.5 text-indigo-400" />
-                Müşteri Wi-Fi Adı (İsteğe Bağlı)
-              </label>
-              <input
-                type="text"
-                value={wifiSsid}
-                onChange={(e) => setWifiSsid(e.target.value)}
-                placeholder="Restoran_Guest_Wifi"
-                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-              />
-            </div>
-
-            {/* Wi-Fi Password */}
-            <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
-                <Shield className="w-3.5 h-3.5 text-indigo-400" />
-                Wi-Fi Şifresi
-              </label>
-              <input
-                type="text"
-                value={wifiPassword}
-                onChange={(e) => setWifiPassword(e.target.value)}
-                placeholder="Misafir1234"
-                className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-              />
-            </div>
-          </div>
-
-          {/* Load Default Catalog Checkbox */}
-          <label className="p-4 bg-[#0B0E14] border border-[#1E2638] rounded-2xl flex items-center justify-between gap-4 cursor-pointer hover:border-indigo-500/30 transition">
+          {/* Sample Menu Template Section */}
+          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                <CheckCircle2 className="w-4 h-4" />
+              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
+                <Utensils className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-semibold text-xs text-white">Hazır Zengin Menü Kataloğunu Yükle</h3>
-                <p className="text-[10px] text-slate-400">Kahvaltı, Kahve, Burger, Pizza, Izgara ve Tatlı kategorileri hazır gelsin</p>
+                <h3 className="font-semibold text-xs text-white">Örnek Menü Şablonunu Dahil Et</h3>
+                <p className="text-[10px] text-slate-400">10 hazır kategori ve zengin lezzetlerle anında başlayın</p>
               </div>
             </div>
-            <input
-              type="checkbox"
-              checked={loadDefaultMenu}
-              onChange={(e) => setLoadDefaultMenu(e.target.checked)}
-              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 focus:ring-offset-0 bg-[#111622] border-[#1E2638]"
-            />
-          </label>
 
+            {/* iOS Style Pill Switch */}
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={loadDefaultMenu}
+                onChange={(e) => setLoadDefaultMenu(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-10 h-5 bg-[#090C12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 border border-white/[0.08]"></div>
+            </label>
+          </div>
+
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+            className="w-full mt-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-indigo-600/30 disabled:opacity-50"
           >
-            <span>{loading ? 'Kurulum Tamamlanıyor...' : 'Kurulumu Tamamla ve Panele Geç'}</span>
+            <span>{loading ? 'Kaydediliyor...' : 'Kurulumu Tamamla ve Yönetim Paneline Geç'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
