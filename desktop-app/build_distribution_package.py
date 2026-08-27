@@ -16,7 +16,7 @@ import subprocess
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DESKTOP_APP_DIR = os.path.join(BASE_DIR, "desktop-app")
 DIST_DIR = os.path.join(BASE_DIR, "dist")
-OUTPUT_PACKAGE_DIR = os.path.join(DIST_DIR, "RestivAdisyon-Paket")
+OUTPUT_PACKAGE_DIR = os.path.join(BASE_DIR, "RestivAdisyon-Kurulum-Paketi")
 PAYLOAD_DIR = os.path.join(DESKTOP_APP_DIR, "payload")
 
 def step(title):
@@ -112,13 +112,33 @@ def main():
     setup_exe = os.path.join(OUTPUT_PACKAGE_DIR, "RestivAdisyon_Kurulum.exe")
     print(f"[OK] RestivAdisyon_Kurulum.exe derlendi -> {setup_exe}")
 
-    # 7. Verification
-    step("7. Kurulum Dosyası Doğrulaması (Verification)")
+    # 7. Verification & Easy Access Copy
+    step("7. Kurulum Dosyası Doğrulaması & Kopyalama")
     if os.path.exists(setup_exe):
         size_mb = os.path.getsize(setup_exe) / (1024 * 1024)
+        
+        # Proje ana klasörüne de kopyala
+        root_exe = os.path.join(BASE_DIR, "RestivAdisyon_Kurulum.exe")
+        shutil.copyfile(setup_exe, root_exe)
+        
+        # Masaüstüne de kopyala (varsa)
+        desktop_dir = os.path.join(os.path.expanduser("~"), "Desktop")
+        onedrive_desktop = os.path.join(os.path.expanduser("~"), "OneDrive", "Masaüstü")
+        if os.path.exists(onedrive_desktop):
+            try:
+                shutil.copyfile(setup_exe, os.path.join(onedrive_desktop, "RestivAdisyon_Kurulum.exe"))
+            except Exception:
+                pass
+        elif os.path.exists(desktop_dir):
+            try:
+                shutil.copyfile(setup_exe, os.path.join(desktop_dir, "RestivAdisyon_Kurulum.exe"))
+            except Exception:
+                pass
+
         print(f"\n[BAŞARILI] Tek Parça Kurulum Sihirbazı Eksiksiz Olarak Üretildi:")
-        print(f"Dosya: {setup_exe} ({size_mb:.2f} MB)")
-        print(f"Klasör: {OUTPUT_PACKAGE_DIR}")
+        print(f"1. Paket Klasörü: {setup_exe} ({size_mb:.2f} MB)")
+        print(f"2. Ana Proje Klasörü: {root_exe}")
+        print(f"3. Masaüstü: RestivAdisyon_Kurulum.exe")
     else:
         print(f"[HATA] Kurulum dosyası üretilemedi!")
         sys.exit(1)
