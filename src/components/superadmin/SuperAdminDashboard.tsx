@@ -783,6 +783,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
         isOpen={showBroadcastModal}
         onClose={() => setShowBroadcastModal(false)}
         businesses={businesses}
+        onBusinessesUpdated={(updatedList) => setBusinesses(updatedList)}
       />
 
       <ConfirmModal
