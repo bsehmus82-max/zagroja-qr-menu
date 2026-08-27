@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
-  Plus, Search, Clock, Sparkles, Check, ChevronRight
+  Plus, Search, UtensilsCrossed, Sparkles, Check, ChevronRight
 } from 'lucide-react';
-import { Business, Category, Product, CartItem, TemplateId } from '../../types';
+import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
@@ -17,7 +17,7 @@ interface CustomerMenuProps {
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTable }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const [selectedCatId, setSelectedCatId] = useState<string | 'all'>('all');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -36,6 +36,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   // Service Modal state
   const [serviceModalType, setServiceModalType] = useState<'waiter' | 'bill' | 'wifi' | null>(null);
+
+  // Active Order Tracker state
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
 
   // Load Menu Data
   useEffect(() => {
@@ -59,9 +62,6 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
         if (catsRes.data) {
           setCategories(catsRes.data as Category[]);
-          if (catsRes.data.length > 0 && !selectedCatId) {
-            setSelectedCatId(catsRes.data[0].id);
-          }
         }
         if (prodsRes.data) {
           setProducts(prodsRes.data as Product[]);
@@ -73,6 +73,26 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
     fetchMenu();
   }, [business.id]);
+
+  // Load Active Orders for tracking
+  useEffect(() => {
+    const fetchMyActiveOrders = async () => {
+      const storedOrderIds = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
+      if (storedOrderIds.length === 0) return;
+
+      const { data } = await supabase
+        .from('orders')
+        .select('*')
+        .in('id', storedOrderIds)
+        .in('status', ['pending', 'preparing', 'served']);
+
+      if (data) setActiveOrders(data as Order[]);
+    };
+
+    fetchMyActiveOrders();
+    const interval = setInterval(fetchMyActiveOrders, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const addToCart = (product: Product) => {
     if (product.is_frozen) return;
@@ -104,301 +124,259 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalCartPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // Template Theme Configuration
-  const getThemeConfig = (template: TemplateId) => {
-    switch (template) {
-      case 'dark_luxury':
-        return {
-          bg: 'bg-[#040404]',
-          headerBg: 'bg-[#0A0A0A]/90 border-[#2A2315]',
-          cardBg: 'bg-[#0E0D0A] border-[#221C11] hover:border-[#4A3E26]',
-          activePill: 'bg-[#D4AF37] text-black shadow-lg shadow-amber-500/20 font-bold',
-          inactivePill: 'bg-[#14120E] border-[#2A2315] text-[#A69980] hover:text-white',
-          priceColor: 'text-[#F5D061]',
-          btnBg: 'bg-[#D4AF37] hover:bg-[#E5C158] text-black shadow-md shadow-amber-500/20',
-          accentText: 'text-[#D4AF37]',
-          fontFamily: 'font-sans',
-        };
-      case 'nordic':
-        return {
-          bg: 'bg-[#090E17]',
-          headerBg: 'bg-[#0F1726]/90 border-[#1C2A40]',
-          cardBg: 'bg-[#111A2C] border-[#1E2E47] hover:border-[#2C4366]',
-          activePill: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 font-semibold',
-          inactivePill: 'bg-[#131E31] border-[#1E2E47] text-slate-400 hover:text-white',
-          priceColor: 'text-emerald-400',
-          btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20',
-          accentText: 'text-emerald-400',
-          fontFamily: 'font-sans',
-        };
-      case 'bistro':
-        return {
-          bg: 'bg-[#0E0B09]',
-          headerBg: 'bg-[#17110E]/90 border-[#2B1D14]',
-          cardBg: 'bg-[#19130F] border-[#2D1F16] hover:border-[#4D3425]',
-          activePill: 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 font-semibold',
-          inactivePill: 'bg-[#1C1410] border-[#2D1F16] text-[#A8988D] hover:text-white',
-          priceColor: 'text-amber-400',
-          btnBg: 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/20',
-          accentText: 'text-amber-400',
-          fontFamily: 'font-sans',
-        };
-      case 'neon':
-        return {
-          bg: 'bg-[#070814]',
-          headerBg: 'bg-[#0D1026]/90 border-[#222752]',
-          cardBg: 'bg-[#0E112B] border-[#222854] hover:border-[#38418A]',
-          activePill: 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-lg shadow-cyan-500/25 font-bold',
-          inactivePill: 'bg-[#121536] border-[#222854] text-slate-400 hover:text-white',
-          priceColor: 'text-cyan-400',
-          btnBg: 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:opacity-90 text-white shadow-md shadow-cyan-500/20',
-          accentText: 'text-cyan-400',
-          fontFamily: 'font-sans',
-        };
-      case 'vintage':
-        return {
-          bg: 'bg-[#050E09]',
-          headerBg: 'bg-[#0B1A12]/90 border-[#193625]',
-          cardBg: 'bg-[#0D2117] border-[#183B2A] hover:border-[#285E43]',
-          activePill: 'bg-[#C5A059] text-[#050E09] shadow-lg shadow-yellow-600/20 font-bold',
-          inactivePill: 'bg-[#0E261A] border-[#183B2A] text-[#93AC9F] hover:text-white',
-          priceColor: 'text-[#E2C376]',
-          btnBg: 'bg-[#C5A059] hover:bg-[#D4B36E] text-[#050E09] font-bold shadow-md',
-          accentText: 'text-[#C5A059]',
-          fontFamily: 'font-sans',
-        };
-      case 'clean':
-      default:
-        return {
-          bg: 'bg-[#080B10]',
-          headerBg: 'bg-[#10141E]/90 border-[#1E2638]',
-          cardBg: 'bg-[#111724] border-[#1D273B] hover:border-[#2E3C59]',
-          activePill: 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-semibold',
-          inactivePill: 'bg-[#131A29] border-[#1E283D] text-slate-400 hover:text-white',
-          priceColor: 'text-indigo-400',
-          btnBg: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20',
-          accentText: 'text-indigo-400',
-          fontFamily: 'font-sans',
-        };
-    }
-  };
-
-  const theme = getThemeConfig(business.template_id);
-
   const currentProducts = products
-    .filter((p) => (selectedCatId ? p.category_id === selectedCatId : true))
-    .filter((p) => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    .filter((p) => (selectedCatId === 'all' ? true : p.category_id === selectedCatId))
+    .filter((p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  const selectedCategory = categories.find((c) => c.id === selectedCatId);
+  const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
 
   return (
-    <div className={`min-h-screen pb-32 text-slate-100 antialiased ${theme.bg} ${theme.fontFamily}`}>
-      {/* Sticky Header Bar */}
-      <header className={`sticky top-0 z-30 border-b backdrop-blur-xl px-4 py-3 ${theme.headerBg}`}>
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 flex items-center justify-center overflow-hidden shrink-0">
-              {business.logo_url ? (
-                <img
-                  src={business.logo_url}
-                  alt={business.name}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-                  {business.name.charAt(0)}
-                </div>
-              )}
-            </div>
-            <div>
-              <h1 className="font-bold text-xs tracking-tight text-white">{business.name}</h1>
-              <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                {tableNo && (
-                  <span className="font-semibold text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
-                    {tableNo}
-                  </span>
-                )}
-                <span>{business.working_hours || 'Açık'}</span>
-              </div>
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 antialiased pb-28">
+      {/* Mobile Container (Centered) */}
+      <div className="max-w-md mx-auto bg-slate-50 min-h-screen shadow-2xl relative">
+        {/* Hero Header with Banner */}
+        <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-900">
+          <img
+            src={business.banner_url || defaultBanner}
+            alt={business.name}
+            className="w-full h-full object-cover opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F17] via-black/40 to-black/60" />
+
+          {/* Top-Left Table Badge */}
+          <div className="absolute top-4 left-4 z-10">
+            <div className="bg-black/60 backdrop-blur-md text-white border border-white/20 text-xs font-extrabold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg">
+              <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              <span>{tableNo ? tableNo : 'Dijital Menü'}</span>
             </div>
           </div>
 
-          {/* Wi-Fi Action Button */}
-          {(business.show_wifi ?? true) && business.wifi_ssid && (
-            <button
-              onClick={() => setServiceModalType('wifi')}
-              className="p-2 rounded-xl bg-[#182030]/80 border border-[#26334D] text-slate-300 hover:text-white transition active:scale-95"
-              title="Wi-Fi Bilgisi"
-            >
-              <Wifi className="w-3.5 h-3.5" />
-            </button>
-          )}
+          {/* Bottom Info: Logo + Restaurant Name + Tagline */}
+          <div className="absolute bottom-4 left-4 right-4 z-10 flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
+              {business.logo_url ? (
+                <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
+              ) : (
+                <span className="text-slate-900 font-extrabold text-base">{business.name.charAt(0)}</span>
+              )}
+            </div>
+
+            <div className="text-white min-w-0">
+              <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight">
+                {business.name}
+              </h1>
+              <p className="text-[11px] text-slate-300 truncate mt-0.5 font-medium">
+                {business.working_hours ? `${business.working_hours}` : 'Özenle hazırlanan gurme lezzetler ve eşsiz tatlar.'}
+              </p>
+            </div>
+          </div>
         </div>
-      </header>
 
-      {/* Main Container */}
-      <main className="max-w-md mx-auto p-4 space-y-4">
-        {/* Real-time Order Tracker Bar (if active orders exist) */}
-        <OrderStatusTracker businessId={business.id} tableNo={tableNo} />
-
-        {/* Quick Service Action Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Quick Action Bar (Reference UI Dark Rounded Card) */}
+        <div className="mx-4 -mt-4 relative z-20 bg-[#0B0F17] text-white rounded-2xl p-3 flex items-center justify-around shadow-xl border border-slate-800">
           <button
             onClick={() => setServiceModalType('waiter')}
-            className="py-2.5 px-3 bg-[#111622]/80 border border-[#1E2638] hover:border-amber-500/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition active:scale-98 shadow-sm"
+            className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
           >
-            <Hand className="w-3.5 h-3.5 text-amber-400" />
-            <span>Garson Çağır</span>
+            <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-orange-400">
+              <Hand className="w-4 h-4" />
+            </div>
+            <span className="text-[10px] font-bold">Garson Çağır</span>
           </button>
 
           <button
             onClick={() => setServiceModalType('bill')}
-            className="py-2.5 px-3 bg-[#111622]/80 border border-[#1E2638] hover:border-emerald-500/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition active:scale-98 shadow-sm"
+            className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
           >
-            <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Hesap İste</span>
-          </button>
-        </div>
-
-        {/* Instant Search Bar */}
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Menüde lezzet ara..."
-            className="w-full bg-[#111622]/80 border border-[#1E2638] focus:border-indigo-500/50 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
-          />
-        </div>
-
-        {/* Category Horizontal Slider (Only place with visual covers) */}
-        <div>
-          <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
-            {categories.map((cat) => {
-              const isSelected = selectedCatId === cat.id;
-              return (
-                <div
-                  key={cat.id}
-                  onClick={() => setSelectedCatId(cat.id)}
-                  className={`cursor-pointer rounded-2xl p-2 shrink-0 w-24 border transition text-center ${
-                    isSelected ? theme.activePill : theme.inactivePill
-                  }`}
-                >
-                  <div className="w-full h-14 rounded-xl overflow-hidden mb-1.5 border border-white/10 bg-black/40">
-                    <img src={cat.image_url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-semibold text-[10px] line-clamp-1 block">
-                    {cat.name}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Products List (Content, Ingredients, Price & Add button - NO photos / NO kcal as requested) */}
-        <div className="space-y-2.5">
-          <div className="flex items-center justify-between px-1">
-            <span className="font-bold text-xs text-slate-200">
-              {selectedCategory?.name || 'Tüm Ürünler'}
-            </span>
-            <span className="text-[11px] text-slate-500">
-              {currentProducts.length} Çeşit
-            </span>
-          </div>
-
-          {currentProducts.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs bg-[#111622]/40 border border-dashed border-[#1E2638] rounded-2xl">
-              Bu kategoride ürün bulunmuyor.
+            <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-orange-400">
+              <Banknote className="w-4 h-4" />
             </div>
-          ) : (
-            currentProducts.map((prod) => (
-              <div
-                key={prod.id}
-                className={`p-3.5 rounded-2xl border transition flex items-start justify-between gap-3 ${
-                  prod.is_frozen
-                    ? 'bg-[#0B0E14]/40 border-[#1A2234] opacity-50'
-                    : theme.cardBg
+            <span className="text-[10px] font-bold">Hesap İste</span>
+          </button>
+
+          {business.wifi_ssid && (
+            <button
+              onClick={() => setServiceModalType('wifi')}
+              className="flex flex-col items-center gap-1.5 p-1 transition active:scale-95 text-slate-300 hover:text-white"
+            >
+              <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-sky-400">
+                <Wifi className="w-4 h-4" />
+              </div>
+              <span className="text-[10px] font-bold">Wi-Fi Bilgisi</span>
+            </button>
+          )}
+        </div>
+
+        {/* Active Order Status Tracker (If customer placed order) */}
+        {activeOrders.length > 0 && (
+          <div className="mx-4 mt-3">
+            <OrderStatusTracker orders={activeOrders} />
+          </div>
+        )}
+
+        {/* Search Bar */}
+        <div className="mx-4 mt-3">
+          <div className="bg-white border border-slate-200/90 rounded-2xl px-4 py-2.5 shadow-sm flex items-center gap-2.5">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Yiyecek veya içecek ara..."
+              className="w-full bg-transparent text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none font-medium"
+            />
+          </div>
+        </div>
+
+        {/* Category Pills Row */}
+        <div className="px-4 mt-3 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+          <button
+            onClick={() => setSelectedCatId('all')}
+            className={`px-4 py-2 rounded-full text-xs font-extrabold transition shrink-0 flex items-center gap-1.5 ${
+              selectedCatId === 'all'
+                ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <UtensilsCrossed className="w-3.5 h-3.5" />
+            <span>Tümü</span>
+          </button>
+
+          {categories.map((cat) => {
+            const isSelected = selectedCatId === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCatId(cat.id)}
+                className={`px-4 py-2 rounded-full text-xs font-extrabold transition shrink-0 flex items-center gap-1.5 ${
+                  isSelected
+                    ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                 }`}
               >
-                <div className="flex-1 min-w-0 pr-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-xs text-slate-100 truncate">{prod.name}</h3>
-                    {prod.is_frozen && (
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        Tükendi
-                      </span>
-                    )}
-                  </div>
+                <span>{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
 
-                  <p className="text-[11px] text-slate-400 leading-relaxed mt-1 line-clamp-2">
-                    {prod.description || 'Özel hazırlanmış lezzet.'}
+        {/* Product Items List (Exact Reference Layout) */}
+        <div className="px-4 mt-3 space-y-3">
+          {loading ? (
+            <div className="py-16 text-center text-xs text-slate-400 font-medium">
+              Menü hazırlanıyor...
+            </div>
+          ) : currentProducts.length === 0 ? (
+            <div className="py-16 text-center text-xs text-slate-400 font-medium bg-white rounded-2xl border border-slate-200 p-8">
+              Aradığınız kriterlere uygun ürün bulunamadı.
+            </div>
+          ) : (
+            currentProducts.map((prod, idx) => (
+              <div
+                key={prod.id}
+                className="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-sm hover:shadow-md transition flex items-center gap-3.5 relative overflow-hidden"
+              >
+                {/* Product Image on Left */}
+                <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-100">
+                  <img
+                    src={
+                      categories.find((c) => c.id === prod.category_id)?.image_url ||
+                      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                    }
+                    alt={prod.name}
+                    className="w-full h-full object-cover"
+                  />
+                  {idx < 2 && (
+                    <span className="absolute top-1.5 left-1.5 bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm">
+                      Popüler
+                    </span>
+                  )}
+                  {prod.is_frozen && (
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center text-white text-[10px] font-bold">
+                      Tükendi
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Info in Center */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                    {prod.name}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed font-medium">
+                    {prod.description || 'Özenle seçilmiş malzemelerle taze olarak hazırlanmaktadır.'}
                   </p>
-
-                  <div className={`text-xs font-bold mt-1.5 ${theme.priceColor}`}>
-                    {prod.price.toFixed(2)} ₺
+                  <div className="mt-1.5 flex items-baseline gap-1.5">
+                    <span className="font-black text-sm text-orange-600">
+                      {prod.price.toFixed(2)} ₺
+                    </span>
                   </div>
                 </div>
 
-                <button
-                  disabled={prod.is_frozen}
-                  onClick={() => addToCart(prod)}
-                  className={`p-2 rounded-xl shrink-0 transition flex items-center justify-center ${
-                    prod.is_frozen
-                      ? 'bg-[#182030] text-slate-600 cursor-not-allowed'
-                      : `${theme.btnBg} active:scale-90`
-                  }`}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                {/* Add to Cart Button on Right */}
+                <div>
+                  <button
+                    onClick={() => addToCart(prod)}
+                    disabled={prod.is_frozen}
+                    className="w-8 h-8 rounded-xl bg-orange-50 hover:bg-orange-500 text-orange-600 hover:text-white border border-orange-200 hover:border-orange-500 flex items-center justify-center font-extrabold text-sm transition active:scale-90 shadow-sm disabled:opacity-40 disabled:pointer-events-none shrink-0"
+                    title="Sepete Ekle"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             ))
           )}
         </div>
-      </main>
 
-      {/* Floating Bottom Cart Bar */}
-      {totalCartCount > 0 && (
-        <div className="fixed bottom-4 inset-x-4 max-w-md mx-auto z-40">
-          <button
-            onClick={() => setShowCart(true)}
-            className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/30 flex items-center justify-between transition transform active:scale-98 animate-float-subtle"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold text-xs">
-                {totalCartCount}
+        {/* Floating Bottom Cart Bar */}
+        {totalCartCount > 0 && (
+          <div className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-40">
+            <button
+              onClick={() => setShowCart(true)}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3.5 px-5 rounded-2xl shadow-xl shadow-orange-500/35 flex items-center justify-between transition active:scale-[0.98] font-bold text-xs"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-black/20 flex items-center justify-center text-xs font-black">
+                  {totalCartCount}
+                </span>
+                <span>Siparişi İncele / Tamamla</span>
               </div>
-              <span className="text-xs font-semibold">Sepeti Görüntüle</span>
-            </div>
 
-            <span className="text-xs font-bold">{totalCartPrice.toFixed(2)} ₺ →</span>
-          </button>
-        </div>
-      )}
+              <div className="flex items-center gap-1 font-black text-sm">
+                <span>{totalCartPrice.toFixed(2)} ₺</span>
+                <ChevronRight className="w-4 h-4" />
+              </div>
+            </button>
+          </div>
+        )}
 
-      {/* Cart Drawer */}
-      <CartDrawer
-        business={business}
-        tableNo={tableNo}
-        cart={cart}
-        isOpen={showCart}
-        onClose={() => setShowCart(false)}
-        onUpdateQty={updateCartQty}
-        onOrderPlaced={() => setCart([])}
-      />
+        {/* Cart Drawer Modal */}
+        <CartDrawer
+          business={business}
+          tableNo={tableNo}
+          cart={cart}
+          isOpen={showCart}
+          onClose={() => setShowCart(false)}
+          onUpdateQty={updateCartQty}
+          onOrderPlaced={() => {
+            setCart([]);
+            setShowCart(false);
+          }}
+        />
 
-      {/* Service Modal */}
-      <ServiceActionsModal
-        business={business}
-        tableNo={tableNo}
-        isOpen={serviceModalType !== null}
-        type={serviceModalType}
-        onClose={() => setServiceModalType(null)}
-      />
+        {/* Service Action Modal (Waiter, Bill, Wifi) */}
+        <ServiceActionsModal
+          business={business}
+          tableNo={tableNo}
+          isOpen={serviceModalType !== null}
+          type={serviceModalType}
+          onClose={() => setServiceModalType(null)}
+        />
+      </div>
     </div>
   );
 };

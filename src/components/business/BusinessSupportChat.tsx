@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from 'react';
+import { Send, MessageSquare, ShieldCheck, RefreshCw, CheckCheck } from 'lucide-react';
 import { Business, SupportMessage } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
@@ -13,35 +13,35 @@ interface BusinessSupportChatProps {
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
   const toast = useToast();
   const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [inputText, setInputText] = useState('');
+  const [text, setText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const daysLeft = Math.ceil(
-    (new Date(business.subscription_expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  );
-  const isExpiringSoon = daysLeft <= 3;
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const loadMessages = async () => {
+    setLoading(true);
+    try {
+      const { data } = await supabase
+        .from('support_messages')
+        .select('*')
+        .eq('business_id', business.id)
+        .order('created_at', { ascending: true });
+
+      if (data) setMessages(data as SupportMessage[]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      setLoading(true);
-      try {
-        const { data } = await supabase
-          .from('support_messages')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: true });
-
-        if (data) setMessages(data as SupportMessage[]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
+    loadMessages();
 
     const channel = supabase
-      .channel(`chat-biz-${business.id}`)
+      .channel(`support-chat-${business.id}`)
       .on(
         'postgres_changes',
         {
@@ -53,6 +53,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         (payload) => {
           const newMsg = payload.new as SupportMessage;
           setMessages((prev) => [...prev, newMsg]);
+
           if (newMsg.sender === 'superadmin') {
             sound.playMessageTone();
             toast.info('Sistem Yöneticisinden yeni mesaj geldi.');
@@ -69,129 +70,127 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [business.id, toast]);
+  }, [business.id]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!text.trim() || sending) return;
 
-    const text = inputText.trim();
-    setInputText('');
+    setSending(true);
+    try {
+      const { error } = await supabase.from('support_messages').insert([
+        {
+          business_id: business.id,
+          sender: 'business',
+          message: text.trim(),
+          is_read: false,
+        },
+      ]);
 
-    const payload = {
-      business_id: business.id,
-      sender: 'business',
-      message: text,
-      is_read: false,
-    };
-
-    const { data, error } = await supabase
-      .from('support_messages')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (!error && data) {
-      setMessages((prev) => [...prev, data as SupportMessage]);
+      if (!error) {
+        setText('');
+      } else {
+        toast.error('Mesaj iletilemedi.');
+      }
+    } finally {
+      setSending(false);
     }
   };
 
   return (
-    <div className="space-y-4 max-w-4xl mx-auto">
-      {/* Expiration warning banner if <= 3 days */}
-      {isExpiringSoon && (
-        <div className="p-4 bg-rose-500/10 border border-rose-500/25 rounded-2xl flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-rose-300">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
-            <span>
-              Abonelik sürenizin bitmesine <strong>{Math.max(0, daysLeft)} gün</strong> kaldı. Süre uzatmak için buradan mesaj gönderebilirsiniz.
-            </span>
+    <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[75vh] max-w-4xl mx-auto">
+      {/* Chat Header */}
+      <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-sm text-slate-900">Restiva Canlı Destek & Sistem Duyuruları</h3>
+            <p className="text-xs text-slate-400">Teknik destek ve platform yöneticisi ile anlık mesajlaşma</p>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Main Chat Box */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl h-[600px] flex flex-col overflow-hidden shadow-2xl">
-        {/* Chat Header */}
-        <div className="px-5 py-3.5 border-b border-[#1E2638] bg-[#141A29] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center">
-              <ShieldCheck className="w-4 h-4" />
+      {/* Messages List */}
+      <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-3 bg-slate-50/30">
+        {loading ? (
+          <div className="py-12 text-center text-xs text-slate-400">Mesaj geçmişi yükleniyor...</div>
+        ) : messages.length === 0 ? (
+          <div className="py-16 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+              <MessageSquare className="w-6 h-6" />
             </div>
-            <div>
-              <h3 className="font-bold text-xs text-white">Sistem & Teknik Destek</h3>
-              <p className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Doğrudan Platform Yöneticisi ile İletişim
-              </p>
-            </div>
+            <h4 className="font-bold text-xs text-slate-700">Henüz Mesajlaşma Bulunmuyor</h4>
+            <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+              Sistem yöneticisine iletmek istediğiniz soru veya taleplerinizi aşağıdaki alandan yazabilirsiniz.
+            </p>
           </div>
-        </div>
-
-        {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3.5 bg-[#0B0E14]">
-          {loading ? (
-            <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
-              <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-              <span>Yükleniyor...</span>
-            </div>
-          ) : messages.length === 0 ? (
-            <div className="py-24 text-center text-slate-500 text-xs space-y-1">
-              <MessageSquare className="w-8 h-8 mx-auto text-slate-600 mb-2" />
-              <h4 className="text-slate-300 font-semibold">Canlı Destek Hattı</h4>
-              <p className="text-slate-500 max-w-xs mx-auto">
-                Masa artırma, süre uzatma veya teknik konularda doğrudan mesaj yazabilirsiniz.
-              </p>
-            </div>
-          ) : (
-            messages.map((m) => {
-              const isMe = m.sender === 'business';
-              return (
-                <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.sender === 'business';
+            return (
+              <div
+                key={msg.id}
+                className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] sm:max-w-md p-3.5 rounded-2xl text-xs leading-relaxed whitespace-pre-wrap ${
+                    isMe
+                      ? 'bg-orange-500 text-white rounded-br-none shadow-md shadow-orange-500/20'
+                      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-none shadow-sm'
+                  }`}
+                >
+                  {!isMe && (
+                    <div className="text-[10px] font-extrabold text-orange-600 mb-1 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      <span>Sistem Yöneticisi</span>
+                    </div>
+                  )}
+                  <p>{msg.message}</p>
                   <div
-                    className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-                      isMe
-                        ? 'bg-indigo-600 text-white rounded-br-none shadow-md shadow-indigo-600/20'
-                        : 'bg-[#151C2C] text-slate-200 border border-[#212C42] rounded-bl-none'
+                    className={`text-[9px] mt-1.5 flex items-center justify-end gap-1 ${
+                      isMe ? 'text-orange-100' : 'text-slate-400'
                     }`}
                   >
-                    <div className="text-[10px] font-semibold opacity-75 mb-1">
-                      {isMe ? 'Siz' : 'Sistem Yöneticisi'}
-                    </div>
-                    <p className="whitespace-pre-wrap">{m.message}</p>
-                    <div className="text-[9px] opacity-60 text-right mt-1 font-mono">
-                      {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+                    <span>
+                      {new Date(msg.created_at).toLocaleTimeString('tr-TR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    {isMe && <CheckCheck className="w-3 h-3" />}
                   </div>
                 </div>
-              );
-            })
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-3.5 border-t border-[#1E2638] bg-[#141A29] flex items-center gap-2.5">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Mesajınızı yazınız..."
-            className="flex-1 bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim()}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl shadow-md shadow-indigo-600/20 transition shrink-0"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
       </div>
+
+      {/* Input Box */}
+      <form onSubmit={handleSend} className="p-3 sm:p-4 border-t border-slate-100 bg-white flex gap-2">
+        <input
+          type="text"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Mesajınızı yazın..."
+          className="flex-1 bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!text.trim() || sending}
+          className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 disabled:opacity-40"
+        >
+          <Send className="w-4 h-4" />
+          <span className="hidden sm:inline">Gönder</span>
+        </button>
+      </form>
     </div>
   );
 };

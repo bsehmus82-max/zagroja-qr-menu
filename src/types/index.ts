@@ -15,6 +15,7 @@ export interface Business {
   username: string;
   password_hash: string;
   logo_url?: string;
+  banner_url?: string;
   phone?: string;
   address?: string;
   working_hours?: string;

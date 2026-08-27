@@ -61,13 +61,13 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-[#121622] border border-[#1E2638] rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl animate-in slide-in-from-bottom">
-        <div className="flex items-center justify-between pb-3 border-b border-[#1E2638] mb-4">
-          <h3 className="font-bold text-xs text-white flex items-center gap-2">
-            {type === 'waiter' && <Hand className="w-3.5 h-3.5 text-amber-400" />}
-            {type === 'bill' && <Banknote className="w-3.5 h-3.5 text-emerald-400" />}
-            {type === 'wifi' && <Wifi className="w-3.5 h-3.5 text-indigo-400" />}
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl animate-in slide-in-from-bottom text-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+            {type === 'waiter' && <Hand className="w-4 h-4 text-orange-500" />}
+            {type === 'bill' && <Banknote className="w-4 h-4 text-emerald-600" />}
+            {type === 'wifi' && <Wifi className="w-4 h-4 text-sky-500" />}
             <span>
               {type === 'waiter' && 'Garson Çağır'}
               {type === 'bill' && 'Hesap İste'}
@@ -75,31 +75,31 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             </span>
           </h3>
 
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#1A2234]">
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {submitted ? (
           <div className="py-6 text-center space-y-1.5">
-            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 animate-bounce">
-              <Check className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-2 border border-emerald-200 animate-bounce">
+              <Check className="w-6 h-6" />
             </div>
-            <h4 className="font-semibold text-xs text-white">İsteğiniz İletildi</h4>
-            <p className="text-[11px] text-slate-400">
+            <h4 className="font-extrabold text-sm text-slate-900">İsteğiniz İletildi</h4>
+            <p className="text-xs text-slate-500">
               Personelimiz en kısa sürede masanıza gelecektir.
             </p>
           </div>
         ) : type === 'wifi' ? (
           <div className="space-y-3.5">
-            <div className="bg-[#0B0E14] p-3.5 rounded-xl border border-[#1A2234] space-y-2 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Ağ Adı:</span>
-                <span className="font-semibold text-slate-200">{business.wifi_ssid || 'Wi-Fi'}</span>
-              </div>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-400">Şifre:</span>
-                <span className="font-mono font-bold text-indigo-400">
+                <span className="text-slate-500 font-semibold">Wi-Fi Ağı:</span>
+                <span className="font-extrabold text-slate-900">{business.wifi_ssid || 'Wi-Fi'}</span>
+              </div>
+              <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                <span className="text-slate-500 font-semibold">Şifre:</span>
+                <span className="font-mono font-black text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
                   {business.wifi_password || 'Şifresiz'}
                 </span>
               </div>
@@ -108,67 +108,67 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             {business.wifi_password && (
               <button
                 onClick={copyWifiPassword}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 transition"
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-sm"
               >
-                {wifiCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                {wifiCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 <span>{wifiCopied ? 'Şifre Kopyalandı' : 'Şifreyi Panoya Kopyala'}</span>
               </button>
             )}
           </div>
         ) : type === 'bill' ? (
-          <div className="space-y-3.5">
-            <p className="text-xs text-slate-300">
-              {tableNo} için ödeme yönteminizi seçiniz:
-            </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">Ödeme Tercihiniz</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBillMethod('pos')}
+                  className={`p-3 rounded-2xl border text-center transition flex flex-col items-center gap-1.5 ${
+                    billMethod === 'pos'
+                      ? 'border-orange-500 bg-orange-50 text-orange-800 font-extrabold'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 font-semibold'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span className="text-xs">Kredi Kartı / POS</span>
+                </button>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setBillMethod('pos')}
-                className={`p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${
-                  billMethod === 'pos'
-                    ? 'bg-indigo-600/20 border-indigo-500 text-white ring-1 ring-indigo-500'
-                    : 'bg-[#0B0E14] border-[#1A2234] text-slate-400'
-                }`}
-              >
-                <CreditCard className="w-4 h-4 text-indigo-400" />
-                <span className="font-semibold text-[11px]">Kredi Kartı / POS</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setBillMethod('nakit')}
-                className={`p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${
-                  billMethod === 'nakit'
-                    ? 'bg-emerald-600/20 border-emerald-500 text-white ring-1 ring-emerald-500'
-                    : 'bg-[#0B0E14] border-[#1A2234] text-slate-400'
-                }`}
-              >
-                <Banknote className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold text-[11px]">Nakit</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setBillMethod('nakit')}
+                  className={`p-3 rounded-2xl border text-center transition flex flex-col items-center gap-1.5 ${
+                    billMethod === 'nakit'
+                      ? 'border-orange-500 bg-orange-50 text-orange-800 font-extrabold'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 font-semibold'
+                  }`}
+                >
+                  <Banknote className="w-4 h-4" />
+                  <span className="text-xs">Nakit Ödeme</span>
+                </button>
+              </div>
             </div>
 
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-emerald-600/20 transition disabled:opacity-50"
+              className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition"
             >
-              {loading ? 'İletiliyor...' : 'Hesabı İste'}
+              {loading ? 'İletiliyor...' : 'Hesap İsteğini Gönder'}
             </button>
           </div>
         ) : (
-          <div className="space-y-3.5">
-            <p className="text-xs text-slate-300">
-              {tableNo} masanıza garson çağırmak için aşağıdaki butona basınız.
+          <div className="space-y-4">
+            <p className="text-xs text-slate-600 leading-relaxed">
+              <strong className="text-slate-900 font-extrabold">{tableNo || 'Masanız'}</strong> için servis personelini çağırmak istiyor musunuz?
             </p>
 
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-amber-600/20 transition disabled:opacity-50"
+              className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2"
             >
-              {loading ? 'Çağrılıyor...' : 'Garsonu Masaya Çağır'}
+              <Hand className="w-4 h-4" />
+              <span>{loading ? 'İletiliyor...' : 'Garsonu Masaya Çağır'}</span>
             </button>
           </div>
         )}

@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   Calculator, Plus, Minus, Trash2, Printer, 
-  Check, CreditCard, Banknote, RefreshCw
+  Check, CreditCard, Banknote, RefreshCw, ShoppingBag
 } from 'lucide-react';
 import { Business, Category, Product, OrderItem, Table } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -62,7 +62,12 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
     fetchPosData();
   }, [business.id]);
 
-  const addItemToPos = (prod: Product) => {
+  const addItemToCart = (prod: Product) => {
+    if (prod.is_frozen) {
+      toast.warning(`${prod.name} ürünü dondurulmuş (tükendi).`);
+      return;
+    }
+
     setPosItems((prev) => {
       const existing = prev.find((item) => item.product_id === prod.id);
       if (existing) {
@@ -70,11 +75,19 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
           item.product_id === prod.id ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { product_id: prod.id, name: prod.name, price: prod.price, quantity: 1 }];
+      return [
+        ...prev,
+        {
+          product_id: prod.id,
+          name: prod.name,
+          price: prod.price,
+          quantity: 1,
+        },
+      ];
     });
   };
 
-  const updateItemQty = (prodId: string, delta: number) => {
+  const updateQty = (prodId: string, delta: number) => {
     setPosItems((prev) =>
       prev
         .map((item) => {
@@ -88,37 +101,42 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
     );
   };
 
-  const totalPosAmount = posItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalAmount = posItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const handleCompleteOrder = async (paymentMethod: 'cash' | 'credit_card') => {
-    if (posItems.length === 0) return;
+  const handleCheckout = async (paymentMethod: 'cash' | 'credit_card', sendToKitchen: boolean) => {
+    if (posItems.length === 0) {
+      toast.warning('Lütfen sepete en az 1 ürün ekleyiniz.');
+      return;
+    }
+
     setSaving(true);
-
     try {
-      const payload = {
+      const orderPayload = {
         business_id: business.id,
         table_no: selectedTable,
         session_token: `pos_${Date.now()}`,
         order_source: 'pos',
         items: posItems,
-        total_amount: totalPosAmount,
-        status: 'paid',
+        total_amount: totalAmount,
+        status: sendToKitchen ? 'preparing' : 'paid',
         payment_method: paymentMethod,
-        customer_notes: 'Manuel Kasa Girişi',
+        customer_notes: 'Kasa / POS manuel giriş',
       };
 
       const { data, error } = await supabase
         .from('orders')
-        .insert([payload])
+        .insert([orderPayload])
         .select()
         .single();
 
       if (!error && data) {
-        printKitchenTicket(business, data);
+        if (sendToKitchen) {
+          printKitchenTicket(business, data);
+        }
+        toast.success(`Sipariş başarıyla kaydedildi (${totalAmount.toFixed(2)} ₺)`);
         setPosItems([]);
-        toast.success('Adisyon başarıyla tahsil edildi ve adisyon fişi yazdırıldı.');
       } else {
-        toast.error('Adisyon kaydedilirken bir hata oluştu.');
+        toast.error('Sipariş kaydedilirken bir hata oluştu.');
       }
     } finally {
       setSaving(false);
@@ -128,156 +146,170 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
   const currentCategoryProducts = products.filter((p) => p.category_id === selectedCatId);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
-        <div>
-          <h2 className="text-base font-bold text-white">Manuel Kasa / POS Sistemi</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Garson veya kasa personeli için hızlı adisyon oluşturma ve doğrudan tahsilat ekranı.
-          </p>
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Product Selection Area (2 Columns) */}
+      <div className="lg:col-span-2 space-y-4">
+        {/* Category Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCatId(cat.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+                selectedCatId === cat.id
+                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Left 2 Cols: Menu Selection */}
-        <div className="lg:col-span-2 space-y-3">
-          {/* Category Tabs */}
-          <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {categories.map((cat) => {
-              const isSelected = selectedCatId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCatId(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
-                    isSelected
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                      : 'bg-[#111622] border border-[#1E2638] text-slate-300 hover:text-white'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              );
-            })}
+        {/* Product Cards Grid */}
+        {loading ? (
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs">
+            Ürünler yükleniyor...
           </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {currentCategoryProducts.map((prod) => (
+              <button
+                key={prod.id}
+                onClick={() => addItemToCart(prod)}
+                disabled={prod.is_frozen}
+                className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between h-28 shadow-sm ${
+                  prod.is_frozen
+                    ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed'
+                    : 'bg-white border-slate-200/90 hover:border-orange-500 hover:shadow-md active:scale-95'
+                }`}
+              >
+                <div>
+                  <h4 className="font-extrabold text-xs text-slate-900 line-clamp-2">
+                    {prod.name}
+                  </h4>
+                </div>
 
-          {/* Products Grid */}
-          {loading ? (
-            <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
-              <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-              <span>Yükleniyor...</span>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-              {currentCategoryProducts.map((prod) => (
-                <button
-                  key={prod.id}
-                  onClick={() => addItemToPos(prod)}
-                  className="p-3 bg-[#111622] hover:bg-[#182030] active:scale-95 border border-[#1E2638] hover:border-indigo-500/40 rounded-2xl text-left transition flex flex-col justify-between h-24"
-                >
-                  <span className="font-bold text-xs text-white line-clamp-2">{prod.name}</span>
-                  <span className="text-xs font-bold text-indigo-400">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                  <span className="font-extrabold text-xs text-orange-600">
                     {prod.price.toFixed(2)} ₺
                   </span>
-                </button>
+                  <span className="w-5 h-5 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-extrabold text-xs">
+                    +
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Cart & Checkout Panel (1 Column) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 className="font-extrabold text-sm text-slate-900">Adisyon / POS Masası</h3>
+            <button
+              onClick={() => setPosItems([])}
+              className="text-xs text-rose-500 hover:text-rose-600 font-semibold"
+            >
+              Temizle
+            </button>
+          </div>
+
+          {/* Table Selector */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">Masa Seçimi</label>
+            <select
+              value={selectedTable}
+              onChange={(e) => setSelectedTable(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none"
+            >
+              <option value="Kasa Satışı">Kasa Satışı (Ayakta / Paket)</option>
+              {tables.map((t) => (
+                <option key={t.id} value={t.table_no}>
+                  {t.table_no}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+          </div>
+
+          {/* Items List */}
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {posItems.length === 0 ? (
+              <div className="py-12 text-center text-slate-400 text-xs">
+                Sepet boş. Ürünlere tıklayarak ekleyin.
+              </div>
+            ) : (
+              posItems.map((item) => (
+                <div
+                  key={item.product_id}
+                  className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100"
+                >
+                  <div>
+                    <h5 className="font-extrabold text-xs text-slate-900">{item.name}</h5>
+                    <span className="text-[11px] text-slate-500 font-semibold">
+                      {item.price.toFixed(2)} ₺ x {item.quantity} = {(item.price * item.quantity).toFixed(2)} ₺
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => updateQty(item.product_id, -1)}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs"
+                    >
+                      -
+                    </button>
+                    <span className="font-extrabold text-xs w-4 text-center">{item.quantity}</span>
+                    <button
+                      onClick={() => updateQty(item.product_id, 1)}
+                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
-        {/* Right 1 Col: Current Receipt */}
-        <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-4 flex flex-col justify-between shadow-xl h-[550px]">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E2638] mb-3">
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-indigo-400" />
-                <span className="font-bold text-xs text-white">Açık Adisyon</span>
-              </div>
-
-              {/* Table Selector */}
-              <select
-                value={selectedTable}
-                onChange={(e) => setSelectedTable(e.target.value)}
-                className="bg-[#0B0E14] border border-[#1E2638] rounded-xl px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
-              >
-                <option value="Kasa Satışı">Kasa Satışı</option>
-                {tables.map((t) => (
-                  <option key={t.id} value={t.table_no}>
-                    {t.table_no}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Receipt Items */}
-            <div className="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
-              {posItems.length === 0 ? (
-                <div className="py-16 text-center text-slate-500 text-xs">
-                  Henüz ürün seçilmedi. Soldan ürünlere tıklayınız.
-                </div>
-              ) : (
-                posItems.map((item) => (
-                  <div
-                    key={item.product_id}
-                    className="p-2 bg-[#0B0E14] rounded-xl border border-[#1A2234] flex items-center justify-between text-xs"
-                  >
-                    <div className="flex-1 pr-2 truncate">
-                      <div className="font-medium text-slate-200 truncate">{item.name}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {(item.price * item.quantity).toFixed(2)} ₺
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        onClick={() => updateItemQty(item.product_id, -1)}
-                        className="w-5 h-5 rounded bg-[#182030] text-slate-300 flex items-center justify-center"
-                      >
-                        <Minus className="w-2.5 h-2.5" />
-                      </button>
-                      <span className="w-5 text-center font-bold text-xs text-white">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateItemQty(item.product_id, 1)}
-                        className="w-5 h-5 rounded bg-[#182030] text-slate-300 flex items-center justify-center"
-                      >
-                        <Plus className="w-2.5 h-2.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+        {/* Total & Checkout Buttons */}
+        <div className="pt-4 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-slate-600 text-xs">Toplam Tutar:</span>
+            <span className="font-extrabold text-lg text-orange-600">
+              {totalAmount.toFixed(2)} ₺
+            </span>
           </div>
 
-          {/* Receipt Actions */}
-          <div className="pt-3 border-t border-[#1E2638] space-y-3">
-            <div className="flex justify-between items-center text-sm font-bold text-white">
-              <span>Toplam Tutar:</span>
-              <span className="text-indigo-400 text-base">{totalPosAmount.toFixed(2)} ₺</span>
-            </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handleCheckout('cash', false)}
+              disabled={saving || posItems.length === 0}
+              className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+            >
+              <Banknote className="w-4 h-4" />
+              <span>Nakit Tahsilat</span>
+            </button>
 
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                disabled={saving || posItems.length === 0}
-                onClick={() => handleCompleteOrder('cash')}
-                className="py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-40"
-              >
-                <Banknote className="w-3.5 h-3.5" />
-                <span>Nakit Alındı</span>
-              </button>
-
-              <button
-                disabled={saving || posItems.length === 0}
-                onClick={() => handleCompleteOrder('credit_card')}
-                className="py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 transition disabled:opacity-40"
-              >
-                <CreditCard className="w-3.5 h-3.5" />
-                <span>Kredi Kartı / POS</span>
-              </button>
-            </div>
+            <button
+              onClick={() => handleCheckout('credit_card', false)}
+              disabled={saving || posItems.length === 0}
+              className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>POS / Kart</span>
+            </button>
           </div>
+
+          <button
+            onClick={() => handleCheckout('cash', true)}
+            disabled={saving || posItems.length === 0}
+            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+          >
+            <span>Mutfağa Gönder (Adisyon Aç)</span>
+          </button>
         </div>
       </div>
     </div>

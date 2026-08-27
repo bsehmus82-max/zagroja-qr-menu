@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Sparkles } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send, Trash2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -95,105 +95,96 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-[#121622] border border-[#1E2638] rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 max-h-[85vh] flex flex-col justify-between animate-in slide-in-from-bottom">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 max-h-[85vh] flex flex-col justify-between animate-in slide-in-from-bottom text-slate-800">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between pb-3.5 border-b border-[#1E2638] mb-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                <ShoppingBag className="w-3.5 h-3.5" />
-              </div>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-orange-500" />
               <div>
-                <h3 className="font-bold text-xs text-white">Sipariş Sepetiniz</h3>
-                <span className="text-[10px] text-slate-400 font-semibold">{tableNo || 'Genel Masa'}</span>
+                <h3 className="font-extrabold text-sm text-slate-900">Sipariş Sepetiniz</h3>
+                <span className="text-[11px] text-slate-400 font-semibold">{tableNo ? tableNo : 'Genel Masa'}</span>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#1A2234] transition"
+              className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Items */}
-          <div className="space-y-2 max-h-56 overflow-y-auto pr-1 mb-3.5">
-            {cart.length === 0 ? (
-              <div className="text-center py-10 text-slate-500 text-xs">
-                Sepetinizde ürün bulunmuyor.
-              </div>
-            ) : (
-              cart.map((item) => (
-                <div
-                  key={item.product.id}
-                  className="p-3 bg-[#0B0E14] rounded-xl border border-[#1A2234] flex items-center justify-between text-xs"
-                >
-                  <div className="flex-1 pr-2 truncate">
-                    <div className="font-semibold text-slate-200 truncate">{item.product.name}</div>
-                    <div className="text-[11px] text-indigo-400 font-bold mt-0.5">
-                      {(item.product.price * item.quantity).toFixed(2)} ₺
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => onUpdateQty(item.product.id, -1)}
-                      className="w-6 h-6 rounded-lg bg-[#182030] hover:bg-[#222E45] text-white flex items-center justify-center transition"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </button>
-                    <span className="w-5 text-center font-bold text-slate-200 text-xs">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => onUpdateQty(item.product.id, 1)}
-                      className="w-6 h-6 rounded-lg bg-[#182030] hover:bg-[#222E45] text-white flex items-center justify-center transition"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </div>
+          {/* Cart Items List */}
+          <div className="overflow-y-auto max-h-[40vh] space-y-2.5 pr-1 divide-y divide-slate-100">
+            {cart.map((item) => (
+              <div key={item.product.id} className="pt-2 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-extrabold text-xs text-slate-900 truncate">
+                    {item.product.name}
+                  </h4>
+                  <span className="text-[11px] font-extrabold text-orange-600">
+                    {(item.product.price * item.quantity).toFixed(2)} ₺
+                  </span>
                 </div>
-              ))
-            )}
+
+                <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => onUpdateQty(item.product.id, -1)}
+                    className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-700 font-bold hover:bg-slate-50 transition"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </button>
+
+                  <span className="text-xs font-black w-4 text-center text-slate-900">
+                    {item.quantity}
+                  </span>
+
+                  <button
+                    onClick={() => onUpdateQty(item.product.id, 1)}
+                    className="w-6 h-6 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-700 font-bold hover:bg-slate-50 transition"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
 
-          {/* Notes */}
-          {cart.length > 0 && (
-            <div className="mb-3">
-              <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                Sipariş Notu
-              </label>
-              <textarea
-                rows={2}
-                value={customerNotes}
-                onChange={(e) => setCustomerNotes(e.target.value)}
-                placeholder="Özel bir isteğiniz varsa belirtebilirsiniz..."
-                className="w-full bg-[#0B0E14] border border-[#1A2234] focus:border-indigo-500/50 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none"
-              />
-            </div>
-          )}
+          {/* Notes Input */}
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+              Sipariş Notu (Opsiyonel)
+            </label>
+            <input
+              type="text"
+              value={customerNotes}
+              onChange={(e) => setCustomerNotes(e.target.value)}
+              placeholder="Örn: Az şekerli olsun, acısız olsun..."
+              className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none font-medium"
+            />
+          </div>
         </div>
 
-        {/* Footer */}
-        {cart.length > 0 && (
-          <div className="pt-3 border-t border-[#1E2638] space-y-2.5">
-            <div className="flex items-center justify-between text-sm font-bold text-white">
-              <span>Toplam:</span>
-              <span className="text-indigo-400">{totalAmount.toFixed(2)} ₺</span>
-            </div>
-
-            <button
-              disabled={sending}
-              onClick={handleSendOrder}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
-            >
-              <Send className="w-3.5 h-3.5" />
-              {sending ? 'İletiliyor...' : 'Siparişi Mutfağa İlet'}
-            </button>
+        {/* Footer & Submit */}
+        <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500">Toplam Sepet Tutarı:</span>
+            <span className="font-black text-lg text-orange-600">
+              {totalAmount.toFixed(2)} ₺
+            </span>
           </div>
-        )}
+
+          <button
+            onClick={handleSendOrder}
+            disabled={sending || cart.length === 0}
+            className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-2xl shadow-xl shadow-orange-500/25 transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Send className="w-4 h-4" />
+            <span>{sending ? 'Mutfağa İletiliyor...' : 'Siparişi Onayla & Mutfağa Gönder'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

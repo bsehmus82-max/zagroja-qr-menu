@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, Banknote, CreditCard, Printer, 
   Calendar, RefreshCw, Layers
@@ -59,43 +59,41 @@ export const TurnoverReport: React.FC<TurnoverReportProps> = ({ business }) => {
     .filter((o) => o.payment_method === 'credit_card')
     .reduce((sum, o) => sum + o.total_amount, 0);
 
-  const cashPercent = totalTurnover > 0 ? (cashTotal / totalTurnover) * 100 : 0;
-  const cardPercent = totalTurnover > 0 ? (cardTotal / totalTurnover) * 100 : 0;
-
   return (
-    <div className="space-y-5">
-      {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
+    <div className="space-y-6">
+      {/* Top Banner */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-white">Ciro & Gün Sonu Analizi</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Tamamlanan adisyonların nakit ve POS dağılımını inceleyebilir ve Z-Raporu yazdırabilirsiniz.
+          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+            Gün Sonu & Kasa Analizi
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Satış performansınızı, nakit/kart dağılımını izleyin ve resmi gün sonu (Z Raporu) fişi yazdırın.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Period Selector */}
-          <div className="flex items-center bg-[#0B0E14] p-1 rounded-xl border border-[#1E2638]">
+        <div className="flex items-center gap-2.5">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => setFilterPeriod('today')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                filterPeriod === 'today' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                filterPeriod === 'today' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
               }`}
             >
               Bugün
             </button>
             <button
               onClick={() => setFilterPeriod('week')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                filterPeriod === 'week' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                filterPeriod === 'week' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
               }`}
             >
               Son 7 Gün
             </button>
             <button
               onClick={() => setFilterPeriod('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
-                filterPeriod === 'all' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                filterPeriod === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
               }`}
             >
               Tümü
@@ -104,109 +102,87 @@ export const TurnoverReport: React.FC<TurnoverReportProps> = ({ business }) => {
 
           <button
             onClick={() => printZReport(business, filteredOrders, totalTurnover, cashTotal, cardTotal)}
-            className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition flex items-center gap-1.5"
+            disabled={filteredOrders.length === 0}
+            className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition disabled:opacity-40"
           >
-            <Printer className="w-3.5 h-3.5" />
-            Z-Raporu Yazdır
+            <Printer className="w-4 h-4" />
+            <span>Z Raporu Yazdır</span>
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
-          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400 mb-1">
-            <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Toplam Ciro</span>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Total Revenue */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold">Toplam Net Ciro</span>
+            <TrendingUp className="w-4 h-4 text-orange-500" />
           </div>
-          <div className="text-2xl font-bold text-white mt-1">{totalTurnover.toFixed(2)} ₺</div>
-          <span className="text-[10px] text-slate-500 mt-0.5 block">
-            {filteredOrders.length} Adet Tamamlanan Adisyon
-          </span>
+          <div className="text-2xl font-black text-slate-900">
+            {totalTurnover.toFixed(2)} ₺
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Toplam {filteredOrders.length} adet tamamlanan sipariş
+          </p>
         </div>
 
-        <div className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
-          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400 mb-1">
-            <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Nakit Tahsilat</span>
+        {/* Cash Revenue */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold">Nakit Tahsilat</span>
+            <Banknote className="w-4 h-4 text-emerald-500" />
           </div>
-          <div className="text-2xl font-bold text-emerald-400 mt-1">{cashTotal.toFixed(2)} ₺</div>
-          <span className="text-[10px] text-slate-500 mt-0.5 block">
-            Cironun %{cashPercent.toFixed(1)} kadarı
-          </span>
+          <div className="text-2xl font-black text-emerald-600">
+            {cashTotal.toFixed(2)} ₺
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">Kasa çekmecesindeki nakit tutar</p>
         </div>
 
-        <div className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
-          <div className="flex items-center gap-2 text-[11px] font-medium text-slate-400 mb-1">
-            <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Kredi Kartı / POS</span>
+        {/* Card Revenue */}
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold">POS / Kredi Kartı</span>
+            <CreditCard className="w-4 h-4 text-indigo-500" />
           </div>
-          <div className="text-2xl font-bold text-indigo-400 mt-1">{cardTotal.toFixed(2)} ₺</div>
-          <span className="text-[10px] text-slate-500 mt-0.5 block">
-            Cironun %{cardPercent.toFixed(1)} kadarı
-          </span>
+          <div className="text-2xl font-black text-indigo-600">
+            {cardTotal.toFixed(2)} ₺
+          </div>
+          <p className="text-[11px] text-slate-400 font-medium">Banka POS slipleri toplamı</p>
         </div>
       </div>
 
-      {/* Breakdown Bar */}
-      <div className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl space-y-2">
-        <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
-          Tahsilat Dağılımı
-        </span>
-        <div className="w-full h-3 bg-[#0B0E14] rounded-full overflow-hidden flex">
-          <div
-            style={{ width: `${cashPercent}%` }}
-            className="bg-emerald-500 h-full transition-all duration-500"
-            title={`Nakit: %${cashPercent.toFixed(1)}`}
-          />
-          <div
-            style={{ width: `${cardPercent}%` }}
-            className="bg-indigo-500 h-full transition-all duration-500"
-            title={`POS: %${cardPercent.toFixed(1)}`}
-          />
-        </div>
-      </div>
-
-      {/* Orders Table */}
-      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl overflow-hidden shadow-xl">
-        <div className="px-4 py-3 border-b border-[#1E2638] flex justify-between items-center">
-          <span className="font-bold text-xs text-white">Tamamlanan Adisyon Geçmişi</span>
-          <span className="text-[11px] text-slate-400">{filteredOrders.length} Adet</span>
-        </div>
+      {/* Orders History List */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-4">
+        <h3 className="font-extrabold text-sm text-slate-900">Son Tamamlanan Siparişler</h3>
 
         {loading ? (
-          <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
-            <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-            <span>Yükleniyor...</span>
-          </div>
+          <div className="py-8 text-center text-xs text-slate-400">Veriler yükleniyor...</div>
         ) : filteredOrders.length === 0 ? (
-          <div className="py-16 text-center text-slate-500 text-xs">
-            Seçili dönemde tamamlanmış adisyon kaydı bulunmuyor.
+          <div className="py-12 text-center text-xs text-slate-400">
+            Seçilen dönemde henüz tamamlanmış sipariş bulunmuyor.
           </div>
         ) : (
-          <div className="divide-y divide-[#1A2234]">
-            {filteredOrders.map((o) => (
-              <div
-                key={o.id}
-                className="px-4 py-3 flex items-center justify-between hover:bg-[#182030] transition text-xs"
-              >
+          <div className="divide-y divide-slate-100">
+            {filteredOrders.slice(0, 15).map((ord) => (
+              <div key={ord.id} className="py-3 flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-white flex items-center gap-2">
-                    <span>{o.table_no}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      #{o.id.slice(0, 8)}
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-xs text-slate-900">{ord.table_no}</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
+                      {ord.payment_method === 'cash' ? 'Nakit' : 'POS / Kart'}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">
-                    {new Date(o.created_at).toLocaleString('tr-TR')} • {o.items.length} Kalem
-                  </div>
+                  <span className="text-[11px] text-slate-400 mt-0.5 block">
+                    {new Date(ord.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} • {ord.items.length} Kalem
+                  </span>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-bold text-indigo-400">{o.total_amount.toFixed(2)} ₺</div>
-                  <span className="text-[10px] font-semibold text-slate-400">
-                    {o.payment_method === 'cash' ? 'Nakit' : 'Kredi Kartı'}
+                  <span className="font-extrabold text-sm text-slate-900">
+                    {ord.total_amount.toFixed(2)} ₺
                   </span>
+                  <span className="text-[10px] text-emerald-600 font-bold block">Ödendi</span>
                 </div>
               </div>
             ))}

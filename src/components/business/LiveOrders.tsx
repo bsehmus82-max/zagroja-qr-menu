@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
-  Hand, Banknote, RefreshCw, Volume2, CreditCard
+  Hand, Banknote, RefreshCw, Volume2, CreditCard,
+  Plus, ShoppingBag, Check, X
 } from 'lucide-react';
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -12,13 +13,16 @@ import { useToast } from '../../context/ToastContext';
 
 interface LiveOrdersProps {
   business: Business;
+  onNavigatePos?: () => void;
 }
 
-export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
+export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos }) => {
   const toast = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'preparing' | 'requests'>('all');
+  const [isSoundActive, setIsSoundActive] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
@@ -62,7 +66,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           if (payload.eventType === 'INSERT') {
             const newOrder = payload.new as Order;
             setOrders((prev) => [newOrder, ...prev]);
-            sound.playOrderBell();
+            if (isSoundActive) {
+              sound.playOrderBell();
+            }
             printKitchenTicket(business, newOrder);
             toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
             
@@ -94,7 +100,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           if (payload.eventType === 'INSERT') {
             const newReq = payload.new as ServiceRequest;
             setServiceRequests((prev) => [newReq, ...prev]);
-            sound.playWaiterCall();
+            if (isSoundActive) {
+              sound.playWaiterCall();
+            }
             
             const reqLabel =
               newReq.request_type === 'waiter'
@@ -114,7 +122,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as ServiceRequest;
             setServiceRequests((prev) =>
-              updated.status === 'resolved' ? prev.filter((r) => r.id !== updated.id) : prev
+              updated.status === 'resolved'
+                ? prev.filter((r) => r.id !== updated.id)
+                : prev.map((r) => (r.id === updated.id ? updated : r))
             );
           }
         }
@@ -124,7 +134,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [business.id, toast]);
+  }, [business.id, isSoundActive]);
 
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     const { error } = await supabase
@@ -133,14 +143,14 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
       .eq('id', orderId);
 
     if (!error) {
-      setOrders((prev) =>
-        status === 'paid' || status === 'cancelled'
-          ? prev.filter((o) => o.id !== orderId)
-          : prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-      );
-      if (status === 'preparing') toast.info('Sipariş mutfakta hazırlanıyor olarak işaretlendi.');
-      if (status === 'served') toast.success('Sipariş masaya servis edildi.');
-      if (status === 'paid') toast.success('Hesap kapatıldı.');
+      if (status === 'paid' || status === 'cancelled') {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      } else {
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+        );
+      }
+      toast.success(`Sipariş durumu güncellendi.`);
     }
   };
 
@@ -152,183 +162,230 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
 
     if (!error) {
       setServiceRequests((prev) => prev.filter((r) => r.id !== reqId));
-      toast.success('Masa çağrısı tamamlandı.');
+      toast.success('Çağrı tamamlandı.');
     }
   };
 
+  const pendingOrders = orders.filter((o) => o.status === 'pending');
+  const preparingOrders = orders.filter((o) => o.status === 'preparing');
+
+  const filteredOrders = orders.filter((o) => {
+    if (activeFilter === 'pending') return o.status === 'pending';
+    if (activeFilter === 'preparing') return o.status === 'preparing' || o.status === 'served';
+    return true;
+  });
+
   return (
-    <div className="space-y-5">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-bold text-white">Canlı Mutfak & Siparişler</h2>
-              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                Canlı
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Yeni siparişlerde otomatik adisyon fişi açılır, akustik zil çalar ve kilitli ekrana bildirim gider.
-            </p>
-          </div>
+    <div className="space-y-6">
+      {/* Header Banner Card (Reference UI) */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+            Canlı Sipariş & Servis Masası
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Masalardan gelen siparişler ve garson/hesap istekleri anlık olarak buraya düşer.
+          </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          {onNavigatePos && (
+            <button
+              onClick={onNavigatePos}
+              className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Masaya Sipariş / Ciro Ekle</span>
+            </button>
+          )}
+
           <button
-            onClick={() => sound.playOrderBell()}
-            className="px-3 py-1.5 rounded-xl bg-[#182030] hover:bg-[#222E45] text-xs font-semibold text-slate-300 transition flex items-center gap-1.5"
-            title="Ses Testi"
+            onClick={() => setIsSoundActive(!isSoundActive)}
+            className={`px-3 py-2.5 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
+              isSoundActive
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+            }`}
           >
-            <Volume2 className="w-3.5 h-3.5 text-indigo-400" />
-            Zil Testi
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>{isSoundActive ? 'Ses Açık' : 'Sessiz'}</span>
           </button>
         </div>
       </div>
 
-      {/* Active Waiter/Bill Calls */}
-      {serviceRequests.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2 px-1">
-            <Hand className="w-3.5 h-3.5 animate-bounce" />
-            Masa Çağrıları ({serviceRequests.length})
-          </div>
+      {/* Filter Tabs Row */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setActiveFilter('all')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeFilter === 'all'
+              ? 'bg-[#0B0F17] text-white shadow-sm'
+              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+          }`}
+        >
+          Aktif Siparişler ({orders.length})
+        </button>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+        <button
+          onClick={() => setActiveFilter('pending')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeFilter === 'pending'
+              ? 'bg-amber-500 text-white shadow-sm'
+              : 'bg-amber-50/80 border border-amber-200/80 text-amber-800 hover:bg-amber-100'
+          }`}
+        >
+          Bekleyenler ({pendingOrders.length})
+        </button>
+
+        <button
+          onClick={() => setActiveFilter('preparing')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeFilter === 'preparing'
+              ? 'bg-sky-500 text-white shadow-sm'
+              : 'bg-sky-50/80 border border-sky-200/80 text-sky-800 hover:bg-sky-100'
+          }`}
+        >
+          Hazırlananlar ({preparingOrders.length})
+        </button>
+
+        <button
+          onClick={() => setActiveFilter('requests')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+            activeFilter === 'requests'
+              ? 'bg-rose-500 text-white shadow-sm'
+              : 'bg-rose-50/80 border border-rose-200/80 text-rose-800 hover:bg-rose-100'
+          }`}
+        >
+          Garson & Hesap Çağrıları ({serviceRequests.length})
+        </button>
+      </div>
+
+      {/* Content Grid / Empty State */}
+      {loading ? (
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs">
+          Siparişler yükleniyor...
+        </div>
+      ) : activeFilter === 'requests' ? (
+        /* Service Requests View */
+        serviceRequests.length === 0 ? (
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-16 text-center shadow-sm">
+            <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+              <Hand className="w-6 h-6" />
+            </div>
+            <h3 className="font-extrabold text-sm text-slate-800">Bekleyen Çağrı Bulunmuyor</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+              Misafirler masadan garson çağırdığında veya hesap istediğinde burada listelenecektir.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {serviceRequests.map((req) => (
               <div
                 key={req.id}
-                className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-sm animate-in slide-in-from-top-1"
+                className="bg-white border-2 border-rose-200/90 rounded-2xl p-5 shadow-sm space-y-3"
               >
-                <div>
-                  <div className="font-bold text-xs text-white">{req.table_no}</div>
-                  <div className="text-[11px] text-amber-300 font-medium mt-0.5 flex items-center gap-1.5">
-                    {req.request_type === 'waiter' && (
-                      <>
-                        <Hand className="w-3 h-3 text-amber-400" />
-                        <span>Garson Çağrısı</span>
-                      </>
-                    )}
-                    {req.request_type === 'bill_cash' && (
-                      <>
-                        <Banknote className="w-3 h-3 text-emerald-400" />
-                        <span>Hesap İste (Nakit)</span>
-                      </>
-                    )}
-                    {req.request_type === 'bill_card' && (
-                      <>
-                        <CreditCard className="w-3 h-3 text-indigo-400" />
-                        <span>Hesap İste (POS / Kart)</span>
-                      </>
-                    )}
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-extrabold text-sm text-slate-900 bg-slate-100 px-3 py-1 rounded-lg">
+                    {req.table_no}
+                  </span>
+                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                    {req.request_type === 'waiter'
+                      ? 'Garson Çağrısı'
+                      : req.request_type === 'bill_cash'
+                      ? 'Nakit Hesap'
+                      : 'POS / Kart Hesap'}
+                  </span>
                 </div>
-
+                <p className="text-xs text-slate-600">
+                  {req.table_no} masası servis personeli bekliyor.
+                </p>
                 <button
                   onClick={() => resolveServiceRequest(req.id)}
-                  className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg text-xs transition"
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition"
                 >
-                  Tamamla
+                  Tamamlandı / Masaya Gidildi
                 </button>
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Orders Grid */}
-      {loading ? (
-        <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
-          <span>Yükleniyor...</span>
-        </div>
-      ) : orders.length === 0 ? (
-        <div className="py-20 text-center bg-[#111622]/40 border border-dashed border-[#1E2638] rounded-2xl p-8 space-y-1.5">
-          <ChefHat className="w-10 h-10 text-slate-600 mx-auto mb-2" />
-          <h3 className="font-semibold text-slate-200 text-sm">Aktif Sipariş Bulunmuyor</h3>
-          <p className="text-xs text-slate-400">
-            Masalardan QR ile sipariş verildiğinde anında burada listelenecektir.
+        )
+      ) : filteredOrders.length === 0 ? (
+        /* Empty State Matching Screenshot */
+        <div className="bg-white border border-slate-200/90 rounded-2xl p-16 text-center shadow-sm">
+          <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3 text-slate-400">
+            <ShoppingBag className="w-6 h-6" />
+          </div>
+          <h3 className="font-extrabold text-sm text-slate-800">Aktif Sipariş Bulunmuyor</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
+            Müşteriler masalardan QR kod okutup sipariş verdiklerinde burada anlık sesli ve görsel bildirimle belirecektir.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {orders.map((order) => {
+        /* Orders Grid */
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredOrders.map((order) => {
             const isPending = order.status === 'pending';
             const isPreparing = order.status === 'preparing';
+            const isServed = order.status === 'served';
 
             return (
               <div
                 key={order.id}
-                className={`bg-[#111622] border rounded-2xl p-4 flex flex-col justify-between shadow-lg transition ${
-                  isPending
-                    ? 'border-amber-500/40 ring-1 ring-amber-500/20'
-                    : isPreparing
-                    ? 'border-indigo-500/40 ring-1 ring-indigo-500/20'
-                    : 'border-[#1E2638]'
-                }`}
+                className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4 hover:shadow-md transition flex flex-col justify-between"
               >
                 <div>
-                  {/* Order Header */}
-                  <div className="flex items-start justify-between pb-3 border-b border-[#1E2638] mb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">{order.table_no}</span>
-                        {isPending && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
-                            Yeni
-                          </span>
-                        )}
-                        {isPreparing && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                            Hazırlanıyor
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-slate-900 bg-slate-100 px-3 py-1 rounded-xl">
+                        {order.table_no}
                       </span>
+                      {order.order_source === 'pos' && (
+                        <span className="text-[10px] font-bold bg-slate-800 text-white px-2 py-0.5 rounded-md">
+                          KASA / POS
+                        </span>
+                      )}
                     </div>
 
-                    <button
-                      onClick={() => printKitchenTicket(business, order)}
-                      className="p-1.5 rounded-lg bg-[#182030] hover:bg-[#222E45] text-slate-300 hover:text-white transition"
-                      title="Adisyon Fişi Yazdır"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-purple-400" />
-                    </button>
+                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full ${
+                      isPending
+                        ? 'bg-amber-100 text-amber-800'
+                        : isPreparing
+                        ? 'bg-sky-100 text-sky-800'
+                        : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {isPending ? 'Yeni Sipariş' : isPreparing ? 'Hazırlanıyor' : 'Teslim Edildi'}
+                    </span>
                   </div>
 
-                  {/* Items List */}
-                  <div className="space-y-1.5 mb-3.5">
+                  {/* Order Items List */}
+                  <div className="space-y-2 py-3">
                     {order.items.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-start text-xs">
-                        <div className="flex items-start gap-1.5">
-                          <span className="font-bold text-indigo-400 bg-indigo-500/10 w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0">
-                            {item.quantity}
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-orange-600 bg-orange-50 w-5 h-5 rounded-md flex items-center justify-center text-[11px]">
+                            {item.quantity}x
                           </span>
-                          <span className="font-medium text-slate-200">{item.name}</span>
+                          <span className="font-semibold text-slate-800">{item.name}</span>
                         </div>
-                        <span className="text-slate-400 font-mono text-[11px]">
+                        <span className="font-bold text-slate-600">
                           {(item.price * item.quantity).toFixed(2)} ₺
                         </span>
                       </div>
                     ))}
-                  </div>
 
-                  {/* Customer Notes */}
-                  {order.customer_notes && (
-                    <div className="p-2 bg-[#0B0E14] rounded-xl border border-[#1A2234] text-[11px] text-amber-300 mb-3">
-                      <strong>Not:</strong> {order.customer_notes}
-                    </div>
-                  )}
+                    {order.customer_notes && (
+                      <div className="p-2 bg-amber-50/60 rounded-xl border border-amber-200/60 text-[11px] text-amber-900 mt-2">
+                        <strong>Not:</strong> {order.customer_notes}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Footer Actions */}
-                <div className="pt-3 border-t border-[#1E2638] space-y-2.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-400">Toplam:</span>
-                    <span className="font-bold text-sm text-indigo-400">
+                {/* Total & Action Buttons */}
+                <div className="space-y-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500 font-medium">Toplam Tutar:</span>
+                    <span className="font-extrabold text-base text-orange-600">
                       {order.total_amount.toFixed(2)} ₺
                     </span>
                   </div>
@@ -337,29 +394,37 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
                     {isPending && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="col-span-2 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition"
+                        className="py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-sm transition"
                       >
-                        <ChefHat className="w-3.5 h-3.5" />
-                        <span>Mutfakta Hazırla</span>
+                        Mutfakta Hazırla
                       </button>
                     )}
 
                     {isPreparing && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'served')}
-                        className="col-span-2 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition"
+                        className="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Masaya Servis Edildi</span>
+                        Masaya Teslim Et
                       </button>
                     )}
 
-                    {order.status === 'served' && (
+                    <button
+                      onClick={() => updateOrderStatus(order.id, 'paid')}
+                      className={`py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition ${
+                        !isPending && !isPreparing ? 'col-span-2' : ''
+                      }`}
+                    >
+                      Hesap Alındı (Kapat)
+                    </button>
+
+                    {(isPending || isPreparing) && (
                       <button
-                        onClick={() => updateOrderStatus(order.id, 'paid')}
-                        className="col-span-2 py-2 bg-[#182030] hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs transition"
+                        onClick={() => printKitchenTicket(business, order)}
+                        className="py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
                       >
-                        Ödendi & Kapat
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Yazdır</span>
                       </button>
                     )}
                   </div>
