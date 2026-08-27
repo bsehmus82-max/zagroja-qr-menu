@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { 
   Palette, Wifi, Phone, Lock, 
-  Check, Save, KeyRound, AlertCircle, Eye, EyeOff, Image as ImageIcon, Clock, MapPin
+  Check, Save, KeyRound, AlertCircle, Eye, EyeOff, 
+  Image as ImageIcon, Upload, Link2, Trash2, Camera
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
@@ -14,7 +15,10 @@ interface BusinessSettingsProps {
 
 export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, onUpdate }) => {
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [templateId, setTemplateId] = useState<TemplateId>(business.template_id || 'clean');
+  const [logoMode, setLogoMode] = useState<'upload' | 'url'>('upload');
   const [logoUrl, setLogoUrl] = useState(business.logo_url || '');
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
@@ -80,6 +84,51 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     },
   ];
 
+  // Image Upload Handler
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen geçerli bir görsel formatı (PNG, JPG, WEBP) seçiniz.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+        setLogoUrl(optimizedBase64);
+        toast.success('Logo fotoğrafı başarıyla yüklendi!');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSaveGeneral = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -106,7 +155,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       if (!error && data) {
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('İşletme ayarları ve şablon başarıyla kaydedildi!');
+        toast.success('İşletme ayarları ve logo başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
         toast.error('Ayarlar kaydedilirken bir hata oluştu.');
@@ -172,7 +221,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div>
           <h2 className="text-base font-bold text-white">İşletme Ayarları & Görsel Tema</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Logonuzu, çalışma saatlerinizi, QR menü temanızı ve giriş şifrenizi buradan yönetebilirsiniz.
+            Logonuzu (fotoğraf veya link), çalışma saatlerinizi, temanızı ve şifrenizi buradan yönetebilirsiniz.
           </p>
         </div>
 
@@ -187,41 +236,93 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </button>
       </div>
 
-      {/* Logo & Identity Card */}
+      {/* Dual Logo Field: Photo Upload & URL */}
       <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <ImageIcon className="w-4 h-4 text-indigo-400" />
-          <h3 className="font-bold text-xs text-white">İşletme Logosu</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-indigo-400" />
+            <h3 className="font-bold text-xs text-white">İşletme Logosu (Fotoğraf veya URL)</h3>
+          </div>
+
+          <div className="flex items-center gap-1 bg-[#151C2C] p-1 rounded-xl border border-[#212C42]">
+            <button
+              type="button"
+              onClick={() => setLogoMode('upload')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                logoMode === 'upload'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Upload className="w-3 h-3" />
+              Fotoğraf Yükle
+            </button>
+            <button
+              type="button"
+              onClick={() => setLogoMode('url')}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                logoMode === 'url'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Link2 className="w-3 h-3" />
+              URL Yapıştır
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638]">
-          <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+        <div className="flex items-center gap-4 bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638]">
+          <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
             {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Logo Önizleme"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+              <>
+                <img
+                  src={logoUrl}
+                  alt="Logo Önizleme"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLogoUrl('')}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
+                  title="Logoyu Kaldır"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
             ) : (
-              <ImageIcon className="w-6 h-6 text-slate-500" />
+              <Camera className="w-6 h-6 text-slate-500" />
             )}
           </div>
 
-          <div className="flex-1 w-full space-y-1">
-            <label className="block text-[11px] font-medium text-slate-300">
-              Logo Görsel Bağlantısı (URL)
-            </label>
-            <input
-              type="url"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://... /logo.png (Müşteri menüsünde ve panelde görünür)"
-              className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-            />
-          </div>
+          {logoMode === 'upload' ? (
+            <div className="flex-1">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                className="hidden"
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border border-dashed border-[#25324A] hover:border-indigo-500/60 bg-[#111622] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
+              >
+                <Upload className="w-4 h-4 text-indigo-400" />
+                <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Telefondan veya Bilgisayardan Logo Fotoğrafı Seç'}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1">
+              <input
+                type="url"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="https://... /logo.png (Görsel URL)"
+                className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -305,7 +406,6 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               placeholder="09:00 - 00:00 veya 24 Saat Açık"
               className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none mb-1.5"
             />
-            {/* Quick buttons */}
             <div className="grid grid-cols-4 gap-1">
               {['09:00 - 00:00', '08:00 - 22:00', '11:00 - 02:00', '24 Saat Açık'].map((h) => (
                 <button

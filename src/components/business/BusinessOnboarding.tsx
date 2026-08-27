@@ -1,7 +1,8 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { 
   Phone, MapPin, Clock, Wifi, Sparkles, 
-  CheckCircle2, ArrowRight, Shield, Image as ImageIcon, Check
+  CheckCircle2, ArrowRight, Shield, Image as ImageIcon, 
+  Upload, Link2, Trash2, Camera
 } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -18,6 +19,9 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   onComplete,
 }) => {
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [logoMode, setLogoMode] = useState<'upload' | 'url'>('upload');
   const [logoUrl, setLogoUrl] = useState(business.logo_url || '');
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
@@ -43,6 +47,51 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
       setOpenTime(start);
       setCloseTime(end);
     }
+  };
+
+  // Image Upload Handler (Auto-compress & resize client-side)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen geçerli bir görsel formatı (PNG, JPG, WEBP) seçiniz.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.88);
+        setLogoUrl(optimizedBase64);
+        toast.success('Logo fotoğrafı başarıyla yüklendi!');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleFinishOnboarding = async (e: React.FormEvent) => {
@@ -126,35 +175,97 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
         </div>
 
         <form onSubmit={handleFinishOnboarding} className="space-y-4">
-          {/* Logo Field */}
-          <div className="p-4 bg-[#0B0E14] border border-[#1E2638] rounded-2xl flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo Önizleme"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '';
-                  }}
-                />
-              ) : (
-                <ImageIcon className="w-6 h-6 text-slate-500" />
-              )}
+          {/* Dual Logo Field: Photo Upload & URL */}
+          <div className="p-4 bg-[#0B0E14] border border-[#1E2638] rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
+                İşletme Logosu
+              </label>
+
+              {/* Mode Toggle Tabs */}
+              <div className="flex items-center gap-1 bg-[#151C2C] p-1 rounded-xl border border-[#212C42]">
+                <button
+                  type="button"
+                  onClick={() => setLogoMode('upload')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                    logoMode === 'upload'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Upload className="w-3 h-3" />
+                  Fotoğraf Yükle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLogoMode('url')}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                    logoMode === 'url'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Link2 className="w-3 h-3" />
+                  URL Yapıştır
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 w-full space-y-1">
-              <label className="block text-[11px] font-medium text-slate-300 flex items-center gap-1.5">
-                <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
-                İşletme Logosu (Görsel URL)
-              </label>
-              <input
-                type="url"
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://... /logo.png (İsteğe bağlı)"
-                className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-              />
+            <div className="flex items-center gap-3.5">
+              {/* Live Preview Avatar */}
+              <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+                {logoUrl ? (
+                  <>
+                    <img
+                      src={logoUrl}
+                      alt="Logo Önizleme"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl('')}
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
+                      title="Logoyu Kaldır"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </>
+                ) : (
+                  <Camera className="w-6 h-6 text-slate-500" />
+                )}
+              </div>
+
+              {/* Upload Input Mode */}
+              {logoMode === 'upload' ? (
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                    className="hidden"
+                  />
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border border-dashed border-[#25324A] hover:border-indigo-500/60 bg-[#111622] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
+                  >
+                    <Upload className="w-4 h-4 text-indigo-400" />
+                    <span>{logoUrl ? 'Yeni Fotoğraf Seç / Değiştir' : 'Cihazdan Fotoğraf / Logo Seç'}</span>
+                  </div>
+                </div>
+              ) : (
+                /* URL Input Mode */
+                <div className="flex-1">
+                  <input
+                    type="url"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="https://... /logo.png (Görsel URL)"
+                    className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                  />
+                </div>
+              )}
             </div>
           </div>
 
