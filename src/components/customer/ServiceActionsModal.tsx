@@ -1,8 +1,5 @@
-import React, { useState } from 'react';
-import { 
-  Hand, Banknote, CreditCard, Wifi, Check, 
-  X, Copy, Sparkles 
-} from 'lucide-react';
+ï»¿import React, { useState } from 'react';
+import { Hand, Banknote, Wifi, Check, X, Copy, Sparkles, CreditCard } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
 
@@ -21,181 +18,173 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   type,
   onClose,
 }) => {
+  const [billMethod, setBillMethod] = useState<'nakit' | 'pos'>('pos');
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [copiedWifi, setCopiedWifi] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [wifiCopied, setWifiCopied] = useState(false);
 
   if (!isOpen || !type) return null;
 
-  const handleCallWaiter = async () => {
+  const handleSendRequest = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase.from('service_requests').insert([
+      let details = '';
+      if (type === 'bill') {
+        details = billMethod === 'pos' ? 'POS / Kredi KartÄ± ile Ã–deme' : 'Nakit Ã–deme';
+      } else if (type === 'waiter') {
+        details = note.trim() ? `Not: ${note.trim()}` : 'Masa Ã§aÄŸrÄ±sÄ±';
+      }
+
+      await supabase.from('service_requests').insert([
         {
           business_id: business.id,
-          table_no: tableNo || 'Genel',
-          request_type: 'waiter',
-          status: 'pending',
+          table_no: tableNo || 'Genel Masa',
+          type: type,
+          details: details,
+          is_completed: false,
         },
       ]);
 
-      if (!error) {
-        setSuccessMsg('Garson çaðrýnýz personele anýnda iletildi.');
-        setTimeout(() => {
-          setSuccessMsg('');
-          onClose();
-        }, 2000);
-      }
+      setSubmitted(true);
+      setTimeout(() => {
+        setSubmitted(false);
+        setNote('');
+        onClose();
+      }, 2500);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRequestBill = async (method: 'bill_cash' | 'bill_card') => {
-    setLoading(true);
-    try {
-      const { error } = await supabase.from('service_requests').insert([
-        {
-          business_id: business.id,
-          table_no: tableNo || 'Genel',
-          request_type: method,
-          status: 'pending',
-        },
-      ]);
-
-      if (!error) {
-        setSuccessMsg(
-          method === 'bill_cash'
-            ? 'Nakit hesap talebiniz kasaya iletildi.'
-            : 'POS / Kredi kartý hesap talebiniz kasaya iletildi.'
-        );
-        setTimeout(() => {
-          setSuccessMsg('');
-          onClose();
-        }, 2000);
-      }
-    } finally {
-      setLoading(false);
+  const copyWifiPassword = () => {
+    if (business.wifi_password) {
+      navigator.clipboard.writeText(business.wifi_password);
+      setWifiCopied(true);
+      setTimeout(() => setWifiCopied(false), 2000);
     }
-  };
-
-  const handleCopyWifi = () => {
-    navigator.clipboard.writeText(business.wifi_password);
-    setCopiedWifi(true);
-    setTimeout(() => setCopiedWifi(false), 2500);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-sm shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-white transition"
-        >
-          <X className="w-4 h-4" />
-        </button>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95">
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
+          <h3 className="font-black text-sm text-white flex items-center gap-2">
+            {type === 'waiter' && <Hand className="w-4 h-4 text-amber-400" />}
+            {type === 'bill' && <Banknote className="w-4 h-4 text-emerald-400" />}
+            {type === 'wifi' && <Wifi className="w-4 h-4 text-brand-400" />}
+            <span>
+              {type === 'waiter' && 'Garson Ã‡aÄŸÄ±r'}
+              {type === 'bill' && 'Hesap Ä°ste'}
+              {type === 'wifi' && 'MÃ¼ÅŸteri Wi-Fi Bilgisi'}
+            </span>
+          </h3>
 
-        {successMsg ? (
-          <div className="text-center py-6">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-3">
+          <button onClick={onClose} className="p-1.5 text-neutral-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {submitted ? (
+          <div className="py-8 text-center space-y-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 animate-bounce">
               <Check className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-sm text-white mb-1">Talebiniz Alýndý!</h3>
-            <p className="text-xs text-neutral-400">{successMsg}</p>
-          </div>
-        ) : type === 'waiter' ? (
-          <div className="text-center py-2">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-3">
-              <Hand className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-sm text-white mb-1">Garson Çaðýr</h3>
-            <p className="text-xs text-neutral-400 mb-6">
-              <strong>{tableNo || 'Masa'}</strong> için servis personelini çaðýrmak istiyor musunuz?
+            <h4 className="font-bold text-sm text-white">Ä°steÄŸiniz Ä°letildi!</h4>
+            <p className="text-xs text-neutral-400">
+              Personelimiz en kÄ±sa sÃ¼rede masanÄ±za gelecektir.
             </p>
-            <div className="flex gap-2">
-              <button
-                onClick={onClose}
-                className="flex-1 py-3 bg-neutral-800 text-neutral-300 rounded-2xl text-xs font-bold"
-              >
-                Vazgeç
-              </button>
-              <button
-                disabled={loading}
-                onClick={handleCallWaiter}
-                className="flex-1 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl text-xs font-bold shadow-lg shadow-amber-600/30 transition disabled:opacity-50"
-              >
-                {loading ? 'Ýletiliyor...' : 'Evet, Çaðýr'}
-              </button>
-            </div>
-          </div>
-        ) : type === 'bill' ? (
-          <div className="text-center py-2">
-            <h3 className="font-bold text-sm text-white mb-1">Hesap Ýsteme Türü</h3>
-            <p className="text-xs text-neutral-400 mb-6">
-              Ödemenizi nasýl gerçekleþtirmek istersiniz?
-            </p>
-            <div className="space-y-2.5">
-              <button
-                disabled={loading}
-                onClick={() => handleRequestBill('bill_cash')}
-                className="w-full py-3.5 px-4 bg-neutral-950 border border-neutral-800 hover:border-emerald-500 text-white rounded-2xl text-xs font-bold flex items-center justify-between transition group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                    <Banknote className="w-4 h-4" />
-                  </div>
-                  <span>Nakit Ödeme</span>
-                </div>
-                <span className="text-neutral-500 group-hover:text-white">Seç ›</span>
-              </button>
-
-              <button
-                disabled={loading}
-                onClick={() => handleRequestBill('bill_card')}
-                className="w-full py-3.5 px-4 bg-neutral-950 border border-neutral-800 hover:border-purple-500 text-white rounded-2xl text-xs font-bold flex items-center justify-between transition group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-                    <CreditCard className="w-4 h-4" />
-                  </div>
-                  <span>Kredi Kartý / POS</span>
-                </div>
-                <span className="text-neutral-500 group-hover:text-white">Seç ›</span>
-              </button>
-            </div>
           </div>
         ) : type === 'wifi' ? (
-          <div className="text-center py-2">
-            <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center mx-auto mb-3">
-              <Wifi className="w-6 h-6" />
-            </div>
-            <h3 className="font-bold text-sm text-white mb-1">Müþteri Wi-Fi Bilgileri</h3>
-            <p className="text-xs text-neutral-400 mb-6">
-              Ýþletmemizin kablosuz aðýna kolayca baðlanabilirsiniz.
-            </p>
-
-            <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 text-left text-xs space-y-2 mb-6">
+          <div className="space-y-4">
+            <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-neutral-400">Að Adý (SSID):</span>
-                <span className="font-bold text-white font-mono">{business.wifi_ssid || 'Belirtilmedi'}</span>
+                <span className="text-neutral-400">AÄŸ AdÄ± (SSID):</span>
+                <span className="font-bold text-white">{business.wifi_ssid || 'Ä°ÅŸletme Wi-Fi'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-neutral-400">Þifre:</span>
-                <span className="font-bold text-brand-400 font-mono">{business.wifi_password || 'Þifresiz'}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-400">Åžifre:</span>
+                <span className="font-mono font-bold text-brand-400">
+                  {business.wifi_password || 'Åžifresiz'}
+                </span>
               </div>
             </div>
 
             {business.wifi_password && (
               <button
-                onClick={handleCopyWifi}
-                className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition"
+                onClick={copyWifiPassword}
+                className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/30 transition"
               >
-                {copiedWifi ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copiedWifi ? 'Þifre Kopyalandý!' : 'Wi-Fi Þifresini Kopyala'}
+                {wifiCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                <span>{wifiCopied ? 'Åžifre KopyalandÄ±!' : 'Åžifreyi Panoya Kopyala'}</span>
               </button>
             )}
           </div>
-        ) : null}
+        ) : type === 'bill' ? (
+          <div className="space-y-4">
+            <p className="text-xs text-neutral-300">
+              {tableNo} iÃ§in hesap Ã¶deme yÃ¶nteminizi seÃ§iniz:
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setBillMethod('pos')}
+                className={`p-4 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                  billMethod === 'pos'
+                    ? 'bg-brand-600/20 border-brand-500 text-white ring-1 ring-brand-500'
+                    : 'bg-neutral-950 border-neutral-800 text-neutral-400'
+                }`}
+              >
+                <CreditCard className="w-5 h-5 text-brand-400" />
+                <span className="font-bold text-xs">POS / Kredi KartÄ±</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setBillMethod('nakit')}
+                className={`p-4 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                  billMethod === 'nakit'
+                    ? 'bg-emerald-600/20 border-emerald-500 text-white ring-1 ring-emerald-500'
+                    : 'bg-neutral-950 border-neutral-800 text-neutral-400'
+                }`}
+              >
+                <Banknote className="w-5 h-5 text-emerald-400" />
+                <span className="font-bold text-xs">Nakit</span>
+              </button>
+            </div>
+
+            <button
+              onClick={handleSendRequest}
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-2xl text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
+            >
+              {loading ? 'Ä°letiliyor...' : 'HesabÄ± Ä°ste'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-xs text-neutral-300">
+              {tableNo} iÃ§in servis gÃ¶revlisini masanÄ±za Ã§aÄŸÄ±rabilirsiniz.
+            </p>
+
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ä°steÄŸe baÄŸlÄ± bir not yazabilirsiniz (Ã–rn: Ekstra peÃ§ete rica ediyoruz)..."
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 resize-none"
+            />
+
+            <button
+              onClick={handleSendRequest}
+              disabled={loading}
+              className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold rounded-2xl text-xs shadow-lg shadow-amber-600/30 transition disabled:opacity-50"
+            >
+              {loading ? 'Ã‡aÄŸrÄ±lÄ±yor...' : 'Garsonu Masaya Ã‡aÄŸÄ±r'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

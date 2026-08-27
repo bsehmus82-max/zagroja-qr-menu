@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Radio, Send } from 'lucide-react';
+ï»¿import React, { useState } from 'react';
+import { Radio, X, Send, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../types';
 
@@ -14,76 +14,126 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
   onClose,
   businesses,
 }) => {
-  const [broadcastText, setBroadcastText] = useState('');
-  const [sending, setSending] = useState(false);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSendBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!broadcastText.trim() || businesses.length === 0) return;
+    if (!message.trim()) return;
 
-    setSending(true);
+    setLoading(true);
+    setError('');
+
     try {
-      const messagesToInsert = businesses.map((b) => ({
-        business_id: b.id,
+      const activeBiz = businesses.filter((b) => b.subscription_status === 'active');
+      if (activeBiz.length === 0) {
+        throw new Error('Aktif durumda iÅŸletme bulunmuyor.');
+      }
+
+      const rows = activeBiz.map((biz) => ({
+        business_id: biz.id,
         sender: 'superadmin',
-        message: `?? [SÝSTEM DUYURUSU]\n${broadcastText.trim()}`,
+        sender_name: 'Zagroja Sistem Merkezi',
+        message: `ðŸ“¢ [SÄ°STEM DUYURUSU]\n${message.trim()}`,
         is_read: false,
       }));
 
-      const { error } = await supabase.from('support_messages').insert(messagesToInsert);
-      if (!error) {
-        alert(`Duyuru ${businesses.length} iþletmenin Canlý Destek ekranýna baþarýyla iletildi!`);
-        setBroadcastText('');
+      const { error: insertError } = await supabase.from('support_messages').insert(rows);
+
+      if (insertError) throw insertError;
+
+      setSuccess(true);
+      setTimeout(() => {
+        setSuccess(false);
+        setMessage('');
         onClose();
-      } else {
-        alert('Duyuru gönderilirken bir hata oluþtu.');
-      }
+      }, 2000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Duyuru iletilirken hata oluÅŸtu.';
+      setError(msg);
     } finally {
-      setSending(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl">
-        <h2 className="text-lg font-black text-white tracking-tight mb-1 flex items-center gap-2">
-          <Radio className="w-5 h-5 text-purple-400" />
-          Tüm Ýþletmelere Toplu Sistem Duyurusu
-        </h2>
-        <p className="text-xs text-neutral-400 mb-6">
-          Bu mesaj, sistemdeki tüm kayýtlý iþletmelerin <strong>Canlý Destek</strong> paneline tek tek ayrý sohbet mesajý olarak anýnda iletilecektir.
-        </p>
-
-        <form onSubmit={handleSend} className="space-y-4">
-          <textarea
-            required
-            rows={4}
-            value={broadcastText}
-            onChange={(e) => setBroadcastText(e.target.value)}
-            placeholder="Örn: Sayýn iþletme yöneticimiz, planlý altyapý güçlendirmesi nedeniyle..."
-            className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-4 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 transition"
-          />
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-neutral-300 transition"
-            >
-              Ýptal
-            </button>
-            <button
-              type="submit"
-              disabled={sending || !broadcastText.trim()}
-              className="px-6 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-600/30 transition disabled:opacity-50 flex items-center gap-2"
-            >
-              <Send className="w-4 h-4" />
-              {sending ? 'Ýletiliyor...' : 'Tümüne Gönder'}
-            </button>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+        <div className="flex items-center justify-between pb-4 border-b border-neutral-800 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-400 flex items-center justify-center border border-purple-500/20">
+              <Radio className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-white">Toplu Sistem Duyurusu</h2>
+              <p className="text-xs text-neutral-400">TÃ¼m aktif iÅŸletmelere anÄ±nda bildirim</p>
+            </div>
           </div>
-        </form>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-2 text-red-400 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {success ? (
+          <div className="py-8 text-center space-y-2">
+            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
+            <h3 className="text-base font-bold text-white">Duyuru GÃ¶nderildi!</h3>
+            <p className="text-xs text-neutral-400">
+              TÃ¼m iÅŸletmelerin CanlÄ± Destek ekranÄ±na mesajÄ±nÄ±z baÅŸarÄ±yla iletildi.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={handleSendBroadcast} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+                Duyuru Metni
+              </label>
+              <textarea
+                required
+                rows={4}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ã–rn: Bu gece saat 03:00'te sistemlerimizde performans iyileÅŸtirmesi yapÄ±lacaktÄ±r..."
+                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-4 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 transition resize-none"
+              />
+              <span className="text-[10px] text-neutral-500 mt-1 block">
+                Bu mesaj {businesses.filter((b) => b.subscription_status === 'active').length} adet aktif iÅŸletmeye ayrÄ± ayrÄ± gÃ¶nderilecektir.
+              </span>
+            </div>
+
+            <div className="pt-4 border-t border-neutral-800 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-neutral-300 transition"
+              >
+                VazgeÃ§
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-2 transition disabled:opacity-50"
+              >
+                <Send className="w-4 h-4" />
+                {loading ? 'GÃ¶nderiliyor...' : 'TÃ¼m Ä°ÅŸletmelere GÃ¶nder'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

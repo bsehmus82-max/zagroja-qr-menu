@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ï»¿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
   Plus, Search, Store, Clock, Phone, MapPin, Sparkles, Check
@@ -146,7 +146,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     {tableNo}
                   </span>
                 )}
-                <span>{business.working_hours || 'Açýk'}</span>
+                <span>{business.working_hours || 'AÃ§Ä±k'}</span>
               </div>
             </div>
           </div>
@@ -176,7 +176,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             className="py-3 px-4 bg-neutral-900/90 border border-neutral-800 hover:border-amber-500/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-white transition active:scale-98 shadow-sm"
           >
             <Hand className="w-4 h-4 text-amber-400" />
-            <span>Garson Çaðýr</span>
+            <span>Garson Ã‡aÄŸÄ±r</span>
           </button>
 
           <button
@@ -184,7 +184,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             className="py-3 px-4 bg-neutral-900/90 border border-neutral-800 hover:border-brand-500/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-white transition active:scale-98 shadow-sm"
           >
             <Banknote className="w-4 h-4 text-brand-400" />
-            <span>Hesap Ýste</span>
+            <span>Hesap Ä°ste</span>
           </button>
         </div>
 
@@ -195,7 +195,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Menüde lezzet ara..."
+            placeholder="MenÃ¼de lezzet ara..."
             className="w-full bg-neutral-900/90 border border-neutral-800 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-brand-500 transition"
           />
         </div>
@@ -235,16 +235,16 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
         <div className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <span className="font-black text-sm text-white">
-              {selectedCategory?.name || 'Tüm Lezzetler'}
+              {selectedCategory?.name || 'TÃ¼m Lezzetler'}
             </span>
             <span className="text-xs text-neutral-400">
-              {currentProducts.length} Çeþit
+              {currentProducts.length} Ã‡eÅŸit
             </span>
           </div>
 
           {currentProducts.length === 0 ? (
             <div className="py-12 text-center text-neutral-500 text-xs bg-neutral-900/40 border border-dashed border-neutral-800 rounded-3xl">
-              Bu kategoride ürün bulunamadý.
+              Bu kategoride Ã¼rÃ¼n bulunamadÄ±.
             </div>
           ) : (
             currentProducts.map((prod) => (
@@ -261,7 +261,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     <h3 className="font-bold text-xs text-white">{prod.name}</h3>
                     {prod.is_frozen && (
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                        Tükendi
+                        TÃ¼kendi
                       </span>
                     )}
                   </div>
@@ -271,7 +271,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                   </p>
 
                   <div className="text-xs font-black text-brand-400 mt-2">
-                    {prod.price.toFixed(2)} ?
+                    {prod.price.toFixed(2)} â‚º
                   </div>
                 </div>
 
@@ -303,10 +303,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
               <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-xs">
                 {totalCartCount}
               </div>
-              <span className="text-xs">Sipariþi Tamamla</span>
+              <span className="text-xs">SipariÅŸi Tamamla</span>
             </div>
 
-            <span className="text-sm font-black">{totalCartPrice.toFixed(2)} ? ›</span>
+            <span className="text-sm font-black">{totalCartPrice.toFixed(2)} â‚º â†’</span>
           </button>
         </div>
       )}

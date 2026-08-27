@@ -1,66 +1,46 @@
-import React, { useState } from 'react';
+ï»¿import React, { useState } from 'react';
 import { 
-  Store, Phone, MapPin, Clock, Wifi, Palette, 
-  Check, Save, Sparkles, LayoutTemplate
+  Palette, Phone, MapPin, Clock, Wifi, Lock, 
+  Sparkles, Check, Save, AlertCircle 
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
-import { supabase } from '../../lib/supabase';
+import { supabase, hashPassword } from '../../lib/supabase';
 
 interface BusinessSettingsProps {
   business: Business;
-  onUpdated: (updated: Business) => void;
+  onUpdate: (updated: Business) => void;
 }
 
-const TEMPLATES: { id: TemplateId; name: string; desc: string; previewClass: string }[] = [
-  {
-    id: 'clean',
-    name: 'Sade & Klasik (Varsayýlan)',
-    desc: 'Hýzlý, minimalist ve göz yormayan ferah arayüz.',
-    previewClass: 'bg-neutral-900 border-neutral-700 text-white',
-  },
-  {
-    id: 'dark_luxury',
-    name: 'Modern Dark Luxury',
-    desc: 'Asil siyah, altýn sarýsý ve mor ýþýk vurgularý.',
-    previewClass: 'bg-black border-amber-500/40 text-amber-300',
-  },
-  {
-    id: 'nordic',
-    name: 'Nordic Light',
-    desc: 'Ýskandinav tarzý aydýnlýk, ferah ve temiz hatlar.',
-    previewClass: 'bg-slate-100 border-slate-300 text-slate-900',
-  },
-  {
-    id: 'bistro',
-    name: 'Warm Bistro & Artisan',
-    desc: 'Sýcak kahve, fýrýn ve ahþap dokulu nostaljik renkler.',
-    previewClass: 'bg-stone-900 border-amber-700/50 text-amber-200',
-  },
-  {
-    id: 'neon',
-    name: 'Neon Night Vibes',
-    desc: 'Gece mekanlarý, kokteyl barlar ve canlý neon detaylar.',
-    previewClass: 'bg-neutral-950 border-purple-500 text-purple-300',
-  },
-  {
-    id: 'vintage',
-    name: 'Classic Elegant Vintage',
-    desc: 'Geleneksel lüks restoran ve fine-dining tipografisi.',
-    previewClass: 'bg-zinc-900 border-emerald-500/40 text-emerald-300',
-  },
-];
-
-export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, onUpdated }) => {
+export const BusinessSettings: React.FC<BusinessSettingsProps> = ({
+  business,
+  onUpdate,
+}) => {
   const [name, setName] = useState(business.name);
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
   const [workingHours, setWorkingHours] = useState(business.working_hours || '09:00 - 00:00');
   const [wifiSSID, setWifiSSID] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
-  const [templateId, setTemplateId] = useState<TemplateId>(business.template_id || 'clean');
-  const [saving, setSaving] = useState(false);
+  const [templateId, setTemplateId] = useState<TemplateId>(business.template_id);
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Change password
+  const [newPass, setNewPass] = useState('');
+  const [confirmPass, setConfirmPass] = useState('');
+  const [passSuccess, setPassSuccess] = useState(false);
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const templates: { id: TemplateId; name: string; desc: string; bg: string }[] = [
+    { id: 'clean', name: '1. Sade & Klasik', desc: 'VarsayÄ±lan temiz ve hÄ±zlÄ± tasarÄ±m', bg: 'bg-neutral-900' },
+    { id: 'dark_luxury', name: '2. Dark Luxury', desc: 'Siyah ve altÄ±n lÃ¼ks restoran temasÄ±', bg: 'bg-black border-amber-500/40' },
+    { id: 'nordic', name: '3. Nordic Light', desc: 'Ferah Ä°skandinav kafe konsepti', bg: 'bg-slate-800' },
+    { id: 'bistro', name: '4. Warm Bistro', desc: 'SÄ±cak ahÅŸap & bistro tonlarÄ±', bg: 'bg-stone-900' },
+    { id: 'neon', name: '5. Neon Vibes', desc: 'Gece kulÃ¼bÃ¼ ve pub neon renkleri', bg: 'bg-neutral-950 border-purple-500/40' },
+    { id: 'vintage', name: '6. Elegant Vintage', desc: 'Zarif retro ve klasik stil', bg: 'bg-zinc-900' },
+  ];
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -81,165 +61,222 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         .single();
 
       if (!error && data) {
-        onUpdated(data as Business);
-        alert('Ýþletme ayarlarý ve QR Menü þablonu baþarýyla kaydedildi!');
-      } else {
-        alert('Ayarlar kaydedilemedi.');
+        onUpdate(data as Business);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
       }
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <form onSubmit={handleSave} className="space-y-6 max-w-4xl">
-      <div>
-        <h2 className="text-xl font-black text-white tracking-tight">Ýþletme Ayarlarý & Þablon Seçimi</h2>
-        <p className="text-xs text-neutral-400">
-          Ýþletme iletiþim bilgilerinizi, Wi-Fi þifrenizi ve müþterilerinizin göreceði QR menü þablonunu belirleyin.
-        </p>
-      </div>
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPass || newPass !== confirmPass) {
+      alert('Åžifreler eÅŸleÅŸmiyor.');
+      return;
+    }
 
-      {/* 6 Templates Selector */}
+    const hash = await hashPassword(newPass);
+    const { error } = await supabase
+      .from('businesses')
+      .update({ password_hash: hash, updated_at: new Date().toISOString() })
+      .eq('id', business.id);
+
+    if (!error) {
+      setPassSuccess(true);
+      setNewPass('');
+      setConfirmPass('');
+      setTimeout(() => setPassSuccess(false), 3000);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      {/* 6 Template Selector */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 space-y-4">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
-          <LayoutTemplate className="w-4 h-4 text-brand-400" />
-          <span>6 Farklý QR Menü Arayüz Þablonu</span>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-500/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
+            <Palette className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-base text-white">QR MenÃ¼ ArayÃ¼z Åžablonu</h3>
+            <p className="text-xs text-neutral-400">
+              MÃ¼ÅŸterilerinizin masada QR okuttuÄŸunda gÃ¶receÄŸi 6 farklÄ± tasarÄ±m seÃ§eneÄŸi
+            </p>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {TEMPLATES.map((tmpl) => {
-            const isSelected = templateId === tmpl.id;
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-2">
+          {templates.map((tpl) => {
+            const isSelected = templateId === tpl.id;
             return (
               <div
-                key={tmpl.id}
-                onClick={() => setTemplateId(tmpl.id)}
-                className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col justify-between ${
+                key={tpl.id}
+                onClick={() => setTemplateId(tpl.id)}
+                className={`p-4 rounded-2xl border cursor-pointer transition flex flex-col justify-between h-28 ${tpl.bg} ${
                   isSelected
-                    ? 'bg-brand-600/10 border-brand-500 ring-2 ring-brand-500/20'
-                    : 'bg-neutral-950/60 border-neutral-800 hover:border-neutral-700'
+                    ? 'ring-2 ring-brand-500 border-brand-500 shadow-lg'
+                    : 'border-neutral-800 hover:border-neutral-700'
                 }`}
               >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-bold text-xs text-white">{tmpl.name}</span>
-                    {isSelected && (
-                      <span className="p-1 rounded-lg bg-brand-600 text-white">
-                        <Check className="w-3 h-3" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-neutral-400">{tmpl.desc}</p>
+                <div className="flex items-start justify-between">
+                  <h4 className="font-bold text-xs text-white">{tpl.name}</h4>
+                  {isSelected && (
+                    <span className="w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center text-[10px]">
+                      <Check className="w-3 h-3" />
+                    </span>
+                  )}
                 </div>
-
-                <div className={`mt-4 p-2 rounded-xl border text-[10px] font-mono text-center ${tmpl.previewClass}`}>
-                  Menü Önizleme Stili
-                </div>
+                <p className="text-[10px] text-neutral-400">{tpl.desc}</p>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* Business Info Form */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 space-y-4">
-        <h3 className="font-bold text-sm text-white mb-2">Genel Bilgiler</h3>
+      {/* Profile & Info Form */}
+      <form onSubmit={handleSaveProfile} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 space-y-6">
+        <h3 className="font-bold text-base text-white">Ä°ÅŸletme & Ä°letiÅŸim Bilgileri</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Ýþletme Adý
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              Ä°ÅŸletme AdÄ±
             </label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Telefon Numarasý
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              Telefon NumarasÄ±
             </label>
             <input
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="0532 000 00 00"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              placeholder="0 (5xx) xxx xx xx"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Çalýþma Saatleri
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              Ã‡alÄ±ÅŸma Saatleri
             </label>
             <input
               type="text"
               value={workingHours}
               onChange={(e) => setWorkingHours(e.target.value)}
               placeholder="09:00 - 00:00"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Ýþletme Adresi
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              AÃ§Ä±k Adres
             </label>
             <input
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Adres bilgisi"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-neutral-800">
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center gap-1.5">
-              <Wifi className="w-3.5 h-3.5 text-brand-400" />
-              Müþteri Wi-Fi Adý (SSID)
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              MÃ¼ÅŸteri Wi-Fi AdÄ± (SSID)
             </label>
             <input
               type="text"
               value={wifiSSID}
               onChange={(e) => setWifiSSID(e.target.value)}
-              placeholder="Zagroja_Guest"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              placeholder="Wi-Fi AdÄ±"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5 flex items-center gap-1.5">
-              <Wifi className="w-3.5 h-3.5 text-brand-400" />
-              Müþteri Wi-Fi Þifresi
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">
+              MÃ¼ÅŸteri Wi-Fi Åžifresi
             </label>
             <input
               type="text"
               value={wifiPassword}
               onChange={(e) => setWifiPassword(e.target.value)}
-              placeholder="wifi2026"
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white focus:outline-none focus:border-brand-500"
+              placeholder="Wi-Fi Åžifresi"
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
             />
           </div>
         </div>
-      </div>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={saving}
-          className="bg-brand-600 hover:bg-brand-500 text-white font-bold px-8 py-3.5 rounded-2xl text-xs flex items-center gap-2 shadow-lg shadow-brand-600/30 transition disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? 'Kaydediliyor...' : 'Deðiþiklikleri Kaydet'}
-        </button>
-      </div>
-    </form>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-3 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 flex items-center gap-2 transition"
+          >
+            <Save className="w-4 h-4" />
+            {saving ? 'Kaydediliyor...' : saved ? 'DeÄŸiÅŸiklikler Kaydedildi!' : 'AyarlarÄ± Kaydet'}
+          </button>
+        </div>
+      </form>
+
+      {/* Change Password Form */}
+      <form onSubmit={handleChangePassword} className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 space-y-4">
+        <h3 className="font-bold text-base text-white flex items-center gap-2">
+          <Lock className="w-4 h-4 text-brand-400" />
+          Åžifre DeÄŸiÅŸtir
+        </h3>
+
+        {passSuccess && (
+          <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-emerald-400 text-xs">
+            GiriÅŸ ÅŸifreniz baÅŸarÄ±yla gÃ¼ncellendi!
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">Yeni Åžifre</label>
+            <input
+              type="password"
+              required
+              value={newPass}
+              onChange={(e) => setNewPass(e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-neutral-300 mb-1">Yeni Åžifre Tekrar</label>
+            <input
+              type="password"
+              required
+              value={confirmPass}
+              onChange={(e) => setConfirmPass(e.target.value)}
+              className="w-full bg-neutral-950 border border-neutral-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="submit"
+            className="px-5 py-2.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-bold transition border border-neutral-700"
+          >
+            Åžifreyi GÃ¼ncelle
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };

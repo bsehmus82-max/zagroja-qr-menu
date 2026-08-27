@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ï»¿import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Store, QrCode, RefreshCw, Sparkles, ArrowRight } from 'lucide-react';
 import { Business } from './types';
 import { supabase } from './lib/supabase';
@@ -78,19 +78,19 @@ export default function App() {
         .single();
 
       if (error || !data) {
-        setCustomerError('İşletme veya QR menü bulunamadı.');
+        setCustomerError('Ä°ÅŸletme veya QR menÃ¼ bulunamadÄ±.');
         return;
       }
 
       const biz = data as Business;
       if (biz.subscription_status === 'suspended') {
-        setCustomerError('Bu işletmenin menüsü geçici olarak kapalıdır.');
+        setCustomerError('Bu iÅŸletmenin menÃ¼sÃ¼ geÃ§ici olarak kapalÄ±dÄ±r.');
         return;
       }
 
       setCustomerBusiness(biz);
     } catch {
-      setCustomerError('Menü yüklenirken bir hata oluştu.');
+      setCustomerError('MenÃ¼ yÃ¼klenirken bir hata oluÅŸtu.');
     } finally {
       setCustomerLoading(false);
     }
@@ -151,7 +151,7 @@ export default function App() {
       return (
         <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center p-4 text-center">
           <RefreshCw className="w-8 h-8 animate-spin text-brand-500 mb-3" />
-          <h2 className="font-bold text-sm text-white">Menü Yükleniyor...</h2>
+          <h2 className="font-bold text-sm text-white">MenÃ¼ YÃ¼kleniyor...</h2>
         </div>
       );
     }
@@ -162,9 +162,9 @@ export default function App() {
           <div className="w-16 h-16 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-500 mb-4">
             <QrCode className="w-8 h-8" />
           </div>
-          <h2 className="font-bold text-lg text-white mb-2">{customerError || 'Menü Bulunamadı'}</h2>
+          <h2 className="font-bold text-lg text-white mb-2">{customerError || 'MenÃ¼ BulunamadÄ±'}</h2>
           <p className="text-xs text-neutral-400 max-w-sm mb-6">
-            Lütfen masanızdaki QR kodu tekrar okutunuz veya işletme yetkilisine danışınız.
+            LÃ¼tfen masanÄ±zdaki QR kodu tekrar okutunuz veya iÅŸletme yetkilisine danÄ±ÅŸÄ±nÄ±z.
           </p>
           <button
             onClick={() => {
@@ -172,7 +172,7 @@ export default function App() {
             }}
             className="px-6 py-3 bg-neutral-900 border border-neutral-800 hover:border-neutral-700 text-xs font-bold text-neutral-300 rounded-2xl"
           >
-            Ana Sayfaya Dön
+            Ana Sayfaya DÃ¶n
           </button>
         </div>
       );
@@ -202,13 +202,13 @@ export default function App() {
             onClick={() => setCurrentRoute('business')}
             className="px-4 py-2 rounded-2xl bg-neutral-900 hover:bg-neutral-800 text-neutral-200 border border-neutral-800 text-xs font-bold transition"
           >
-            İşletme Girişi
+            Ä°ÅŸletme GiriÅŸi
           </button>
           <button
             onClick={() => setCurrentRoute('superadmin')}
             className="px-4 py-2 rounded-2xl bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold shadow-lg shadow-brand-600/30 transition"
           >
-            Platform HQ
+            Platform Merkezi
           </button>
         </div>
       </header>
@@ -221,10 +221,10 @@ export default function App() {
             3 Panelli Yeni Nesil Restoran Sistemi
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-            Zagroja QR Menü & Restoran Yönetim Platformu
+            Zagroja QR MenÃ¼ & Restoran YÃ¶netim Platformu
           </h1>
           <p className="text-sm text-neutral-400 leading-relaxed">
-            Sıfır gecikme, tam veri izolasyonu, sanat eseri estetiğinde QR menüler, anlık adisyon fişi ve canlı garson çağrı sistemi.
+            SÄ±fÄ±r gecikme, tam veri izolasyonu, sanat eseri estetiÄŸinde QR menÃ¼ler, anlÄ±k adisyon fiÅŸi ve canlÄ± garson Ã§aÄŸrÄ± sistemi.
           </p>
         </div>
 
@@ -239,9 +239,9 @@ export default function App() {
               <div className="w-12 h-12 rounded-2xl bg-brand-500/10 border border-brand-500/30 text-brand-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="font-bold text-base text-white mb-1">1. Platform Super Admin</h3>
+              <h3 className="font-bold text-base text-white mb-1">1. SÃ¼per YÃ¶netici Paneli</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Platform sahibine özel şifreli alan. İşletme hesabı açma, masa limitleri, canlı destek ve toplu duyuru merkezi.
+                Platform sahibine Ã¶zel ÅŸifreli alan. Ä°ÅŸletme hesabÄ± aÃ§ma, masa limitleri, canlÄ± destek ve toplu duyuru merkezi.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-neutral-800 flex items-center justify-between text-xs font-bold text-brand-400">
@@ -259,13 +259,13 @@ export default function App() {
               <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-purple-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
                 <Store className="w-6 h-6" />
               </div>
-              <h3 className="font-bold text-base text-white mb-1">2. İşletme Admin Paneli</h3>
+              <h3 className="font-bold text-base text-white mb-1">2. Ä°ÅŸletme YÃ¶netim Paneli</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Menü ve ürün düzenleme, "Tükendi" dondurma, yuvarlatılmış QR üretici, kasa/POS, adisyon fişi ve ciro Z-raporu.
+                MenÃ¼ ve Ã¼rÃ¼n dÃ¼zenleme, "TÃ¼kendi" dondurma, yuvarlatÄ±lmÄ±ÅŸ QR Ã¼retici, kasa/POS, adisyon fiÅŸi ve ciro Z-raporu.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-neutral-800 flex items-center justify-between text-xs font-bold text-purple-400">
-              <span>Giriş Yap</span>
+              <span>GiriÅŸ Yap</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
             </div>
           </div>
@@ -285,13 +285,13 @@ export default function App() {
               <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-4 group-hover:scale-110 transition">
                 <QrCode className="w-6 h-6" />
               </div>
-              <h3 className="font-bold text-base text-white mb-1">3. Müşteri QR Menü</h3>
+              <h3 className="font-bold text-base text-white mb-1">3. MÃ¼ÅŸteri QR MenÃ¼</h3>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                Uygulamasız tarayıcı arayüzü. Sadece kategoride görsel, içerik bazlı ürün listesi, Garson Çağır, Hesap İste ve Wi-Fi kopyala.
+                UygulamasÄ±z tarayÄ±cÄ± arayÃ¼zÃ¼. Sadece kategoride gÃ¶rsel, iÃ§erik bazlÄ± Ã¼rÃ¼n listesi, Garson Ã‡aÄŸÄ±r, Hesap Ä°ste ve Wi-Fi kopyala.
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-neutral-800 flex items-center justify-between text-xs font-bold text-emerald-400">
-              <span>Menüyü İncele</span>
+              <span>MenÃ¼yÃ¼ Ä°ncele</span>
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition" />
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-neutral-900 p-6 text-center text-xs text-neutral-600 z-10">
-        © 2026 Zagroja QR Menü Platformu. Tüm hakları saklıdır.
+        Â© 2026 Zagroja QR MenÃ¼ Platformu. TÃ¼m haklarÄ± saklÄ±dÄ±r.
       </footer>
     </div>
   );

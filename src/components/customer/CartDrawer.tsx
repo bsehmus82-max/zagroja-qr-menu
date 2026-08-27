@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ï»¿import React, { useState } from 'react';
 import { ShoppingBag, X, Plus, Minus, Send, Sparkles, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
@@ -86,7 +86,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         onOrderPlaced(data as Order);
         onClose();
       } else {
-        alert('Sipariþ iletilirken bir hata oluþtu.');
+        alert('SipariÅŸ iletilirken bir hata oluÅŸtu.');
       }
     } finally {
       setSending(false);
@@ -104,8 +104,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-black text-sm text-white">Sipariþ Sepetim</h3>
-                <span className="text-[10px] text-neutral-400 font-bold">{tableNo || 'Masa Seçilmedi'}</span>
+                <h3 className="font-black text-sm text-white">SipariÅŸ Sepetim</h3>
+                <span className="text-[10px] text-neutral-400 font-bold">{tableNo || 'Masa SeÃ§ilmedi'}</span>
               </div>
             </div>
 
@@ -121,7 +121,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="space-y-3 max-h-64 overflow-y-auto pr-1 mb-4">
             {cart.length === 0 ? (
               <div className="text-center py-12 text-neutral-500 text-xs">
-                Sepetinizde ürün bulunmuyor.
+                Sepetinizde Ã¼rÃ¼n bulunmuyor.
               </div>
             ) : (
               cart.map((item) => (
@@ -132,7 +132,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   <div className="flex-1 pr-2 truncate">
                     <div className="font-bold text-white truncate">{item.product.name}</div>
                     <div className="text-[11px] text-brand-400 font-bold mt-0.5">
-                      {(item.product.price * item.quantity).toFixed(2)} ?
+                      {(item.product.price * item.quantity).toFixed(2)} â‚º
                     </div>
                   </div>
 
@@ -162,13 +162,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           {cart.length > 0 && (
             <div className="mb-4">
               <label className="block text-[11px] font-semibold text-neutral-400 mb-1">
-                Özel Sipariþ Notu (Ýsteðe Baðlý)
+                Ã–zel SipariÅŸ Notu (Ä°steÄŸe BaÄŸlÄ±)
               </label>
               <textarea
                 rows={2}
                 value={customerNotes}
                 onChange={(e) => setCustomerNotes(e.target.value)}
-                placeholder="Örn: Ýçecekler buzsuz olsun lütfen..."
+                placeholder="Ã–rn: Ä°Ã§ecekler buzsuz olsun lÃ¼tfen..."
                 className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
               />
             </div>
@@ -180,7 +180,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="pt-4 border-t border-neutral-800 space-y-3">
             <div className="flex items-center justify-between text-base font-black text-white">
               <span>Toplam:</span>
-              <span className="text-brand-400">{totalAmount.toFixed(2)} ?</span>
+              <span className="text-brand-400">{totalAmount.toFixed(2)} â‚º</span>
             </div>
 
             <button
@@ -189,7 +189,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               className="w-full py-4 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/30 transition transform active:scale-98 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              {sending ? 'Sipariþ Ýletiliyor...' : 'Sipariþi Mutfaða / Kasaya Gönder'}
+              {sending ? 'SipariÅŸ Ä°letiliyor...' : 'SipariÅŸi MutfaÄŸa / Kasaya GÃ¶nder'}
             </button>
           </div>
         )}

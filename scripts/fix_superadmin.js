@@ -1,4 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿const fs = require('fs');
+
+// 1. SuperAdminDashboard.tsx
+const dashboardCode = `import React, { useState, useEffect } from 'react';
 import { 
   Building2, Plus, MessageSquare, Shield, Power, 
   Calendar, Layers, Search, AlertTriangle, 
@@ -448,3 +451,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ onLogo
     </div>
   );
 };
+`;
+
+fs.writeFileSync('src/components/superadmin/SuperAdminDashboard.tsx', dashboardCode, 'utf8');
+console.log('Fixed SuperAdminDashboard.tsx in UTF-8');

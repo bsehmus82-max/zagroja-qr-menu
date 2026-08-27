@@ -1,10 +1,13 @@
-// Zero-cost Web Audio API Sound Synthesizer (Instant, 0MB overhead, 100% offline)
-
+﻿/**
+ * Zero-dependency Web Audio API Sound Synthesizer
+ * Generates crystal clear acoustic bell and notification chime effects
+ */
 class SoundEngine {
   private ctx: AudioContext | null = null;
 
-  private initCtx() {
-    if (!this.ctx && typeof window !== 'undefined') {
+  private getContext(): AudioContext | null {
+    if (typeof window === 'undefined') return null;
+    if (!this.ctx) {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
@@ -13,98 +16,73 @@ class SoundEngine {
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+    return this.ctx;
   }
 
   /**
-   * Pleasant double-ding for incoming orders (Kitchen Bell)
+   * Classic Double Ding Kitchen Order Bell (880Hz -> 1760Hz harmonic)
    */
-  playOrderBell() {
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
+  public playOrderBell() {
+    const ctx = this.getContext();
+    if (!ctx) return;
 
-      const now = this.ctx.currentTime;
-      
-      // Tone 1 (High bell)
-      const osc1 = this.ctx.createOscillator();
-      const gain1 = this.ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(880, now); // A5
-      osc1.frequency.exponentialRampToValueAtTime(1760, now + 0.15);
-      gain1.gain.setValueAtTime(0.3, now);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      osc1.connect(gain1);
-      gain1.connect(this.ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.6);
+    const now = ctx.currentTime;
 
-      // Tone 2 (Harmonic echo)
-      const osc2 = this.ctx.createOscillator();
-      const gain2 = this.ctx.createGain();
-      osc2.type = 'triangle';
-      osc2.frequency.setValueAtTime(1174.66, now + 0.15); // D6
-      gain2.gain.setValueAtTime(0.35, now + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-      osc2.connect(gain2);
-      gain2.connect(this.ctx.destination);
-      osc2.start(now + 0.15);
-      osc2.stop(now + 0.9);
-    } catch {
-      // Audio autoplay policy fallback
-    }
+    // Ding 1
+    this.createTone(ctx, 880, now, 0.4, 0.3);
+    this.createTone(ctx, 1760, now, 0.4, 0.15);
+
+    // Ding 2 (High pleasant ring)
+    this.createTone(ctx, 1318.5, now + 0.18, 0.6, 0.35);
+    this.createTone(ctx, 2637, now + 0.18, 0.6, 0.15);
   }
 
   /**
-   * Service call chime (Waiter / Bill request)
+   * Waiter Call Table Chime
    */
-  playServiceChime() {
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
+  public playWaiterCall() {
+    const ctx = this.getContext();
+    if (!ctx) return;
 
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, now); // D5
-      osc.frequency.setValueAtTime(880, now + 0.12); // A5
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.5);
-    } catch {
-      // Audio autoplay policy fallback
-    }
+    const now = ctx.currentTime;
+    this.createTone(ctx, 587.33, now, 0.3, 0.25); // D5
+    this.createTone(ctx, 880, now + 0.12, 0.5, 0.3); // A5
   }
 
   /**
-   * Chat message alert
+   * Support message ping
    */
-  playMessageTone() {
-    try {
-      this.initCtx();
-      if (!this.ctx) return;
+  public playMessageTone() {
+    const ctx = this.getContext();
+    if (!ctx) return;
 
-      const now = this.ctx.currentTime;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+    const now = ctx.currentTime;
+    this.createTone(ctx, 523.25, now, 0.2, 0.2); // C5
+    this.createTone(ctx, 659.25, now + 0.08, 0.25, 0.2); // E5
+    this.createTone(ctx, 783.99, now + 0.16, 0.35, 0.25); // G5
+  }
 
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(659.25, now); // E5
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+  private createTone(
+    ctx: AudioContext,
+    freq: number,
+    startTime: number,
+    duration: number,
+    volume: number
+  ) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.3);
-    } catch {
-      // Audio autoplay policy fallback
-    }
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, startTime);
+
+    gain.gain.setValueAtTime(volume, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start(startTime);
+    osc.stop(startTime + duration);
   }
 }
 

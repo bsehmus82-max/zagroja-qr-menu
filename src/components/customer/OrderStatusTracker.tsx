@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+ï»¿import React, { useState, useEffect } from 'react';
 import { ChefHat, CheckCircle2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -68,28 +68,28 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
     switch (status) {
       case 'pending':
         return {
-          title: 'Siparişiniz Alındı',
-          subtitle: 'Mutfak onaylaması bekleniyor...',
+          title: 'SipariÅŸiniz AlÄ±ndÄ±',
+          subtitle: 'Mutfak onaylamasÄ± bekleniyor...',
           badgeClass: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
           icon: Clock,
         };
       case 'preparing':
         return {
-          title: 'Yemekleriniz Hazırlanıyor ?????',
-          subtitle: 'Şeflerimiz siparişinizi özenle hazırlıyor.',
+          title: 'Yemekleriniz HazÄ±rlanÄ±yor ğŸ‘¨â€ğŸ³',
+          subtitle: 'Åeflerimiz sipariÅŸinizi Ã¶zenle hazÄ±rlÄ±yor.',
           badgeClass: 'bg-brand-500/20 border-brand-500/50 text-brand-300 animate-pulse',
           icon: ChefHat,
         };
       case 'served':
         return {
-          title: 'Siparişiniz Masanızda ?',
+          title: 'SipariÅŸiniz MasanÄ±zda âœ¨',
           subtitle: 'Afiyet olsun!',
           badgeClass: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
           icon: CheckCircle2,
         };
       default:
         return {
-          title: 'Sipariş Durumu',
+          title: 'SipariÅŸ Durumu',
           subtitle: '',
           badgeClass: 'bg-neutral-800 text-neutral-300',
           icon: Clock,
@@ -118,7 +118,7 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-black text-brand-400">
-            {latestOrder.total_amount.toFixed(2)} ?
+            {latestOrder.total_amount.toFixed(2)} â‚º
           </span>
           {expanded ? (
             <ChevronUp className="w-4 h-4 text-neutral-400" />
@@ -131,7 +131,7 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
       {expanded && (
         <div className="pt-3 mt-3 border-t border-neutral-800/80 space-y-2">
           <div className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">
-            Sipariş Detayı ({latestOrder.table_no})
+            SipariÅŸ DetayÄ± ({latestOrder.table_no})
           </div>
           <div className="space-y-1.5 text-xs">
             {latestOrder.items.map((item, idx) => (
@@ -139,7 +139,7 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span className="font-bold">{(item.price * item.quantity).toFixed(2)} ?</span>
+                <span className="font-bold">{(item.price * item.quantity).toFixed(2)} â‚º</span>
               </div>
             ))}
           </div>
