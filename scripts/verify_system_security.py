@@ -214,6 +214,14 @@ def main():
         "plan_type TEXT DEFAULT 'trial'" in schema_content
     )
 
+    # 6.4 7-Day Free Trial Full Unrestricted Access vs Lite Gating
+    test(
+        "7 Günlük Ücretsiz Deneme (Trial) tüm premium POS, Yazıcı ve Garson modüllerine tam erişim sağlar",
+        check_file_content("components/business/BusinessDashboard.tsx", "isTabLockedInLite") and
+        check_file_content("components/business/BusinessDashboard.tsx", "isLitePlan = business.plan_type === 'lite'") and
+        check_file_content("components/customer/CustomerMenu.tsx", "currentBiz.plan_type !== 'lite'")
+    )
+
     print("\n" + "=" * 65)
     print(f"SONUÇ: {passed_tests} Test Başarılı, {failed_tests} Hata.")
     print("=" * 65 + "\n")
