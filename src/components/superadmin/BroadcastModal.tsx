@@ -37,7 +37,6 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
       const rows = activeBiz.map((biz) => ({
         business_id: biz.id,
         sender: 'superadmin',
-        sender_name: 'Sistem Yöneticisi',
         message: `📢 [SİSTEM DUYURUSU]\n${message.trim()}`,
         is_read: false,
       }));

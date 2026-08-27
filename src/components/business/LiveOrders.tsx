@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
-  Hand, Banknote, RefreshCw, Volume2
+  Hand, Banknote, RefreshCw, Volume2, CreditCard
 } from 'lucide-react';
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -31,7 +31,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           .from('service_requests')
           .select('*')
           .eq('business_id', business.id)
-          .eq('is_completed', false)
+          .eq('status', 'pending')
           .order('created_at', { ascending: false }),
       ]);
 
@@ -87,7 +87,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as ServiceRequest;
             setServiceRequests((prev) =>
-              updated.is_completed ? prev.filter((r) => r.id !== updated.id) : prev
+              updated.status === 'resolved' ? prev.filter((r) => r.id !== updated.id) : prev
             );
           }
         }
@@ -114,10 +114,10 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
     }
   };
 
-  const completeServiceRequest = async (reqId: string) => {
+  const resolveServiceRequest = async (reqId: string) => {
     const { error } = await supabase
       .from('service_requests')
-      .update({ is_completed: true, updated_at: new Date().toISOString() })
+      .update({ status: 'resolved' })
       .eq('id', reqId);
 
     if (!error) {
@@ -139,7 +139,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Yeni siparişlerde otomatik adisyon yazdırılır ve sesli uyarı verilir.
+              Yeni siparişlerde otomatik adisyon fişi açılır ve akustik mutfak zili çalar.
             </p>
           </div>
         </div>
@@ -172,13 +172,30 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
               >
                 <div>
                   <div className="font-bold text-xs text-white">{req.table_no}</div>
-                  <div className="text-[11px] text-amber-300 font-medium mt-0.5">
-                    {req.type === 'waiter' ? '🛎️ Garson Çağrısı' : `💳 Hesap İste (${req.details || 'Belirtilmedi'})`}
+                  <div className="text-[11px] text-amber-300 font-medium mt-0.5 flex items-center gap-1.5">
+                    {req.request_type === 'waiter' && (
+                      <>
+                        <Hand className="w-3 h-3 text-amber-400" />
+                        <span>Garson Çağrısı</span>
+                      </>
+                    )}
+                    {req.request_type === 'bill_cash' && (
+                      <>
+                        <Banknote className="w-3 h-3 text-emerald-400" />
+                        <span>Hesap İste (Nakit)</span>
+                      </>
+                    )}
+                    {req.request_type === 'bill_card' && (
+                      <>
+                        <CreditCard className="w-3 h-3 text-indigo-400" />
+                        <span>Hesap İste (POS / Kart)</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <button
-                  onClick={() => completeServiceRequest(req.id)}
+                  onClick={() => resolveServiceRequest(req.id)}
                   className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg text-xs transition"
                 >
                   Tamamla

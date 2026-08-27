@@ -19,7 +19,6 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   onClose,
 }) => {
   const [billMethod, setBillMethod] = useState<'nakit' | 'pos'>('pos');
-  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [wifiCopied, setWifiCopied] = useState(false);
@@ -29,27 +28,23 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   const handleSendRequest = async () => {
     setLoading(true);
     try {
-      let details = '';
+      let requestType: 'waiter' | 'bill_cash' | 'bill_card' = 'waiter';
       if (type === 'bill') {
-        details = billMethod === 'pos' ? 'POS / Kredi Kartı ile Ödeme' : 'Nakit Ödeme';
-      } else if (type === 'waiter') {
-        details = note.trim() ? `Not: ${note.trim()}` : 'Masa çağrısı';
+        requestType = billMethod === 'pos' ? 'bill_card' : 'bill_cash';
       }
 
       await supabase.from('service_requests').insert([
         {
           business_id: business.id,
           table_no: tableNo || 'Genel Masa',
-          type: type,
-          details: details,
-          is_completed: false,
+          request_type: requestType,
+          status: 'pending',
         },
       ]);
 
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
-        setNote('');
         onClose();
       }, 2000);
     } finally {
@@ -165,16 +160,8 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         ) : (
           <div className="space-y-3.5">
             <p className="text-xs text-slate-300">
-              {tableNo} için servis personelini masanıza çağırabilirsiniz.
+              {tableNo} masanıza garson çağırmak için aşağıdaki butona basınız.
             </p>
-
-            <textarea
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="İsteğe bağlı bir not yazabilirsiniz..."
-              className="w-full bg-[#0B0E14] border border-[#1A2234] focus:border-amber-500/50 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none"
-            />
 
             <button
               onClick={handleSendRequest}

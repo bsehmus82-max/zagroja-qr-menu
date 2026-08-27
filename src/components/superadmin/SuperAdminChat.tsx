@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, RefreshCw, User } from 'lucide-react';
+import { Send, MessageSquare, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business, SupportMessage } from '../../types';
 import { sound } from '../../lib/audio';
@@ -82,7 +82,6 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
     const newMsg = {
       business_id: activeBusiness.id,
       sender: 'superadmin',
-      sender_name: 'Yönetici',
       message: text,
       is_read: false,
     };

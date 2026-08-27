@@ -88,9 +88,8 @@ export interface ServiceRequest {
   id: string;
   business_id: string;
   table_no: string;
-  type: 'waiter' | 'bill' | 'wifi';
-  details?: string;
-  is_completed: boolean;
+  request_type: 'waiter' | 'bill_cash' | 'bill_card';
+  status: 'pending' | 'resolved';
   created_at: string;
 }
 
@@ -98,7 +97,6 @@ export interface SupportMessage {
   id: string;
   business_id: string;
   sender: 'superadmin' | 'business';
-  sender_name?: string;
   message: string;
   is_read: boolean;
   created_at: string;

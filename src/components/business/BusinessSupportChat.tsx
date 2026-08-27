@@ -76,7 +76,6 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     const payload = {
       business_id: business.id,
       sender: 'business',
-      sender_name: business.name,
       message: text,
       is_read: false,
     };
