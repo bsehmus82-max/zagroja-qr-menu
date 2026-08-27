@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.businesses (
 );
 
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS cover_image_url TEXT DEFAULT '';
 
 -- 2. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (

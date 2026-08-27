@@ -272,7 +272,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           {/* Hero Header with Vignette Gradient Fadeout */}
           <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
             <img
-              src={business.banner_url || defaultBanner}
+              src={business.banner_url || business.cover_image_url || defaultBanner}
               alt={business.name}
               className="w-full h-full object-cover opacity-80"
             />

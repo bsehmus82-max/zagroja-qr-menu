@@ -19,13 +19,14 @@ interface BusinessSupportChatProps {
 
 interface GuideSection {
   id: string;
-  category: 'bilgilendirme' | 'nasil_kullanirim';
+  category: 'bilgilendirme' | 'nasil_kullanirim' | 'degerlendirme';
   categoryTitle: string;
   title: string;
   summary: string;
   content: string;
   actionLabel?: string;
   actionUrl?: string;
+  onActionClick?: () => void;
 }
 
 const SYSTEM_GUIDES: GuideSection[] = [
@@ -218,13 +219,32 @@ Avantajlar:
 * Müşteriler masadaki QR kodu okuttuğunda Safari, Chrome veya diğer mobil tarayıcı sekmelerinde doğrudan yalnızca işletmenizin adı (Örn: Bistro Kafe) görünür.
 * Kasa panelinizde ve garson el terminallerinde de sekme başlığı işletme adınızla senkronize çalışır.`,
   },
+
+  // BİZİ DEĞERLENDİRİN & GELİŞTİRMEMİZE YARDIMCI OLUN KATEGORİSİ
+  {
+    id: 'degerlendirme-oneri-bildir',
+    category: 'degerlendirme',
+    categoryTitle: 'Bizi Değerlendirin & Geliştirmemize Yardımcı Olun',
+    title: 'Görüşleriniz Bizim İçin Çok Değerlidir',
+    summary: 'Restiva sistemini geliştirmemize yardımcı olun, yeni özellik ve modül önerin.',
+    content: `Görüşleriniz bizim için çok değerlidir!
+
+Restiva Adisyon ve QR Menü sistemini her geçen gün işletmelerimiz için daha hızlı, daha pratik ve daha verimli hale getirmek amacıyla sürekli geliştiriyoruz.
+
+* Sistemde olmasını istediğiniz yeni bir özellik veya modül mü var?
+* Mevcut kullanımda iyileştirilmesini istediğiniz bir detay mı bulunuyor?
+* Yaşadığınız genel deneyim hakkındaki olumlu veya olumsuz düşüncelerinizi paylaşmak mı istiyorsunuz?
+
+Aşağıdaki "Öneri & Görüş Bildir" butonuna tıklayarak doğrudan Restiva Müşteri Hizmetleri ekibimize önerinizi iletebilirsiniz. Tüm geri bildirimler titizlikle incelenir.`,
+    actionLabel: 'Öneri & Görüş Bildir',
+  },
 ];
 
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
   const toast = useToast();
   const [activeView, setActiveView] = useState<'guides' | 'ticket'>('guides');
   const [expandedGuideId, setExpandedGuideId] = useState<string | null>('bilgi-sistem-nedir');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'bilgilendirme' | 'nasil_kullanirim'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'bilgilendirme' | 'nasil_kullanirim' | 'degerlendirme'>('all');
 
   // Issue reporting form state
   const [subject, setSubject] = useState('');
@@ -647,6 +667,16 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             >
               Nasıl Kullanırım? (Adım Adım)
             </button>
+            <button
+              onClick={() => setSelectedCategory('degerlendirme')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                selectedCategory === 'degerlendirme'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Bizi Değerlendirin & Geliştirin
+            </button>
           </div>
 
           {/* Guides Accordion List */}
@@ -663,7 +693,9 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     className="flex items-center justify-between cursor-pointer select-none"
                   >
                     <div>
-                      <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                        guide.category === 'degerlendirme' ? 'text-emerald-600' : 'text-orange-600'
+                      }`}>
                         {guide.categoryTitle}
                       </span>
                       <h3 className="text-xs font-extrabold text-slate-900 mt-0.5">{guide.title}</h3>
@@ -690,6 +722,22 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                             <span>{guide.actionLabel}</span>
                             <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
                           </a>
+                        </div>
+                      )}
+
+                      {guide.actionLabel && !guide.actionUrl && (
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSubject('Öneri & Geliştirme Talebi');
+                              setActiveView('ticket');
+                            }}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition"
+                          >
+                            <span>{guide.actionLabel}</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
                     </div>
