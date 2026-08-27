@@ -27,7 +27,6 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     'orders' | 'pos' | 'menu' | 'tables' | 'turnover' | 'settings' | 'support'
   >('orders');
 
-  // Check if onboarding needed (phone or address empty)
   const isFirstTime = !business.phone && !business.address;
   const [showOnboarding, setShowOnboarding] = useState(isFirstTime);
 
@@ -46,132 +45,132 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const menuLiveUrl = `${window.location.origin}/m/${business.slug}`;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 flex flex-col selection:bg-brand-500 selection:text-white">
-      {/* Top Navbar */}
-      <header className="border-b border-neutral-800 bg-neutral-900/60 backdrop-blur-xl sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white font-black shadow-lg shadow-brand-500/20">
+    <div className="min-h-screen bg-[#080B10] text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-indigo-200">
+      {/* Top Header */}
+      <header className="border-b border-[#1E2638] bg-[#10141E]/80 backdrop-blur-md sticky top-0 z-30 px-6 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
             {business.name.charAt(0)}
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-black text-base text-white tracking-tight">{business.name}</h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Aktif İşletme
+              <h1 className="font-bold text-sm text-white tracking-tight">{business.name}</h1>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Aktif
               </span>
             </div>
-            <p className="text-xs text-neutral-400">Yönetim & Mutfak Portalı</p>
+            <p className="text-[11px] text-slate-400">Yönetim & Mutfak Portalı</p>
           </div>
         </div>
 
-        {/* Live Menu Link */}
-        <div className="flex items-center gap-3">
+        {/* Live Menu Link & Logout */}
+        <div className="flex items-center gap-2.5">
           <a
             href={menuLiveUrl}
             target="_blank"
             rel="noreferrer"
-            className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-xs font-bold text-neutral-200 border border-neutral-700 transition"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#182030] hover:bg-[#222E45] text-xs font-semibold text-slate-200 border border-[#25324A] transition"
           >
-            <QrCode className="w-3.5 h-3.5 text-brand-400" />
-            <span>Müşteri Menüsü Önizle</span>
-            <ExternalLink className="w-3 h-3 text-neutral-500" />
+            <QrCode className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Müşteri Menüsü</span>
+            <ExternalLink className="w-3 h-3 text-slate-500" />
           </a>
 
           <button
             onClick={onLogout}
-            title="Oturumu Kapat"
-            className="p-2.5 rounded-2xl bg-neutral-800 hover:bg-neutral-750 text-neutral-400 hover:text-red-400 transition"
+            title="Çıkış Yap"
+            className="p-2 rounded-xl bg-[#182030] hover:bg-[#222E45] text-slate-400 hover:text-rose-400 transition"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-3.5 h-3.5" />
           </button>
         </div>
       </header>
 
-      {/* Navigation Sub-Header */}
-      <nav className="border-b border-neutral-800 bg-neutral-900/40 px-6 py-2 overflow-x-auto scrollbar-none">
-        <div className="max-w-7xl mx-auto flex items-center gap-2">
+      {/* Modern Navigation Tabs */}
+      <nav className="border-b border-[#1E2638] bg-[#0C1018] px-6 py-2 overflow-x-auto scrollbar-none">
+        <div className="max-w-7xl mx-auto flex items-center gap-1">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'orders'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <ChefHat className="w-4 h-4" />
+            <ChefHat className="w-3.5 h-3.5" />
             Canlı Mutfak & Siparişler
           </button>
 
           <button
             onClick={() => setActiveTab('pos')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'pos'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Calculator className="w-4 h-4" />
-            Kasa / Manuel POS
+            <Calculator className="w-3.5 h-3.5" />
+            Kasa / POS
           </button>
 
           <button
             onClick={() => setActiveTab('menu')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'menu'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <UtensilsCrossed className="w-4 h-4" />
+            <UtensilsCrossed className="w-3.5 h-3.5" />
             Menü & Ürünler
           </button>
 
           <button
             onClick={() => setActiveTab('tables')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'tables'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Layers className="w-4 h-4" />
+            <Layers className="w-3.5 h-3.5" />
             Masalar & QR Kodlar
           </button>
 
           <button
             onClick={() => setActiveTab('turnover')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'turnover'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <TrendingUp className="w-4 h-4" />
-            Ciro & Raporlar
+            <TrendingUp className="w-3.5 h-3.5" />
+            Ciro Raporları
           </button>
 
           <button
             onClick={() => setActiveTab('support')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'support'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5" />
             Canlı Destek
           </button>
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 shrink-0 ${
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition flex items-center gap-1.5 shrink-0 ${
               activeTab === 'settings'
-                ? 'bg-brand-600 text-white shadow-md'
-                : 'text-neutral-400 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Settings className="w-4 h-4" />
-            İşletme Ayarları
+            <Settings className="w-3.5 h-3.5" />
+            Ayarlar & Şablon
           </button>
         </div>
       </nav>

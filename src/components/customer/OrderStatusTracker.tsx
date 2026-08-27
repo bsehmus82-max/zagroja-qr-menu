@@ -12,9 +12,8 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
   const [expanded, setExpanded] = useState(false);
 
-  // Load orders stored in localStorage or for this table
   useEffect(() => {
-    const savedOrderIds: string[] = JSON.parse(localStorage.getItem('zagroja_my_orders') || '[]');
+    const savedOrderIds: string[] = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
 
     const fetchOrders = async () => {
       if (savedOrderIds.length === 0) return;
@@ -33,9 +32,8 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
 
     fetchOrders();
 
-    // Subscribe to realtime status changes
     const channel = supabase
-      .channel(`customer-orders-${tableNo}`)
+      .channel(`cust-tracker-${tableNo}`)
       .on(
         'postgres_changes',
         {
@@ -75,9 +73,9 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
         };
       case 'preparing':
         return {
-          title: 'Yemekleriniz Hazırlanıyor 👨‍🍳',
-          subtitle: 'Şeflerimiz siparişinizi özenle hazırlıyor.',
-          badgeClass: 'bg-brand-500/20 border-brand-500/50 text-brand-300 animate-pulse',
+          title: 'Mutfakta Hazırlanıyor 👨‍🍳',
+          subtitle: 'Şeflerimiz siparişinizi hazırlıyor.',
+          badgeClass: 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 animate-pulse',
           icon: ChefHat,
         };
       case 'served':
@@ -91,7 +89,7 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
         return {
           title: 'Sipariş Durumu',
           subtitle: '',
-          badgeClass: 'bg-neutral-800 text-neutral-300',
+          badgeClass: 'bg-[#182030] text-slate-300',
           icon: Clock,
         };
     }
@@ -101,45 +99,45 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ business
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="bg-neutral-900/90 backdrop-blur-md border border-neutral-800 rounded-3xl p-4 shadow-xl mb-6 transition">
+    <div className="bg-[#111622]/90 backdrop-blur-md border border-[#1E2638] rounded-2xl p-3.5 shadow-lg mb-4 transition">
       <div
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center border ${statusInfo.badgeClass}`}>
-            <StatusIcon className="w-5 h-5" />
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${statusInfo.badgeClass}`}>
+            <StatusIcon className="w-4 h-4" />
           </div>
           <div>
             <h4 className="font-bold text-xs text-white">{statusInfo.title}</h4>
-            <p className="text-[11px] text-neutral-400">{statusInfo.subtitle}</p>
+            <p className="text-[10px] text-slate-400">{statusInfo.subtitle}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-black text-brand-400">
+          <span className="text-xs font-bold text-indigo-400">
             {latestOrder.total_amount.toFixed(2)} ₺
           </span>
           {expanded ? (
-            <ChevronUp className="w-4 h-4 text-neutral-400" />
+            <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
           ) : (
-            <ChevronDown className="w-4 h-4 text-neutral-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           )}
         </div>
       </div>
 
       {expanded && (
-        <div className="pt-3 mt-3 border-t border-neutral-800/80 space-y-2">
-          <div className="text-[11px] text-neutral-400 font-bold uppercase tracking-wider">
-            Sipariş Detayı ({latestOrder.table_no})
+        <div className="pt-2.5 mt-2.5 border-t border-[#1E2638] space-y-1.5">
+          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">
+            Sipariş İçeriği ({latestOrder.table_no})
           </div>
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1 text-xs">
             {latestOrder.items.map((item, idx) => (
-              <div key={idx} className="flex justify-between text-neutral-300">
+              <div key={idx} className="flex justify-between text-slate-300 text-[11px]">
                 <span>
                   {item.quantity}x {item.name}
                 </span>
-                <span className="font-bold">{(item.price * item.quantity).toFixed(2)} ₺</span>
+                <span className="font-semibold">{(item.price * item.quantity).toFixed(2)} ₺</span>
               </div>
             ))}
           </div>

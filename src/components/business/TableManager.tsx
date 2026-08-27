@@ -1,12 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Printer, QrCode, Trash2, Edit2, Download, 
-  Layers, ExternalLink, Sparkles, AlertCircle
+  Plus, Printer, QrCode, Trash2, RefreshCw, 
+  ExternalLink, Layers, AlertCircle, Copy, Check
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import { Business, Table } from '../../types';
 import { supabase } from '../../lib/supabase';
-import { printBatchQrCards, printSingleQrCard } from '../../lib/thermalPrinter';
+import { printSingleQrCard, printBatchQrCards } from '../../lib/thermalPrinter';
 
 interface TableManagerProps {
   business: Business;
@@ -15,8 +14,9 @@ interface TableManagerProps {
 export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tableNameInput, setTableNameInput] = useState('');
-  const [batchCountInput, setBatchCountInput] = useState<number>(5);
+  const [newTableNo, setNewTableNo] = useState('');
+  const [batchCount, setBatchCount] = useState<number | ''>(5);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const loadTables = async () => {
     setLoading(true);
@@ -25,11 +25,9 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
         .from('tables')
         .select('*')
         .eq('business_id', business.id)
-        .order('table_no', { ascending: true });
+        .order('created_at', { ascending: true });
 
-      if (data) {
-        setTables(data as Table[]);
-      }
+      if (data) setTables(data as Table[]);
     } finally {
       setLoading(false);
     }
@@ -39,48 +37,51 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     loadTables();
   }, [business.id]);
 
-  const canAddMore = !business.table_limit || tables.length < business.table_limit;
-
   const handleAddSingleTable = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tableNameInput.trim() || !canAddMore) return;
+    if (!newTableNo.trim()) return;
 
-    const token = `tbl_${business.slug}_${Date.now().toString(36)}_${Math.floor(Math.random() * 1000)}`;
-    const newTable = {
+    if (business.table_limit && tables.length >= business.table_limit) {
+      alert(`Maksimum masa limitinize (${business.table_limit}) ulaştınız.`);
+      return;
+    }
+
+    const qrToken = `tok_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const payload = {
       business_id: business.id,
-      table_no: tableNameInput.trim(),
-      qr_token: token,
+      table_no: newTableNo.trim(),
+      qr_token: qrToken,
       is_occupied: false,
     };
 
-    const { data, error } = await supabase
-      .from('tables')
-      .insert([newTable])
-      .select()
-      .single();
-
+    const { data, error } = await supabase.from('tables').insert([payload]).select().single();
     if (!error && data) {
       setTables((prev) => [...prev, data as Table]);
-      setTableNameInput('');
+      setNewTableNo('');
     }
   };
 
-  const handleBatchCreateTables = async () => {
-    if (!canAddMore) return;
-    const currentMax = tables.length;
-    const toCreate = Math.min(
-      Number(batchCountInput),
-      business.table_limit ? business.table_limit - currentMax : 100
-    );
+  const handleBatchAddTables = async () => {
+    if (!batchCount || Number(batchCount) <= 0) return;
+    const count = Number(batchCount);
+
+    if (business.table_limit && tables.length + count > business.table_limit) {
+      alert(`Maksimum masa limitinizi aşamazsınız. (Mevcut limit: ${business.table_limit})`);
+      return;
+    }
+
+    const currentMax = tables.reduce((max, t) => {
+      const num = parseInt(t.table_no.replace(/\D/g, ''), 10);
+      return !isNaN(num) && num > max ? num : max;
+    }, 0);
 
     const rows = [];
-    for (let i = 1; i <= toCreate; i++) {
-      const num = currentMax + i;
-      const token = `tbl_${business.slug}_${num}_${Date.now().toString(36)}`;
+    for (let i = 1; i <= count; i++) {
+      const tNum = currentMax + i;
       rows.push({
         business_id: business.id,
-        table_no: `Masa ${num}`,
-        qr_token: token,
+        table_no: `Masa ${tNum}`,
+        qr_token: `tok_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
         is_occupied: false,
       });
     }
@@ -91,176 +92,167 @@ export const TableManager: React.FC<TableManagerProps> = ({ business }) => {
     }
   };
 
-  const handleDeleteTable = async (table: Table) => {
-    if (!window.confirm(`"${table.table_no}" masasını silmek istediğinize emin misiniz?`)) return;
-
-    const { error } = await supabase.from('tables').delete().eq('id', table.id);
+  const handleDeleteTable = async (tableId: string) => {
+    if (!window.confirm('Bu masayı ve QR kodunu silmek istediğinize emin misiniz?')) return;
+    const { error } = await supabase.from('tables').delete().eq('id', tableId);
     if (!error) {
-      setTables((prev) => prev.filter((t) => t.id !== table.id));
+      setTables((prev) => prev.filter((t) => t.id !== tableId));
     }
   };
 
-  const getMenuUrlForTable = (table: Table) => {
-    const origin = window.location.origin;
-    return `${origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
+  const copyTableLink = (table: Table) => {
+    const link = `${window.location.origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedToken(table.id);
+    setTimeout(() => setCopiedToken(null), 2000);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl">
+    <div className="space-y-5">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-white">Masa & QR Kod Yönetimi</h2>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
-              {tables.length} / {business.table_limit ? `${business.table_limit} Masa` : 'Sınırsız'}
+            <h2 className="text-base font-bold text-white">Masa & QR Kod Yönetimi</h2>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              {tables.length} / {business.table_limit || 'Sınırsız'} Masa
             </span>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Her masaya özel sanat eseri estetiğinde, yuvarlatılmış ve termal baskıya tam uyumlu QR kodlar.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Her masaya özel üretilen QR kodlar ile müşteriler doğrudan masalarından sipariş verebilir.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          {tables.length > 0 && (
+            <button
+              onClick={() => printBatchQrCards(business, tables)}
+              className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition flex items-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Tüm QR Kodları Yazdır
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Creation Tools: Single Table & Batch Generator */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        {/* Single Table Add */}
+        <form
+          onSubmit={handleAddSingleTable}
+          className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl flex items-center gap-2.5"
+        >
+          <input
+            type="text"
+            required
+            value={newTableNo}
+            onChange={(e) => setNewTableNo(e.target.value)}
+            placeholder="Masa Adı (Örn: Teras 4, Bahçe 2)"
+            className="flex-1 bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none"
+          />
           <button
-            disabled={tables.length === 0}
-            onClick={() => printBatchQrCards(business, tables)}
-            className="px-4 py-2.5 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-neutral-200 transition border border-neutral-700 flex items-center gap-2 disabled:opacity-50"
+            type="submit"
+            className="px-4 py-2 bg-[#182030] hover:bg-[#222E45] text-slate-200 text-xs font-semibold rounded-xl border border-[#25324A] transition flex items-center gap-1 shrink-0"
           >
-            <Printer className="w-4 h-4 text-purple-400" />
-            Toplu QR Kartı Yazdır
+            <Plus className="w-3.5 h-3.5 text-indigo-400" />
+            Ekle
+          </button>
+        </form>
+
+        {/* Batch Table Generator */}
+        <div className="bg-[#111622] border border-[#1E2638] p-4 rounded-2xl flex items-center gap-2.5">
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={batchCount}
+            onChange={(e) => setBatchCount(e.target.value === '' ? '' : Number(e.target.value))}
+            placeholder="Adet"
+            className="w-24 bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none text-center"
+          />
+          <button
+            onClick={handleBatchAddTables}
+            className="flex-1 py-2 bg-[#182030] hover:bg-[#222E45] text-slate-200 text-xs font-semibold rounded-xl border border-[#25324A] transition flex items-center justify-center gap-1.5"
+          >
+            <Layers className="w-3.5 h-3.5 text-purple-400" />
+            Toplu Otomatik Masa Üret
           </button>
         </div>
       </div>
 
-      {/* Creation Tools */}
-      {canAddMore ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Tool 1: Single Custom Named Table */}
-          <form
-            onSubmit={handleAddSingleTable}
-            className="bg-neutral-900 border border-neutral-800 p-5 rounded-3xl flex items-center gap-3"
-          >
-            <input
-              type="text"
-              required
-              value={tableNameInput}
-              onChange={(e) => setTableNameInput(e.target.value)}
-              placeholder="Örn: Bahçe 1, Teras 4, Loca A"
-              className="flex-1 bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-2.5 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2.5 bg-brand-600 hover:bg-brand-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-brand-600/30 flex items-center gap-1.5 shrink-0"
-            >
-              <Plus className="w-4 h-4" />
-              Masa Ekle
-            </button>
-          </form>
-
-          {/* Tool 2: Sequential Batch Table Creator */}
-          <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-3xl flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-neutral-300">Sıralı Masa Aç:</span>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                value={batchCountInput}
-                onChange={(e) => setBatchCountInput(Number(e.target.value))}
-                className="w-16 bg-neutral-950 border border-neutral-800 rounded-xl px-2 py-1.5 text-xs text-white text-center"
-              />
-              <span className="text-xs text-neutral-400">Adet</span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleBatchCreateTables}
-              className="px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-purple-600/30 flex items-center gap-1.5 shrink-0"
-            >
-              <Sparkles className="w-4 h-4" />
-              Otomatik Oluştur
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-3xl flex items-center gap-3 text-xs text-amber-400">
-          <AlertCircle className="w-5 h-5 shrink-0" />
-          <span>
-            Masa sınırınıza ulaştınız ({business.table_limit} Masa). Masa limitinizi artırmak için Super Admin ile Canlı Destek üzerinden iletişime geçebilirsiniz.
-          </span>
-        </div>
-      )}
-
       {/* Tables Grid */}
       {loading ? (
-        <div className="py-20 text-center text-neutral-500 text-xs">Masalar yükleniyor...</div>
+        <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
+          <span>Yükleniyor...</span>
+        </div>
       ) : tables.length === 0 ? (
-        <div className="py-20 text-center bg-neutral-900/40 border border-dashed border-neutral-800 rounded-3xl p-8 space-y-2">
-          <QrCode className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
-          <h3 className="font-bold text-white text-base">Henüz Masa Oluşturulmadı</h3>
-          <p className="text-xs text-neutral-400">
-            Yukarıdaki panelden tek tek veya otomatik sıralı olarak masalarınızı hemen açabilirsiniz.
+        <div className="py-20 text-center bg-[#111622]/40 border border-dashed border-[#1E2638] rounded-2xl p-8 space-y-2">
+          <QrCode className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+          <h3 className="font-semibold text-slate-200 text-sm">Tanımlı Masa Bulunmuyor</h3>
+          <p className="text-xs text-slate-400">
+            Yukarıdaki form ile ilk masanızı ekleyebilir veya toplu masa oluşturabilirsiniz.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {tables.map((table) => {
-            const tableUrl = getMenuUrlForTable(table);
+            const tableLiveUrl = `${window.location.origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
+            const qrPreviewUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(tableLiveUrl)}`;
 
             return (
               <div
                 key={table.id}
-                className="bg-neutral-900 border border-neutral-800 rounded-3xl p-5 flex flex-col items-center justify-between text-center relative hover:border-neutral-700 transition group"
+                className="bg-[#111622] border border-[#1E2638] hover:border-[#2A3754] rounded-2xl p-3.5 flex flex-col items-center text-center justify-between transition shadow-sm"
               >
-                {/* QR Artwork Display */}
-                <div className="w-full bg-white p-4 rounded-2xl shadow-inner mb-4 flex flex-col items-center justify-center">
-                  <div className="font-black text-xs text-neutral-900 tracking-wider uppercase mb-2">
-                    {business.name}
+                <div className="w-full">
+                  <div className="flex items-center justify-between w-full mb-2">
+                    <span className="font-bold text-xs text-white truncate">{table.table_no}</span>
+                    <button
+                      onClick={() => handleDeleteTable(table.id)}
+                      className="p-1 rounded text-slate-500 hover:text-rose-400 transition"
+                      title="Sil"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
-                  <QRCodeSVG
-                    value={tableUrl}
-                    size={130}
-                    level="H"
-                    includeMargin={false}
-                    fgColor="#111827"
-                    bgColor="#FFFFFF"
-                  />
-                  <div className="font-extrabold text-sm text-neutral-950 mt-2">
-                    {table.table_no}
+
+                  <div className="w-24 h-24 bg-white p-1.5 rounded-xl shadow-inner mx-auto mb-2 flex items-center justify-center">
+                    <img src={qrPreviewUrl} alt={table.table_no} className="w-full h-full object-contain" />
                   </div>
                 </div>
 
-                <div className="w-full space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-white">{table.table_no}</span>
-                    <a
-                      href={tableUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-brand-400 hover:text-brand-300 flex items-center gap-1 text-[11px]"
-                    >
-                      <span>Önizle</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
+                <div className="w-full pt-2 border-t border-[#1E2638] flex items-center gap-1 justify-center">
+                  <button
+                    onClick={() => printSingleQrCard(business, table)}
+                    className="p-1.5 rounded-lg bg-[#182030] hover:bg-[#222E45] text-slate-300 hover:text-white transition"
+                    title="QR Kartı Yazdır"
+                  >
+                    <Printer className="w-3 h-3" />
+                  </button>
 
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800">
-                    <button
-                      onClick={() => printSingleQrCard(business, table)}
-                      className="py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Printer className="w-3.5 h-3.5 text-purple-400" />
-                      Yazdır
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTable(table)}
-                      className="py-2 rounded-xl bg-neutral-800 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 text-[11px] font-bold flex items-center justify-center gap-1 transition"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      Sil
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => copyTableLink(table)}
+                    className="p-1.5 rounded-lg bg-[#182030] hover:bg-[#222E45] text-slate-300 hover:text-white transition"
+                    title="Menü Bağlantısını Kopyala"
+                  >
+                    {copiedToken === table.id ? (
+                      <Check className="w-3 h-3 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                  </button>
+
+                  <a
+                    href={tableLiveUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="p-1.5 rounded-lg bg-[#182030] hover:bg-[#222E45] text-slate-300 hover:text-white transition"
+                    title="Menüyü Aç"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             );

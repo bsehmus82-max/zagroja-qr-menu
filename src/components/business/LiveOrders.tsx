@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
-  Hand, Banknote, RefreshCw, Volume2, Sparkles, AlertCircle
+  Hand, Banknote, RefreshCw, Volume2
 } from 'lucide-react';
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -45,7 +45,6 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
   useEffect(() => {
     loadData();
 
-    // Subscribe to new orders & waiter calls
     const channel = supabase
       .channel(`live-kitchen-${business.id}`)
       .on(
@@ -61,7 +60,6 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
             const newOrder = payload.new as Order;
             setOrders((prev) => [newOrder, ...prev]);
             sound.playOrderBell();
-            // Automatically print ticket on new incoming order
             printKitchenTicket(business, newOrder);
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as Order;
@@ -101,7 +99,6 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
     };
   }, [business.id]);
 
-  // Status changers
   const updateOrderStatus = async (orderId: string, status: Order['status']) => {
     const { error } = await supabase
       .from('orders')
@@ -129,60 +126,62 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-900 border border-neutral-800 p-6 rounded-3xl">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-white">Canlı Mutfak & Sipariş Paneli</h2>
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-bold animate-pulse">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              Canlı Dinleniyor
-            </span>
+    <div className="space-y-5">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] border border-[#1E2638] p-4 rounded-2xl">
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-white">Canlı Mutfak & Siparişler</h2>
+              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                Canlı
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Yeni siparişlerde otomatik adisyon yazdırılır ve sesli uyarı verilir.
+            </p>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Masalardan gelen siparişlerde zil çalar ve adisyon fişi yazdırılır.
-          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => sound.playOrderBell()}
-            className="px-3.5 py-2 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-xs font-bold text-neutral-300 transition flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-xl bg-[#182030] hover:bg-[#222E45] text-xs font-semibold text-slate-300 transition flex items-center gap-1.5"
             title="Ses Testi"
           >
-            <Volume2 className="w-4 h-4 text-brand-400" />
+            <Volume2 className="w-3.5 h-3.5 text-indigo-400" />
             Zil Testi
           </button>
         </div>
       </div>
 
-      {/* Active Service Calls Banner */}
+      {/* Active Waiter/Bill Calls */}
       {serviceRequests.length > 0 && (
         <div className="space-y-2">
           <div className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2 px-1">
-            <Hand className="w-4 h-4 animate-bounce" />
-            Bekleyen Masalar ({serviceRequests.length} Çağrı)
+            <Hand className="w-3.5 h-3.5 animate-bounce" />
+            Masa Çağrıları ({serviceRequests.length})
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
             {serviceRequests.map((req) => (
               <div
                 key={req.id}
-                className="bg-amber-500/15 border border-amber-500/40 rounded-2xl p-4 flex items-center justify-between shadow-lg animate-in slide-in-from-top-2"
+                className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 flex items-center justify-between shadow-sm animate-in slide-in-from-top-1"
               >
                 <div>
-                  <div className="font-black text-sm text-white">{req.table_no}</div>
-                  <div className="text-xs text-amber-300 font-bold mt-0.5">
+                  <div className="font-bold text-xs text-white">{req.table_no}</div>
+                  <div className="text-[11px] text-amber-300 font-medium mt-0.5">
                     {req.type === 'waiter' ? '🛎️ Garson Çağrısı' : `💳 Hesap İste (${req.details || 'Belirtilmedi'})`}
                   </div>
                 </div>
 
                 <button
                   onClick={() => completeServiceRequest(req.id)}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-xl text-xs shadow-md transition"
+                  className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-neutral-950 font-bold rounded-lg text-xs transition"
                 >
-                  İlgilenildi
+                  Tamamla
                 </button>
               </div>
             ))}
@@ -190,22 +189,22 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
         </div>
       )}
 
-      {/* Live Orders Grid */}
+      {/* Orders Grid */}
       {loading ? (
-        <div className="py-20 text-center text-neutral-500 text-xs flex flex-col items-center gap-2">
-          <RefreshCw className="w-5 h-5 animate-spin text-brand-500" />
-          <span>Siparişler yükleniyor...</span>
+        <div className="py-20 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
+          <RefreshCw className="w-5 h-5 animate-spin text-indigo-500" />
+          <span>Yükleniyor...</span>
         </div>
       ) : orders.length === 0 ? (
-        <div className="py-24 text-center bg-neutral-900/40 border border-dashed border-neutral-800 rounded-3xl p-8 space-y-2">
-          <ChefHat className="w-12 h-12 text-neutral-600 mx-auto mb-2" />
-          <h3 className="font-bold text-white text-base">Aktif Sipariş Bulunmuyor</h3>
-          <p className="text-xs text-neutral-400">
-            Masalardan QR ile sipariş verildiğinde burada anında zille birlikte listelenecektir.
+        <div className="py-20 text-center bg-[#111622]/40 border border-dashed border-[#1E2638] rounded-2xl p-8 space-y-1.5">
+          <ChefHat className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+          <h3 className="font-semibold text-slate-200 text-sm">Aktif Sipariş Bulunmuyor</h3>
+          <p className="text-xs text-slate-400">
+            Masalardan QR ile sipariş verildiğinde anında burada listelenecektir.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {orders.map((order) => {
             const isPending = order.status === 'pending';
             const isPreparing = order.status === 'preparing';
@@ -213,56 +212,56 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
             return (
               <div
                 key={order.id}
-                className={`bg-neutral-900 border rounded-3xl p-5 flex flex-col justify-between shadow-xl transition ${
+                className={`bg-[#111622] border rounded-2xl p-4 flex flex-col justify-between shadow-lg transition ${
                   isPending
-                    ? 'border-amber-500/50 shadow-amber-500/5 ring-1 ring-amber-500/30'
+                    ? 'border-amber-500/40 ring-1 ring-amber-500/20'
                     : isPreparing
-                    ? 'border-brand-500/50 shadow-brand-500/5 ring-1 ring-brand-500/30'
-                    : 'border-neutral-800'
+                    ? 'border-indigo-500/40 ring-1 ring-indigo-500/20'
+                    : 'border-[#1E2638]'
                 }`}
               >
                 <div>
                   {/* Order Header */}
-                  <div className="flex items-start justify-between pb-3 border-b border-neutral-800 mb-3">
+                  <div className="flex items-start justify-between pb-3 border-b border-[#1E2638] mb-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-base font-black text-white">{order.table_no}</span>
+                        <span className="text-sm font-bold text-white">{order.table_no}</span>
                         {isPending && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 animate-pulse">
-                            Yeni Sipariş
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
+                            Yeni
                           </span>
                         )}
                         {isPreparing && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-500/15 text-brand-400 border border-brand-500/30">
+                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                             Hazırlanıyor 👨‍🍳
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-neutral-400 font-mono">
+                      <span className="text-[10px] text-slate-400 font-mono">
                         {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
 
                     <button
                       onClick={() => printKitchenTicket(business, order)}
-                      className="p-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white transition"
+                      className="p-1.5 rounded-lg bg-[#182030] hover:bg-[#222E45] text-slate-300 hover:text-white transition"
                       title="Adisyon Fişi Yazdır"
                     >
-                      <Printer className="w-4 h-4 text-purple-400" />
+                      <Printer className="w-3.5 h-3.5 text-purple-400" />
                     </button>
                   </div>
 
                   {/* Items List */}
-                  <div className="space-y-2 mb-4">
+                  <div className="space-y-1.5 mb-3.5">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="flex justify-between items-start text-xs">
-                        <div className="flex items-start gap-2">
-                          <span className="font-black text-brand-400 bg-brand-500/10 w-5 h-5 rounded flex items-center justify-center text-[11px] shrink-0">
+                        <div className="flex items-start gap-1.5">
+                          <span className="font-bold text-indigo-400 bg-indigo-500/10 w-4 h-4 rounded flex items-center justify-center text-[10px] shrink-0">
                             {item.quantity}
                           </span>
-                          <span className="font-bold text-white">{item.name}</span>
+                          <span className="font-medium text-slate-200">{item.name}</span>
                         </div>
-                        <span className="text-neutral-400 font-mono font-bold">
+                        <span className="text-slate-400 font-mono text-[11px]">
                           {(item.price * item.quantity).toFixed(2)} ₺
                         </span>
                       </div>
@@ -271,17 +270,17 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
 
                   {/* Customer Notes */}
                   {order.customer_notes && (
-                    <div className="p-2.5 bg-neutral-950 rounded-xl border border-neutral-800 text-[11px] text-amber-300/90 mb-4">
-                      <strong>Müşteri Notu:</strong> {order.customer_notes}
+                    <div className="p-2 bg-[#0B0E14] rounded-xl border border-[#1A2234] text-[11px] text-amber-300 mb-3">
+                      <strong>Not:</strong> {order.customer_notes}
                     </div>
                   )}
                 </div>
 
                 {/* Footer Actions */}
-                <div className="pt-3 border-t border-neutral-800 space-y-3">
+                <div className="pt-3 border-t border-[#1E2638] space-y-2.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-400 font-semibold">Toplam Tutar:</span>
-                    <span className="font-black text-base text-brand-400">
+                    <span className="text-slate-400">Toplam:</span>
+                    <span className="font-bold text-sm text-indigo-400">
                       {order.total_amount.toFixed(2)} ₺
                     </span>
                   </div>
@@ -290,19 +289,19 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
                     {isPending && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="col-span-2 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-brand-600/30 flex items-center justify-center gap-1.5 transition"
+                        className="col-span-2 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition"
                       >
-                        <ChefHat className="w-4 h-4" />
-                        <span>Mutfakta Hazırla (Müşteriye Bildir)</span>
+                        <ChefHat className="w-3.5 h-3.5" />
+                        <span>Mutfakta Hazırla</span>
                       </button>
                     )}
 
                     {isPreparing && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'served')}
-                        className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition"
+                        className="col-span-2 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition"
                       >
-                        <CheckCircle2 className="w-4 h-4" />
+                        <CheckCircle2 className="w-3.5 h-3.5" />
                         <span>Masaya Servis Edildi</span>
                       </button>
                     )}
@@ -310,9 +309,9 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business }) => {
                     {order.status === 'served' && (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'paid')}
-                        className="col-span-2 py-2.5 bg-neutral-800 hover:bg-emerald-600 text-white font-bold rounded-xl text-xs transition"
+                        className="col-span-2 py-2 bg-[#182030] hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs transition"
                       >
-                        Ödendi & Hesabı Kapat
+                        Ödendi & Kapat
                       </button>
                     )}
                   </div>

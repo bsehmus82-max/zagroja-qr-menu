@@ -1,9 +1,9 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
-  Plus, Search, Store, Clock, Phone, MapPin, Sparkles, Check
+  Plus, Search, Clock, Sparkles, Check, ChevronRight
 } from 'lucide-react';
-import { Business, Category, Product, CartItem, Order, TemplateId } from '../../types';
+import { Business, Category, Product, CartItem, TemplateId } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
@@ -22,12 +22,12 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const [searchTerm, setSearchTerm] = useState('');
 
   // Table session memory
-  const [tableNo, setTableNo] = useState<string>(() => {
+  const [tableNo] = useState<string>(() => {
     if (initialTable) {
-      localStorage.setItem(`zagroja_table_${business.id}`, initialTable);
+      localStorage.setItem(`tbl_session_${business.id}`, initialTable);
       return initialTable;
     }
-    return localStorage.getItem(`zagroja_table_${business.id}`) || '';
+    return localStorage.getItem(`tbl_session_${business.id}`) || '';
   });
 
   // Cart state
@@ -104,24 +104,86 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const totalCartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalCartPrice = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
-  // Template Theme Classes Helper
-  const getThemeWrapperClass = (template: TemplateId) => {
+  // Template Theme Configuration
+  const getThemeConfig = (template: TemplateId) => {
     switch (template) {
       case 'dark_luxury':
-        return 'bg-black text-neutral-100 selection:bg-amber-500 selection:text-black';
+        return {
+          bg: 'bg-[#040404]',
+          headerBg: 'bg-[#0A0A0A]/90 border-[#2A2315]',
+          cardBg: 'bg-[#0E0D0A] border-[#221C11] hover:border-[#4A3E26]',
+          activePill: 'bg-[#D4AF37] text-black shadow-lg shadow-amber-500/20 font-bold',
+          inactivePill: 'bg-[#14120E] border-[#2A2315] text-[#A69980] hover:text-white',
+          priceColor: 'text-[#F5D061]',
+          btnBg: 'bg-[#D4AF37] hover:bg-[#E5C158] text-black shadow-md shadow-amber-500/20',
+          accentText: 'text-[#D4AF37]',
+          fontFamily: 'font-sans',
+        };
       case 'nordic':
-        return 'bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white';
+        return {
+          bg: 'bg-[#090E17]',
+          headerBg: 'bg-[#0F1726]/90 border-[#1C2A40]',
+          cardBg: 'bg-[#111A2C] border-[#1E2E47] hover:border-[#2C4366]',
+          activePill: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 font-semibold',
+          inactivePill: 'bg-[#131E31] border-[#1E2E47] text-slate-400 hover:text-white',
+          priceColor: 'text-emerald-400',
+          btnBg: 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20',
+          accentText: 'text-emerald-400',
+          fontFamily: 'font-sans',
+        };
       case 'bistro':
-        return 'bg-stone-950 text-amber-50 selection:bg-amber-600 selection:text-white';
+        return {
+          bg: 'bg-[#0E0B09]',
+          headerBg: 'bg-[#17110E]/90 border-[#2B1D14]',
+          cardBg: 'bg-[#19130F] border-[#2D1F16] hover:border-[#4D3425]',
+          activePill: 'bg-amber-600 text-white shadow-lg shadow-amber-600/30 font-semibold',
+          inactivePill: 'bg-[#1C1410] border-[#2D1F16] text-[#A8988D] hover:text-white',
+          priceColor: 'text-amber-400',
+          btnBg: 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/20',
+          accentText: 'text-amber-400',
+          fontFamily: 'font-sans',
+        };
       case 'neon':
-        return 'bg-neutral-950 text-purple-100 selection:bg-purple-500 selection:text-white';
+        return {
+          bg: 'bg-[#070814]',
+          headerBg: 'bg-[#0D1026]/90 border-[#222752]',
+          cardBg: 'bg-[#0E112B] border-[#222854] hover:border-[#38418A]',
+          activePill: 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow-lg shadow-cyan-500/25 font-bold',
+          inactivePill: 'bg-[#121536] border-[#222854] text-slate-400 hover:text-white',
+          priceColor: 'text-cyan-400',
+          btnBg: 'bg-gradient-to-r from-cyan-500 to-fuchsia-500 hover:opacity-90 text-white shadow-md shadow-cyan-500/20',
+          accentText: 'text-cyan-400',
+          fontFamily: 'font-sans',
+        };
       case 'vintage':
-        return 'bg-zinc-950 text-emerald-100 selection:bg-emerald-600 selection:text-white';
+        return {
+          bg: 'bg-[#050E09]',
+          headerBg: 'bg-[#0B1A12]/90 border-[#193625]',
+          cardBg: 'bg-[#0D2117] border-[#183B2A] hover:border-[#285E43]',
+          activePill: 'bg-[#C5A059] text-[#050E09] shadow-lg shadow-yellow-600/20 font-bold',
+          inactivePill: 'bg-[#0E261A] border-[#183B2A] text-[#93AC9F] hover:text-white',
+          priceColor: 'text-[#E2C376]',
+          btnBg: 'bg-[#C5A059] hover:bg-[#D4B36E] text-[#050E09] font-bold shadow-md',
+          accentText: 'text-[#C5A059]',
+          fontFamily: 'font-sans',
+        };
       case 'clean':
       default:
-        return 'bg-neutral-950 text-neutral-100 selection:bg-brand-500 selection:text-white';
+        return {
+          bg: 'bg-[#080B10]',
+          headerBg: 'bg-[#10141E]/90 border-[#1E2638]',
+          cardBg: 'bg-[#111724] border-[#1D273B] hover:border-[#2E3C59]',
+          activePill: 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 font-semibold',
+          inactivePill: 'bg-[#131A29] border-[#1E283D] text-slate-400 hover:text-white',
+          priceColor: 'text-indigo-400',
+          btnBg: 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20',
+          accentText: 'text-indigo-400',
+          fontFamily: 'font-sans',
+        };
     }
   };
+
+  const theme = getThemeConfig(business.template_id);
 
   const currentProducts = products
     .filter((p) => (selectedCatId ? p.category_id === selectedCatId : true))
@@ -130,19 +192,19 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
 
   return (
-    <div className={`min-h-screen pb-32 ${getThemeWrapperClass(business.template_id)}`}>
-      {/* Top Banner / Restaurant Info */}
-      <header className="relative border-b border-white/10 bg-black/40 backdrop-blur-xl sticky top-0 z-30 px-4 py-3.5">
+    <div className={`min-h-screen pb-32 text-slate-100 antialiased ${theme.bg} ${theme.fontFamily}`}>
+      {/* Sticky Header Bar */}
+      <header className={`sticky top-0 z-30 border-b backdrop-blur-xl px-4 py-3 ${theme.headerBg}`}>
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 flex items-center justify-center text-white font-black text-sm shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
               {business.name.charAt(0)}
             </div>
             <div>
-              <h1 className="font-black text-sm tracking-tight text-white">{business.name}</h1>
-              <div className="text-[11px] text-neutral-400 flex items-center gap-2">
+              <h1 className="font-bold text-xs tracking-tight text-white">{business.name}</h1>
+              <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
                 {tableNo && (
-                  <span className="font-bold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-md border border-brand-500/20">
+                  <span className="font-semibold text-indigo-300 bg-indigo-500/10 px-1.5 py-0.5 rounded border border-indigo-500/20">
                     {tableNo}
                   </span>
                 )}
@@ -151,78 +213,72 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Wi-Fi Quick Button */}
+          {/* Wi-Fi Action Button */}
           {business.wifi_ssid && (
             <button
               onClick={() => setServiceModalType('wifi')}
-              className="p-2 rounded-2xl bg-neutral-900 border border-neutral-800 text-brand-400 hover:text-white transition"
+              className="p-2 rounded-xl bg-[#182030]/80 border border-[#26334D] text-slate-300 hover:text-white transition active:scale-95"
               title="Wi-Fi Bilgisi"
             >
-              <Wifi className="w-4 h-4" />
+              <Wifi className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="max-w-md mx-auto p-4 space-y-5">
-        {/* Live Order Tracker (Persists across reloads) */}
+      <main className="max-w-md mx-auto p-4 space-y-4">
+        {/* Real-time Order Tracker Bar (if active orders exist) */}
         <OrderStatusTracker businessId={business.id} tableNo={tableNo} />
 
         {/* Quick Service Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setServiceModalType('waiter')}
-            className="py-3 px-4 bg-neutral-900/90 border border-neutral-800 hover:border-amber-500/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-white transition active:scale-98 shadow-sm"
+            className="py-2.5 px-3 bg-[#111622]/80 border border-[#1E2638] hover:border-amber-500/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition active:scale-98 shadow-sm"
           >
-            <Hand className="w-4 h-4 text-amber-400" />
+            <Hand className="w-3.5 h-3.5 text-amber-400" />
             <span>Garson Çağır</span>
           </button>
 
           <button
             onClick={() => setServiceModalType('bill')}
-            className="py-3 px-4 bg-neutral-900/90 border border-neutral-800 hover:border-brand-500/50 rounded-2xl flex items-center justify-center gap-2 text-xs font-bold text-white transition active:scale-98 shadow-sm"
+            className="py-2.5 px-3 bg-[#111622]/80 border border-[#1E2638] hover:border-emerald-500/40 rounded-xl flex items-center justify-center gap-2 text-xs font-semibold text-slate-200 transition active:scale-98 shadow-sm"
           >
-            <Banknote className="w-4 h-4 text-brand-400" />
+            <Banknote className="w-3.5 h-3.5 text-emerald-400" />
             <span>Hesap İste</span>
           </button>
         </div>
 
-        {/* Search inside menu */}
+        {/* Instant Search Bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-neutral-500 absolute left-4 top-1/2 -translate-y-1/2" />
+          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Menüde lezzet ara..."
-            className="w-full bg-neutral-900/90 border border-neutral-800 rounded-2xl pl-11 pr-4 py-3 text-xs text-white placeholder:text-neutral-500 focus:outline-none focus:border-brand-500 transition"
+            className="w-full bg-[#111622]/80 border border-[#1E2638] focus:border-indigo-500/50 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
           />
         </div>
 
-        {/* Categories Horizontal Slider (Only place where images are shown) */}
+        {/* Category Horizontal Slider (Only place with visual covers) */}
         <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2.5 px-1">
-            Kategoriler
-          </div>
-
-          <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex gap-2 overflow-x-auto pb-1.5 scrollbar-none">
             {categories.map((cat) => {
               const isSelected = selectedCatId === cat.id;
               return (
                 <div
                   key={cat.id}
                   onClick={() => setSelectedCatId(cat.id)}
-                  className={`cursor-pointer rounded-2xl p-2 shrink-0 w-28 border transition text-center ${
-                    isSelected
-                      ? 'bg-brand-600/20 border-brand-500 ring-2 ring-brand-500/30'
-                      : 'bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                  className={`cursor-pointer rounded-2xl p-2 shrink-0 w-24 border transition text-center ${
+                    isSelected ? theme.activePill : theme.inactivePill
                   }`}
                 >
-                  <div className="w-full h-16 rounded-xl bg-neutral-800 overflow-hidden mb-1.5 border border-white/10">
+                  <div className="w-full h-14 rounded-xl overflow-hidden mb-1.5 border border-white/10 bg-black/40">
                     <img src={cat.image_url} alt="" className="w-full h-full object-cover" />
                   </div>
-                  <span className="font-bold text-[11px] text-white line-clamp-1">
+                  <span className="font-semibold text-[10px] line-clamp-1 block">
                     {cat.name}
                   </span>
                 </div>
@@ -232,45 +288,45 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
         </div>
 
         {/* Products List (Content, Ingredients, Price & Add button - NO photos / NO kcal as requested) */}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
-            <span className="font-black text-sm text-white">
-              {selectedCategory?.name || 'Tüm Lezzetler'}
+            <span className="font-bold text-xs text-slate-200">
+              {selectedCategory?.name || 'Tüm Ürünler'}
             </span>
-            <span className="text-xs text-neutral-400">
+            <span className="text-[11px] text-slate-500">
               {currentProducts.length} Çeşit
             </span>
           </div>
 
           {currentProducts.length === 0 ? (
-            <div className="py-12 text-center text-neutral-500 text-xs bg-neutral-900/40 border border-dashed border-neutral-800 rounded-3xl">
-              Bu kategoride ürün bulunamadı.
+            <div className="py-12 text-center text-slate-500 text-xs bg-[#111622]/40 border border-dashed border-[#1E2638] rounded-2xl">
+              Bu kategoride ürün bulunmuyor.
             </div>
           ) : (
             currentProducts.map((prod) => (
               <div
                 key={prod.id}
-                className={`p-4 rounded-3xl border transition flex items-start justify-between gap-3 ${
+                className={`p-3.5 rounded-2xl border transition flex items-start justify-between gap-3 ${
                   prod.is_frozen
-                    ? 'bg-neutral-950/40 border-neutral-800/80 opacity-60'
-                    : 'bg-neutral-900/90 border-neutral-800 hover:border-neutral-700'
+                    ? 'bg-[#0B0E14]/40 border-[#1A2234] opacity-50'
+                    : theme.cardBg
                 }`}
               >
-                <div className="flex-1">
+                <div className="flex-1 min-w-0 pr-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-xs text-white">{prod.name}</h3>
+                    <h3 className="font-bold text-xs text-slate-100 truncate">{prod.name}</h3>
                     {prod.is_frozen && (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
                         Tükendi
                       </span>
                     )}
                   </div>
 
-                  <p className="text-[11px] text-neutral-400 leading-relaxed mt-1">
-                    {prod.description || 'Geleneksel lezzet.'}
+                  <p className="text-[11px] text-slate-400 leading-relaxed mt-1 line-clamp-2">
+                    {prod.description || 'Özel hazırlanmış lezzet.'}
                   </p>
 
-                  <div className="text-xs font-black text-brand-400 mt-2">
+                  <div className={`text-xs font-bold mt-1.5 ${theme.priceColor}`}>
                     {prod.price.toFixed(2)} ₺
                   </div>
                 </div>
@@ -278,13 +334,13 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <button
                   disabled={prod.is_frozen}
                   onClick={() => addToCart(prod)}
-                  className={`p-2.5 rounded-2xl shrink-0 font-bold transition flex items-center justify-center ${
+                  className={`p-2 rounded-xl shrink-0 transition flex items-center justify-center ${
                     prod.is_frozen
-                      ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-                      : 'bg-brand-600 hover:bg-brand-500 text-white shadow-md shadow-brand-600/30 active:scale-90'
+                      ? 'bg-[#182030] text-slate-600 cursor-not-allowed'
+                      : `${theme.btnBg} active:scale-90`
                   }`}
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             ))
@@ -297,16 +353,16 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
         <div className="fixed bottom-4 inset-x-4 max-w-md mx-auto z-40">
           <button
             onClick={() => setShowCart(true)}
-            className="w-full py-4 px-5 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white rounded-3xl font-bold shadow-2xl shadow-brand-600/40 flex items-center justify-between transition transform active:scale-98 animate-bounce-subtle"
+            className="w-full py-3.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-xl shadow-indigo-600/30 flex items-center justify-between transition transform active:scale-98 animate-float-subtle"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white font-black text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold text-xs">
                 {totalCartCount}
               </div>
-              <span className="text-xs">Siparişi Tamamla</span>
+              <span className="text-xs font-semibold">Sepeti Görüntüle</span>
             </div>
 
-            <span className="text-sm font-black">{totalCartPrice.toFixed(2)} ₺ →</span>
+            <span className="text-xs font-bold">{totalCartPrice.toFixed(2)} ₺ →</span>
           </button>
         </div>
       )}

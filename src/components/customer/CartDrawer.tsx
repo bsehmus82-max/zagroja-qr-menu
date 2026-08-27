@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShoppingBag, X, Plus, Minus, Send, Sparkles, AlertCircle } from 'lucide-react';
+import { ShoppingBag, X, Plus, Minus, Send, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Business, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -46,12 +46,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         notes: item.notes || '',
       }));
 
-      const sessionToken = localStorage.getItem('zagroja_session_token') || `ses_${Date.now()}_${Math.random()}`;
-      localStorage.setItem('zagroja_session_token', sessionToken);
+      const sessionToken = localStorage.getItem('user_session_token') || `ses_${Date.now()}_${Math.random()}`;
+      localStorage.setItem('user_session_token', sessionToken);
 
       const payload = {
         business_id: business.id,
-        table_no: tableNo || 'Genel',
+        table_no: tableNo || 'Genel Masa',
         session_token: sessionToken,
         order_source: 'qr',
         items: orderItems,
@@ -68,16 +68,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         .single();
 
       if (!error && data) {
-        // Save to active customer orders in localStorage
-        const existing = JSON.parse(localStorage.getItem('zagroja_my_orders') || '[]');
-        localStorage.setItem('zagroja_my_orders', JSON.stringify([data.id, ...existing]));
+        const existing = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
+        localStorage.setItem('my_active_orders', JSON.stringify([data.id, ...existing]));
 
-        // Fireworks celebration
         try {
           confetti({
-            particleCount: 80,
-            spread: 70,
-            origin: { y: 0.6 },
+            particleCount: 60,
+            spread: 60,
+            origin: { y: 0.7 },
           });
         } catch {
           // fallback
@@ -95,62 +93,62 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-3xl w-full max-w-lg shadow-2xl p-6 max-h-[85vh] flex flex-col justify-between animate-in slide-in-from-bottom">
+      <div className="bg-[#121622] border border-[#1E2638] rounded-t-3xl sm:rounded-3xl w-full max-w-md shadow-2xl p-5 max-h-[85vh] flex flex-col justify-between animate-in slide-in-from-bottom">
         <div>
           {/* Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-neutral-800 mb-4">
+          <div className="flex items-center justify-between pb-3.5 border-b border-[#1E2638] mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center">
-                <ShoppingBag className="w-4 h-4" />
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                <ShoppingBag className="w-3.5 h-3.5" />
               </div>
               <div>
-                <h3 className="font-black text-sm text-white">Sipariş Sepetim</h3>
-                <span className="text-[10px] text-neutral-400 font-bold">{tableNo || 'Masa Seçilmedi'}</span>
+                <h3 className="font-bold text-xs text-white">Sipariş Sepetiniz</h3>
+                <span className="text-[10px] text-slate-400 font-semibold">{tableNo || 'Genel Masa'}</span>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 text-neutral-400 hover:text-white transition"
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#1A2234] transition"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Items */}
-          <div className="space-y-3 max-h-64 overflow-y-auto pr-1 mb-4">
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1 mb-3.5">
             {cart.length === 0 ? (
-              <div className="text-center py-12 text-neutral-500 text-xs">
+              <div className="text-center py-10 text-slate-500 text-xs">
                 Sepetinizde ürün bulunmuyor.
               </div>
             ) : (
               cart.map((item) => (
                 <div
                   key={item.product.id}
-                  className="p-3 bg-neutral-950 rounded-2xl border border-neutral-800 flex items-center justify-between text-xs"
+                  className="p-3 bg-[#0B0E14] rounded-xl border border-[#1A2234] flex items-center justify-between text-xs"
                 >
                   <div className="flex-1 pr-2 truncate">
-                    <div className="font-bold text-white truncate">{item.product.name}</div>
-                    <div className="text-[11px] text-brand-400 font-bold mt-0.5">
+                    <div className="font-semibold text-slate-200 truncate">{item.product.name}</div>
+                    <div className="text-[11px] text-indigo-400 font-bold mt-0.5">
                       {(item.product.price * item.quantity).toFixed(2)} ₺
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => onUpdateQty(item.product.id, -1)}
-                      className="w-7 h-7 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white flex items-center justify-center transition"
+                      className="w-6 h-6 rounded-lg bg-[#182030] hover:bg-[#222E45] text-white flex items-center justify-center transition"
                     >
-                      <Minus className="w-3.5 h-3.5" />
+                      <Minus className="w-3 h-3" />
                     </button>
-                    <span className="w-6 text-center font-bold text-white text-xs">
+                    <span className="w-5 text-center font-bold text-slate-200 text-xs">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => onUpdateQty(item.product.id, 1)}
-                      className="w-7 h-7 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white flex items-center justify-center transition"
+                      className="w-6 h-6 rounded-lg bg-[#182030] hover:bg-[#222E45] text-white flex items-center justify-center transition"
                     >
-                      <Plus className="w-3.5 h-3.5" />
+                      <Plus className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -160,16 +158,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
           {/* Notes */}
           {cart.length > 0 && (
-            <div className="mb-4">
-              <label className="block text-[11px] font-semibold text-neutral-400 mb-1">
-                Özel Sipariş Notu (İsteğe Bağlı)
+            <div className="mb-3">
+              <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                Sipariş Notu
               </label>
               <textarea
                 rows={2}
                 value={customerNotes}
                 onChange={(e) => setCustomerNotes(e.target.value)}
-                placeholder="Örn: İçecekler buzsuz olsun lütfen..."
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-3 text-xs text-white focus:outline-none focus:border-brand-500"
+                placeholder="Özel bir isteğiniz varsa belirtebilirsiniz..."
+                className="w-full bg-[#0B0E14] border border-[#1A2234] focus:border-indigo-500/50 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none"
               />
             </div>
           )}
@@ -177,19 +175,19 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="pt-4 border-t border-neutral-800 space-y-3">
-            <div className="flex items-center justify-between text-base font-black text-white">
+          <div className="pt-3 border-t border-[#1E2638] space-y-2.5">
+            <div className="flex items-center justify-between text-sm font-bold text-white">
               <span>Toplam:</span>
-              <span className="text-brand-400">{totalAmount.toFixed(2)} ₺</span>
+              <span className="text-indigo-400">{totalAmount.toFixed(2)} ₺</span>
             </div>
 
             <button
               disabled={sending}
               onClick={handleSendOrder}
-              className="w-full py-4 bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/30 transition transform active:scale-98 disabled:opacity-50"
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
-              {sending ? 'Sipariş İletiliyor...' : 'Siparişi Mutfağa / Kasaya Gönder'}
+              <Send className="w-3.5 h-3.5" />
+              {sending ? 'İletiliyor...' : 'Siparişi Mutfağa İlet'}
             </button>
           </div>
         )}

@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { Hand, Banknote, Wifi, Check, X, Copy, Sparkles, CreditCard } from 'lucide-react';
+import { Hand, Banknote, Wifi, Check, X, Copy, CreditCard } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
 
@@ -51,7 +51,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         setSubmitted(false);
         setNote('');
         onClose();
-      }, 2500);
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -67,44 +67,44 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95">
-        <div className="flex items-center justify-between pb-3 border-b border-neutral-800 mb-4">
-          <h3 className="font-black text-sm text-white flex items-center gap-2">
-            {type === 'waiter' && <Hand className="w-4 h-4 text-amber-400" />}
-            {type === 'bill' && <Banknote className="w-4 h-4 text-emerald-400" />}
-            {type === 'wifi' && <Wifi className="w-4 h-4 text-brand-400" />}
+      <div className="bg-[#121622] border border-[#1E2638] rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 shadow-2xl animate-in slide-in-from-bottom">
+        <div className="flex items-center justify-between pb-3 border-b border-[#1E2638] mb-4">
+          <h3 className="font-bold text-xs text-white flex items-center gap-2">
+            {type === 'waiter' && <Hand className="w-3.5 h-3.5 text-amber-400" />}
+            {type === 'bill' && <Banknote className="w-3.5 h-3.5 text-emerald-400" />}
+            {type === 'wifi' && <Wifi className="w-3.5 h-3.5 text-indigo-400" />}
             <span>
               {type === 'waiter' && 'Garson Çağır'}
               {type === 'bill' && 'Hesap İste'}
-              {type === 'wifi' && 'Müşteri Wi-Fi Bilgisi'}
+              {type === 'wifi' && 'Wi-Fi Bilgisi'}
             </span>
           </h3>
 
-          <button onClick={onClose} className="p-1.5 text-neutral-400 hover:text-white">
+          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-[#1A2234]">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {submitted ? (
-          <div className="py-8 text-center space-y-2">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 animate-bounce">
-              <Check className="w-6 h-6" />
+          <div className="py-6 text-center space-y-1.5">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-2 animate-bounce">
+              <Check className="w-5 h-5" />
             </div>
-            <h4 className="font-bold text-sm text-white">İsteğiniz İletildi!</h4>
-            <p className="text-xs text-neutral-400">
+            <h4 className="font-semibold text-xs text-white">İsteğiniz İletildi</h4>
+            <p className="text-[11px] text-slate-400">
               Personelimiz en kısa sürede masanıza gelecektir.
             </p>
           </div>
         ) : type === 'wifi' ? (
-          <div className="space-y-4">
-            <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-2 text-xs">
+          <div className="space-y-3.5">
+            <div className="bg-[#0B0E14] p-3.5 rounded-xl border border-[#1A2234] space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-neutral-400">Ağ Adı (SSID):</span>
-                <span className="font-bold text-white">{business.wifi_ssid || 'İşletme Wi-Fi'}</span>
+                <span className="text-slate-400">Ağ Adı:</span>
+                <span className="font-semibold text-slate-200">{business.wifi_ssid || 'Wi-Fi'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-neutral-400">Şifre:</span>
-                <span className="font-mono font-bold text-brand-400">
+                <span className="text-slate-400">Şifre:</span>
+                <span className="font-mono font-bold text-indigo-400">
                   {business.wifi_password || 'Şifresiz'}
                 </span>
               </div>
@@ -113,73 +113,73 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             {business.wifi_password && (
               <button
                 onClick={copyWifiPassword}
-                className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-bold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-brand-600/30 transition"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 transition"
               >
-                {wifiCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{wifiCopied ? 'Şifre Kopyalandı!' : 'Şifreyi Panoya Kopyala'}</span>
+                {wifiCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{wifiCopied ? 'Şifre Kopyalandı' : 'Şifreyi Panoya Kopyala'}</span>
               </button>
             )}
           </div>
         ) : type === 'bill' ? (
-          <div className="space-y-4">
-            <p className="text-xs text-neutral-300">
-              {tableNo} için hesap ödeme yönteminizi seçiniz:
+          <div className="space-y-3.5">
+            <p className="text-xs text-slate-300">
+              {tableNo} için ödeme yönteminizi seçiniz:
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => setBillMethod('pos')}
-                className={`p-4 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                className={`p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${
                   billMethod === 'pos'
-                    ? 'bg-brand-600/20 border-brand-500 text-white ring-1 ring-brand-500'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400'
+                    ? 'bg-indigo-600/20 border-indigo-500 text-white ring-1 ring-indigo-500'
+                    : 'bg-[#0B0E14] border-[#1A2234] text-slate-400'
                 }`}
               >
-                <CreditCard className="w-5 h-5 text-brand-400" />
-                <span className="font-bold text-xs">POS / Kredi Kartı</span>
+                <CreditCard className="w-4 h-4 text-indigo-400" />
+                <span className="font-semibold text-[11px]">Kredi Kartı / POS</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setBillMethod('nakit')}
-                className={`p-4 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                className={`p-3 rounded-xl border text-center transition flex flex-col items-center gap-1.5 ${
                   billMethod === 'nakit'
                     ? 'bg-emerald-600/20 border-emerald-500 text-white ring-1 ring-emerald-500'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400'
+                    : 'bg-[#0B0E14] border-[#1A2234] text-slate-400'
                 }`}
               >
-                <Banknote className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-xs">Nakit</span>
+                <Banknote className="w-4 h-4 text-emerald-400" />
+                <span className="font-semibold text-[11px]">Nakit</span>
               </button>
             </div>
 
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-2xl text-xs shadow-lg shadow-emerald-600/30 transition disabled:opacity-50"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-emerald-600/20 transition disabled:opacity-50"
             >
               {loading ? 'İletiliyor...' : 'Hesabı İste'}
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <p className="text-xs text-neutral-300">
-              {tableNo} için servis görevlisini masanıza çağırabilirsiniz.
+          <div className="space-y-3.5">
+            <p className="text-xs text-slate-300">
+              {tableNo} için servis personelini masanıza çağırabilirsiniz.
             </p>
 
             <textarea
               rows={2}
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="İsteğe bağlı bir not yazabilirsiniz (Örn: Ekstra peçete rica ediyoruz)..."
-              className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl p-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 resize-none"
+              placeholder="İsteğe bağlı bir not yazabilirsiniz..."
+              className="w-full bg-[#0B0E14] border border-[#1A2234] focus:border-amber-500/50 rounded-xl p-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none resize-none"
             />
 
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold rounded-2xl text-xs shadow-lg shadow-amber-600/30 transition disabled:opacity-50"
+              className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-xl text-xs shadow-md shadow-amber-600/20 transition disabled:opacity-50"
             >
               {loading ? 'Çağrılıyor...' : 'Garsonu Masaya Çağır'}
             </button>
