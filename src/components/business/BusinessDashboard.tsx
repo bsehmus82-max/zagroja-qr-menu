@@ -113,7 +113,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     },
     {
       id: 'settings' as const,
-      label: 'İşletme & Wi-Fi',
+      label: 'İşletme Ayarları',
       icon: Settings,
       badge: null,
     },
@@ -133,7 +133,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       case 'pos': return 'Kasa / Hızlı POS Satışı';
       case 'waiters': return 'Garson & Cihaz Güvenliği';
       case 'turnover': return 'Gün Sonu & Kasa Analizi';
-      case 'settings': return 'İşletme & Wi-Fi Ayarları';
+      case 'settings': return 'İşletme Ayarları';
       case 'support': return 'Canlı Destek & Bildirimler';
       default: return '';
     }

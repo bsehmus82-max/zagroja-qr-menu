@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send, MessageSquare, ShieldCheck, RefreshCw, CheckCheck, 
   Bot, HelpCircle, AlertTriangle, Image as ImageIcon, QrCode, 
@@ -26,70 +26,67 @@ interface ChatMessage {
 const FAQ_DATABASE = [
   {
     keywords: ['görsel', 'fotoğraf', 'resim', 'stok', 'url', 'foto', 'unsplash', 'pexels'],
-    title: 'Görsel Bulma & URL ile Ürün Fotoğrafı Değiştirme',
-    response: `🖼️ **Ürün Fotoğrafı Ekleme & Stok Görsel Rehberi:**
+    title: 'Görsel Bulma & Stok URL Rehberi',
+    response: `**Ürün Fotoğrafı Ekleme & Stok Görsel Rehberi:**
 
-Restiva sistemi, sunucu depolama alanı doldurmadan dünya çapındaki milyonlarca ücretsiz stok görseli doğrudan menünüzde kullanmanızı sağlar.
+Menüdeki ürünlerinize internet üzerindeki ücretsiz stok fotoğrafların bağlantı adresini (URL) ekleyebilirsiniz.
 
-📌 **Nasıl Yapılır? (3 Adım):**
-1. **Ücretsiz Stok Sitesine Gidin:**
-   * [Unsplash Yemek Koleksiyonu (Tıklayın)](https://unsplash.com/s/photos/food)
-   * [Pexels Restoran Fotoğrafları (Tıklayın)](https://www.pexels.com/search/food/)
-2. **Yemeğinizi Arayın & Resim Adresini Kopyalayın:**
-   * **Telefonda:** Beğendiğiniz fotoğrafa 1 saniye basılı tutup *"Resim Bağlantısını Kopyala"* deyin.
-   * **Bilgisayarda:** Fotoğrafa sağ tıklayıp *"Resim Adresini Kopyala"* deyin.
-3. **Restiva Paneline Yapıştırın:**
+**Adımlar:**
+1. **Ücretsiz Stok Görsel Sitesine Gidin:**
+   * [Unsplash Yemek Koleksiyonu](https://unsplash.com/s/photos/food)
+   * [Pexels Restoran Fotoğrafları](https://www.pexels.com/search/food/)
+2. **Görsel Bağlantısını Kopyalayın:**
+   * Telefonda: Fotoğrafa basılı tutup "Resim Bağlantısını Kopyala" seçeneğini seçin.
+   * Bilgisayarda: Fotoğrafa sağ tıklayıp "Resim Adresini Kopyala" seçeneğini seçin.
+3. **Restiva Paneline Ekleyin:**
    * Menü & Ürünler > Ürünü Düzenle > Görsel kutucuğuna linki yapıştırın ve kaydedin.`,
     quickActions: [
-      { label: 'Unsplash Yemekleri Aç ↗', url: 'https://unsplash.com/s/photos/food' },
-      { label: 'Pexels Restoran Fotoğrafları Aç ↗', url: 'https://www.pexels.com/search/food/' },
+      { label: 'Unsplash Yemekleri Aç', url: 'https://unsplash.com/s/photos/food' },
+      { label: 'Pexels Restoran Fotoğrafları Aç', url: 'https://www.pexels.com/search/food/' },
     ],
   },
   {
     keywords: ['tükendi', 'stok', 'bitti', 'yok', 'gizle', 'kapat'],
-    title: 'Tükenen Ürünü Kapatma & Sıralama',
-    response: `🧊 **Tükenen Ürünü Canlı Menüde Kapatma:**
+    title: 'Tükenen Ürün Yönetimi',
+    response: `**Tükenen Ürünü Menüde Kapatma:**
 
 * **Menü & Ürünler** sekmesine gidin.
-* Biten yemeğin altındaki **"Tükendi Olarak İşaretle"** butonuna dokunun.
-* Ürün anında müşterilerin telefonundaki QR menüde en alt sıraya kayar, pasifleşir ve sepete eklenemez.
-* Stok tekrar hazır olduğunda aynı butondan **"Satışa Aç"** diyebilirsiniz. Sayfa yenilemeye gerek yoktur.`,
+* Biten ürünün altındaki **"Tükendi Olarak İşaretle"** butonuna basın.
+* Ürün canlı menüde en alt sıraya kayar, pasifleşir ve sepete eklenemez.
+* Ürün tekrar hazır olduğunda aynı butondan **"Satışa Aç"** diyebilirsiniz.`,
     quickActions: [
       { label: 'Menü & Ürünlere Git', actionType: 'navigate_menu' },
     ],
   },
   {
     keywords: ['qr', 'karekod', 'yazdır', 'masa', 'çıktı', 'pdf', 'baskı'],
-    title: 'Masa QR Kodlarını İndirme ve Yazdırma',
-    response: `📲 **Masa QR Kodları ve Baskı Rehberi:**
+    title: 'Masa QR Çıktısı Alma',
+    response: `**Masa QR Kodları ve Baskı:**
 
-* Paneldeki **"Masa & QR Kodlar"** sekmesine gelin.
-* Masalarınızın tüm karekodları hazırdır.
-* **"Tüm QR Kodları Yazdır / PDF İndir"** butonuna basarak doğrudan kuşe kağıda veya pleksi masa aparatlarına uygun formatta çıktı alabilirsiniz.
-* Masaya oturan müşteri telefon kamerasıyla okuttuğu anda o masanın özel sipariş ekranı açılır.`,
+* Paneldeki **"Masa & QR Kodlar"** sekmesine gidin.
+* **"Tüm QR Kodları Yazdır / PDF İndir"** butonuna basarak doğrudan masa aparatlarına uygun formatta çıktı alabilirsiniz.
+* Masaya oturan müşteri QR kodu okuttuğunda o masanın sipariş ekranı açılır.`,
     quickActions: [
       { label: 'Masa & QR Kodlara Git', actionType: 'navigate_tables' },
     ],
   },
   {
     keywords: ['fiyat', 'fiyatlar', 'zam', 'indirim', 'güncelle', 'değiştir', 'düzenle'],
-    title: 'Ürün Fiyatı ve Açıklaması Güncelleme',
-    response: `🏷️ **Fiyat ve Menü Güncelleme:**
+    title: 'Fiyat ve Ürün Güncelleme',
+    response: `**Fiyat ve Menü Güncelleme:**
 
 * **Menü & Ürünler** sekmesine gidin.
 * Düzenlemek istediğiniz ürünün yanındaki **"Düzenle"** butonuna basın.
-* Fiyatı veya malzeme açıklamasını güncelleyip **"Değişiklikleri Kaydet"** deyin.
-* Fiyatlar anında müşterilerin açık olan QR menülerinde sayfayı yenilemeden güncellenir.`,
+* Fiyat veya açıklama bilgisini güncelleyip **"Değişiklikleri Kaydet"** butonuna basın.`,
   },
   {
     keywords: ['hesap', 'ödendi', 'kapat', 'adisyon', 'ciro', 'kasa'],
-    title: 'Masa Hesabını Kapatma ve Oturum Sonlandırma',
-    response: `🧾 **Masa Hesabını Kapatma & Ciroya Ekleme:**
+    title: 'Masa Hesabını Kapatma',
+    response: `**Masa Hesabını Kapatma:**
 
 * **Canlı Siparişler** veya **Masa Yönetimi** ekranında ilgili masayı seçin.
 * Ödeme alındığında **"Hesabı Kapat / Ödendi"** butonuna basın.
-* Tutar otomatik olarak gün sonu cironuza ve kasanıza işlenir.
-* Müşterinin telefonundaki sepet ve borç bakiyesi sıfırlanır, cihaz güvenle unutulur.`,
+* Tutar otomatik olarak gün sonu cironuza işlenir ve masa yeni müşteriye hazır hale gelir.`,
   },
 ];
 
@@ -99,7 +96,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: `Merhaba! Ben Restiva Akıllı Asistanınız. 🤖✨\n\nİşletmenizi sıfır depolama maliyetiyle yönetebilmeniz için buradayım. Ürünlere görsel eklemek, tükenen ürünleri işaretlemek, QR kodları basmak veya teknik sorun bildirmek için aşağıdaki hazır başlıklardan birine dokunabilir ya da sorunuzu yazabilirsiniz.`,
+      text: `Merhaba. Restiva Destek Asistanına hoş geldiniz.\n\nSistem kullanımı, menü yönetimi, QR kodlar veya teknik konular hakkında bilgi almak için yukarıdaki hızlı başlıklardan birini seçebilir veya sorunuzu doğrudan yazabilirsiniz.`,
       timestamp: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
     },
   ]);
