@@ -18,7 +18,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
 }) => {
   const [name, setName] = useState('');
   const [tableLimit, setTableLimit] = useState<number | ''>(20);
-  const [days, setDays] = useState<number>(30);
+  const [days, setDays] = useState<number>(7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -201,7 +201,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                 max={3650}
                 value={days}
                 onChange={(e) => setDays(Number(e.target.value))}
-                placeholder="30"
+                placeholder="7"
                 className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none transition"
               />
             </div>

@@ -22,6 +22,7 @@ interface CustomerMenuProps {
 }
 
 export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTable }) => {
+  const [currentBiz, setCurrentBiz] = useState<Business>(business);
   const [lang, setLang] = useState<Language>(() => {
     return (localStorage.getItem('menu_lang') as Language) || 'tr';
   });
@@ -34,6 +35,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Sync prop changes
+  useEffect(() => {
+    setCurrentBiz(business);
+  }, [business]);
 
   // Table session memory
   const [tableNo] = useState<string>(() => {
@@ -64,10 +70,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     localStorage.setItem('menu_lang', newLang);
   };
 
-  // Load Menu Data with Instant Realtime Sync
+  // Load Menu Data & Latest Business with Instant Realtime Sync
   const fetchMenu = async () => {
     try {
-      const [catsRes, prodsRes] = await Promise.all([
+      const [catsRes, prodsRes, bizRes] = await Promise.all([
         supabase
           .from('categories')
           .select('*')
@@ -80,6 +86,11 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           .eq('business_id', business.id)
           .eq('is_active', true)
           .order('order_index', { ascending: true }),
+        supabase
+          .from('businesses')
+          .select('*')
+          .eq('id', business.id)
+          .maybeSingle(),
       ]);
 
       if (catsRes.data) {
@@ -87,6 +98,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
       }
       if (prodsRes.data) {
         setProducts(prodsRes.data as Product[]);
+      }
+      if (bizRes.data) {
+        setCurrentBiz(bizRes.data as Business);
       }
     } finally {
       setLoading(false);
@@ -96,7 +110,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   useEffect(() => {
     fetchMenu();
 
-    // Realtime Postgres Changes listener for instant menu updates
+    // Realtime Postgres Changes listener for instant menu and business updates
     const channel = supabase
       .channel(`menu_sync_${business.id}`)
       .on(
@@ -123,6 +137,20 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           fetchMenu();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'businesses',
+          filter: `id=eq.${business.id}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setCurrentBiz(payload.new as Business);
+          }
+        }
+      )
       .subscribe();
 
     return () => {
@@ -132,10 +160,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   // Set browser tab title strictly to business name
   useEffect(() => {
-    if (business?.name) {
-      document.title = business.name;
+    if (currentBiz?.name) {
+      document.title = currentBiz.name;
     }
-  }, [business?.name]);
+  }, [currentBiz?.name]);
 
   // Load Active Orders for tracking and Customer Native Notifications
   useEffect(() => {
@@ -258,7 +286,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
-  const displayWorkingHours = getTranslatedWorkingHours(business.working_hours, lang);
+  const displayWorkingHours = getTranslatedWorkingHours(currentBiz.working_hours, lang);
 
   const detailCategory = selectedProductForDetail
     ? categories.find((c) => c.id === selectedProductForDetail.category_id)
@@ -272,8 +300,8 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
           {/* Hero Header with Vignette Gradient Fadeout */}
           <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
             <img
-              src={business.banner_url || business.cover_image_url || defaultBanner}
-              alt={business.name}
+              src={currentBiz.banner_url || currentBiz.cover_image_url || defaultBanner}
+              alt={currentBiz.name}
               className="w-full h-full object-cover opacity-80"
             />
 
@@ -290,7 +318,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 </div>
 
                 {/* Wi-Fi Quick Pill (If configured and no active order yet) */}
-                {business.wifi_ssid && (
+                {(currentBiz.wifi_ssid || currentBiz.wifi_password) && (
                   <button
                     onClick={() => setServiceModalType('wifi')}
                     className="bg-black/60 backdrop-blur-md text-sky-300 border border-white/20 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md hover:bg-black/80 transition"
@@ -339,20 +367,20 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             {/* Bottom Info */}
             <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center gap-3">
               <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
-                {business.logo_url ? (
+                {currentBiz.logo_url ? (
                   <img
-                    src={business.logo_url}
-                    alt={business.name}
+                    src={currentBiz.logo_url}
+                    alt={currentBiz.name}
                     className="w-full h-full max-w-full max-h-full object-contain"
                   />
                 ) : (
-                  <span className="text-slate-900 font-black text-base">{business.name.charAt(0)}</span>
+                  <span className="text-slate-900 font-black text-base">{currentBiz.name.charAt(0)}</span>
                 )}
               </div>
 
               <div className="min-w-0 flex-1">
                 <h1 className="font-extrabold text-base sm:text-lg tracking-tight truncate leading-tight text-slate-900 drop-shadow-xs">
-                  {business.name}
+                  {currentBiz.name}
                 </h1>
                 {displayWorkingHours && (
                   <p className="text-[11px] text-slate-600 truncate mt-0.5 font-semibold">
@@ -387,7 +415,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <span className="truncate">{t.requestBill}</span>
               </button>
 
-              {business.wifi_ssid && (
+              {(currentBiz.wifi_ssid || currentBiz.wifi_password) && (
                 <>
                   <div className="w-px h-5 bg-slate-800 mx-1" />
                   <button
@@ -721,7 +749,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
         {/* Cart Drawer */}
         <CartDrawer
-          business={business}
+          business={currentBiz}
           tableNo={tableNo}
           cart={cart}
           isOpen={showCart}
@@ -737,7 +765,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
         {/* Service Action Modal */}
         <ServiceActionsModal
-          business={business}
+          business={currentBiz}
           tableNo={tableNo}
           isOpen={serviceModalType !== null}
           type={serviceModalType}

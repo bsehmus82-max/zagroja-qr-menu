@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
-  Menu, X, Users, AlertTriangle, Clock
+  Menu, X, Users, Volume2
 } from 'lucide-react';
-import { Business } from '../../types';
+import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { sound } from '../../lib/audio';
+import { sendNativeNotification } from '../../lib/notifications';
+import { useToast } from '../../context/ToastContext';
 import { MenuManager } from './MenuManager';
 import { TableManager } from './TableManager';
 import { LiveOrders } from './LiveOrders';
@@ -15,8 +18,7 @@ import { BusinessSettings } from './BusinessSettings';
 import { BusinessSupportChat } from './BusinessSupportChat';
 import { BusinessOnboarding } from './BusinessOnboarding';
 import { WaitersManager } from './WaitersManager';
-import { NotificationPrompt } from '../common/NotificationPrompt';
-import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
+import { AudioNotificationPermissionModal } from '../common/AudioNotificationPermissionModal';
 
 interface BusinessDashboardProps {
   initialBusiness: Business;
@@ -29,6 +31,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   onLogout,
   onBusinessUpdate,
 }) => {
+  const toast = useToast();
   const [business, setBusiness] = useState<Business>(initialBusiness);
   const [activeTab, setActiveTab] = useState<
     'orders' | 'pos' | 'menu' | 'tables' | 'waiters' | 'turnover' | 'settings' | 'support'
@@ -39,6 +42,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   const [unreadSupportCount, setUnreadSupportCount] = useState<number>(0);
   const [pendingCallsCount, setPendingCallsCount] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showPermModal, setShowPermModal] = useState(false);
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -65,7 +69,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
   const totalNotifications = unreadSupportCount + (isTrialExpiring ? 1 : 0) + (isMonthlyPdfReady ? 1 : 0);
 
-  // Fetch Table Count, Unread Support Messages & Pending Service Calls for Sidebar Badges
+  // Global Realtime Listener for Sound, Notifications and Counts across ALL Tabs
   useEffect(() => {
     const fetchCounts = async () => {
       const [tRes, sRes, cRes] = await Promise.all([
@@ -91,7 +95,51 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     fetchCounts();
 
     const channel = supabase
-      .channel(`sidebar-notifs-${business.id}`)
+      .channel(`global-biz-listener-${business.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `business_id=eq.${business.id}`,
+        },
+        (payload) => {
+          const newOrder = payload.new as Order;
+          sound.playOrderBell();
+          toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
+          sendNativeNotification({
+            title: `Yeni Sipariş: ${newOrder.table_no}`,
+            body: `${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} (${newOrder.total_amount.toFixed(2)} ₺)`,
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'service_requests',
+          filter: `business_id=eq.${business.id}`,
+        },
+        (payload) => {
+          const newReq = payload.new as ServiceRequest;
+          sound.playWaiterCall();
+          const reqLabel =
+            newReq.request_type === 'waiter'
+              ? 'Garson Çağrısı'
+              : newReq.request_type === 'bill_cash'
+              ? 'Hesap İste (Nakit)'
+              : 'Hesap İste (POS / Kart)';
+
+          toast.warning(`${newReq.table_no}: ${reqLabel}`);
+          sendNativeNotification({
+            title: `${newReq.table_no}: ${reqLabel}`,
+            body: `${newReq.table_no} masası servis personeli bekliyor.`,
+          });
+          fetchCounts();
+        }
+      )
       .on(
         'postgres_changes',
         {
@@ -121,7 +169,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [business.id, activeTab]);
+  }, [business.id]);
 
   if (showOnboarding) {
     return (
@@ -213,6 +261,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row">
+      {/* Audio & Notification Visual Permission Guide Modal */}
+      <AudioNotificationPermissionModal forceOpen={showPermModal} onClose={() => setShowPermModal(false)} />
+
       {/* Mobile Top Bar */}
       <div className="md:hidden bg-[#0B0F17] text-white p-4 flex items-center justify-between sticky top-0 z-40 border-b border-slate-800">
         <div className="flex items-center gap-2.5">
@@ -298,21 +349,38 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </nav>
         </div>
 
-        {/* Sidebar Footer: Clean and minimal */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-1">
-          <button
-            onClick={onLogout}
-            className="w-full py-2.5 px-3 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition flex items-center justify-center gap-2"
+        {/* Sidebar Bottom: Preview QR Menu Button right above Divider */}
+        <div className="space-y-2 pt-2">
+          {/* Müşteri Menüsünü Aç (Sidebar Item Design) */}
+          <a
+            href={menuLiveUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-800 transition border border-slate-700/50 shadow-xs group"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Oturumu Kapat</span>
-          </button>
+            <div className="flex items-center gap-3">
+              <QrCode className="w-4 h-4 text-orange-400 group-hover:scale-110 transition-transform" />
+              <span>Müşteri Menüsünü Aç</span>
+            </div>
+            <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-300 transition" />
+          </a>
+
+          {/* Divider Line */}
+          <div className="pt-2 border-t border-slate-800/80">
+            <button
+              onClick={onLogout}
+              className="w-full py-2.5 px-3 text-xs font-bold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Oturumu Kapat</span>
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Top Header Bar */}
+        {/* Top Header Bar (Clean, no download button) */}
         <header className="bg-white border-b border-slate-200/80 sticky top-0 z-30 px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 shadow-xs">
           <div>
             <h1 className="text-base font-extrabold text-slate-900 tracking-tight">
@@ -321,19 +389,14 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            <NotificationPrompt />
-            <PwaInstallPrompt panelName={business.name} />
-
-            <a
-              href={menuLiveUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-white shadow-sm transition"
+            <button
+              onClick={() => setShowPermModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition"
+              title="Ses ve Bildirim İzin Kılavuzunu Görüntüle"
             >
-              <QrCode className="w-3.5 h-3.5 text-orange-400" />
-              <span>Müşteri Menüsünü Aç</span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
-            </a>
+              <Volume2 className="w-3.5 h-3.5 text-orange-500" />
+              <span className="hidden sm:inline">Ses & Bildirim İzinleri</span>
+            </button>
           </div>
         </header>
 

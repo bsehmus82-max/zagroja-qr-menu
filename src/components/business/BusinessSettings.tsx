@@ -224,12 +224,15 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     setSaving(true);
 
     try {
+      const finalWifiSsid = showWifi ? wifiSsid.trim() : '';
+      const finalWifiPassword = showWifi ? wifiPassword.trim() : '';
+
       const payload: Record<string, unknown> = {
         phone: phone.trim(),
         address: address.trim(),
         working_hours: workingHoursDisplay,
-        wifi_ssid: showWifi ? wifiSsid.trim() : '',
-        wifi_password: showWifi ? wifiPassword.trim() : '',
+        wifi_ssid: finalWifiSsid,
+        wifi_password: finalWifiPassword,
         logo_url: logoUrl ? logoUrl.trim() : null,
         banner_url: bannerUrl ? bannerUrl.trim() : null,
         cover_image_url: bannerUrl ? bannerUrl.trim() : null,
@@ -245,12 +248,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
       if (!error && data) {
         sessionStorage.setItem('restiva_biz_session', JSON.stringify(data));
+        localStorage.setItem('restiva_biz_session', JSON.stringify(data));
         onUpdate(data as Business);
         setSavedSuccess(true);
-        toast.success('Ayarlar kaydedildi!');
+        toast.success('Ayarlar başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
       } else {
-        toast.error('Ayarlar kaydedilirken bir hata oluştu.');
+        toast.error('Ayarlar kaydedilirken bir hata oluştu: ' + (error?.message || ''));
       }
     } finally {
       setSaving(false);

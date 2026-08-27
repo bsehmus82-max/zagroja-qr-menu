@@ -24,14 +24,16 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     font_family TEXT DEFAULT 'Plus Jakarta Sans',
     table_limit INT DEFAULT 20,
     subscription_status TEXT DEFAULT 'active',
-    subscription_days INT DEFAULT 30,
-    subscription_expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '30 days'),
+    subscription_days INT DEFAULT 7,
+    subscription_expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '7 days'),
     is_onboarded BOOLEAN DEFAULT false,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS wifi_ssid TEXT DEFAULT '';
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS wifi_password TEXT DEFAULT '';
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
 ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS cover_image_url TEXT DEFAULT '';
 

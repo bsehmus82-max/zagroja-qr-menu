@@ -49,9 +49,9 @@ Temel Mimarisi:
     id: 'bilgi-abonelik-deneme',
     category: 'bilgilendirme',
     categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: '14 Günlük Ücretsiz Deneme ve Süre Takibi',
+    title: '7 Günlük Ücretsiz Deneme ve Süre Takibi',
     summary: 'Deneme süresi bitişi, bildirimler ve işletme askıya alma kuralları.',
-    content: `Yeni açılan tüm işletmelere 14 günlük ücretsiz tam erişim deneme paketi tanımlanır.
+    content: `Yeni açılan tüm işletmelere 7 günlük ücretsiz tam erişim deneme paketi tanımlanır.
 
 İşleyiş Kuralları:
 * Deneme süresinin bitimine 3 gün ve daha az kaldığında sol menüdeki Yardım & Bildirimler alanında kırmızı yuvarlak uyarı rozeti ve üst bilgilendirme kutusu belirir.
