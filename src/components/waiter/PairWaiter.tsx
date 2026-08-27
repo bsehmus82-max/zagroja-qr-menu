@@ -9,6 +9,7 @@ export const PairWaiter: React.FC = () => {
   const [businessSlug, setBusinessSlug] = useState('');
   const [pairingKey, setPairingKey] = useState('');
   const [businessName, setBusinessName] = useState('');
+  const [waiterName, setWaiterName] = useState('');
   const [deviceName, setDeviceName] = useState('');
   const [status, setStatus] = useState<'idle' | 'submitting' | 'waiting_approval' | 'approved' | 'rejected' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -17,10 +18,10 @@ export const PairWaiter: React.FC = () => {
 
   const getDefaultDeviceName = () => {
     const ua = navigator.userAgent;
-    if (/iPhone/i.test(ua)) return 'iPhone Garson Telefonu';
-    if (/iPad/i.test(ua)) return 'iPad Garson Tableti';
-    if (/Android/i.test(ua)) return 'Android Garson Cihazı';
-    return 'Mobil Garson Cihazı';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/iPad/i.test(ua)) return 'iPad';
+    if (/Android/i.test(ua)) return 'Android Cihaz';
+    return 'Mobil Cihaz';
   };
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export const PairWaiter: React.FC = () => {
           return;
         } else if (data.status === 'pending') {
           setDeviceToken(token);
+          if (data.waiter_name) setWaiterName(data.waiter_name);
           setStatus('waiting_approval');
         }
       }
@@ -76,10 +78,11 @@ export const PairWaiter: React.FC = () => {
             if (updated.status === 'approved' && updated.is_trusted) {
               localStorage.setItem('restiva_waiter_device_token', updated.device_token);
               localStorage.setItem('restiva_waiter_biz_id', updated.business_id);
+              localStorage.setItem('restiva_waiter_name', updated.waiter_name || 'Garson');
               setStatus('approved');
               setTimeout(() => {
                 window.location.href = '/waiter';
-              }, 1500);
+              }, 1200);
             } else if (updated.status === 'rejected') {
               setStatus('rejected');
             }
@@ -95,10 +98,11 @@ export const PairWaiter: React.FC = () => {
       if (data && data.status === 'approved' && data.is_trusted) {
         localStorage.setItem('restiva_waiter_device_token', deviceToken);
         if (data.business_id) localStorage.setItem('restiva_waiter_biz_id', data.business_id);
+        if (data.waiter_name) localStorage.setItem('restiva_waiter_name', data.waiter_name);
         setStatus('approved');
         setTimeout(() => {
           window.location.href = '/waiter';
-        }, 1500);
+        }, 1200);
       } else if (data && data.status === 'rejected') {
         setStatus('rejected');
       }
@@ -113,7 +117,12 @@ export const PairWaiter: React.FC = () => {
   const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessSlug.trim()) {
-      setErrorMessage('İşletme bağlantı kodu (slug) eksik. Lütfen kasadan QR kodu tekrar okutunuz.');
+      setErrorMessage('İşletme kodu (slug) eksik. Lütfen QR kodu tekrar okutunuz.');
+      setStatus('error');
+      return;
+    }
+    if (!waiterName.trim()) {
+      setErrorMessage('Lütfen adınızı ve soyadınızı giriniz.');
       setStatus('error');
       return;
     }
@@ -124,6 +133,7 @@ export const PairWaiter: React.FC = () => {
 
       const { data, error } = await supabase.rpc('request_waiter_pairing', {
         p_business_slug: businessSlug.trim(),
+        p_waiter_name: waiterName.trim(),
         p_device_name: deviceName.trim() || getDefaultDeviceName(),
         p_pairing_key: pairingKey.trim() || null,
       });
@@ -138,6 +148,7 @@ export const PairWaiter: React.FC = () => {
         localStorage.setItem('restiva_waiter_biz_id', data.business_id);
         localStorage.setItem('restiva_waiter_biz_name', data.business_name);
         localStorage.setItem('restiva_waiter_biz_slug', data.business_slug);
+        localStorage.setItem('restiva_waiter_name', data.waiter_name);
         setStatus('waiting_approval');
       } else {
         throw new Error('Talep oluşturulamadı.');
@@ -162,24 +173,37 @@ export const PairWaiter: React.FC = () => {
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full mb-1">
                 Garson Terminali Eşleme
               </span>
-              <h2 className="text-base font-black text-white">Cihaz Yetki Talebi</h2>
+              <h2 className="text-base font-black text-white">Garson Cihaz Girişi</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Bu telefonu garson el terminali olarak kullanmak için kasaya onay talebi gönderin.
+                Sipariş almaya başlamak için bilgilerinizi girip kasaya onay talebi gönderin.
               </p>
             </div>
 
             <div className="space-y-3 text-left pt-2">
               <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">
+                  Adınız ve Soyadınız
+                </label>
+                <input
+                  type="text"
+                  value={waiterName}
+                  onChange={(e) => setWaiterName(e.target.value)}
+                  placeholder="Örn: Ahmet Yılmaz"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
+                  required
+                />
+              </div>
+
+              <div>
                 <label className="text-[11px] font-bold text-slate-400 block mb-1">
-                  Adınız veya Cihaz Tanımı
+                  Cihaz Modeli
                 </label>
                 <input
                   type="text"
                   value={deviceName}
                   onChange={(e) => setDeviceName(e.target.value)}
-                  placeholder="Örn: Ahmet - iPhone 14"
+                  placeholder="Örn: iPhone 14"
                   className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
-                  required
                 />
               </div>
 
@@ -213,7 +237,7 @@ export const PairWaiter: React.FC = () => {
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Eşleme Talebi Gönder</span>
+                  <span>Yetki Talebi Gönder</span>
                 </>
               )}
             </button>

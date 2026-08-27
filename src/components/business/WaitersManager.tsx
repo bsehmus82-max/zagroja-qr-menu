@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Users, Smartphone, Plus, QrCode, Trash2, CheckCircle2, 
+  Users, Smartphone, QrCode, Trash2, CheckCircle2, 
   XCircle, Clock, ShieldCheck, RefreshCw, Copy, Check, 
-  AlertTriangle, UserCheck, ShieldAlert, KeyRound
+  UserCheck, ShieldAlert
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { supabase, hashPassword } from '../../lib/supabase';
-import { Business, Waiter, WaiterDevice } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { Business, WaiterDevice } from '../../types';
 import { ConfirmModal } from '../common/ConfirmModal';
 
 interface WaitersManagerProps {
@@ -15,43 +15,31 @@ interface WaitersManagerProps {
 }
 
 export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
-  const [waiters, setWaiters] = useState<Waiter[]>([]);
   const [approvedDevices, setApprovedDevices] = useState<WaiterDevice[]>([]);
   const [pendingDevices, setPendingDevices] = useState<WaiterDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [pairingSecret, setPairingSecret] = useState<string>(business.pairing_secret || '');
   const [isRotatingQr, setIsRotatingQr] = useState(false);
 
-  // Assign Waiter to Pending Device
-  const [selectedWaiterForPending, setSelectedWaiterForPending] = useState<Record<string, string>>({});
-
-  // Add Waiter Modal
-  const [isAddWaiterOpen, setIsAddWaiterOpen] = useState(false);
-  const [newWaiterName, setNewWaiterName] = useState('');
-  const [newWaiterPin, setNewWaiterPin] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  // Editable waiter names for pending requests
+  const [editingNames, setEditingNames] = useState<Record<string, string>>({});
 
   // QR Modal
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Delete Confirm Modal
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'waiter' | 'device'; id: string; name: string } | null>(null);
+  // Delete / Revoke Confirm Modal
+  const [deleteTarget, setDeleteTarget] = useState<WaiterDevice | null>(null);
 
   const pairingUrl = `${window.location.origin}/pair-waiter?biz=${business.slug}${pairingSecret ? `&key=${pairingSecret}` : ''}`;
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [waitersRes, devicesRes, bizRes] = await Promise.all([
-        supabase
-          .from('waiters')
-          .select('*')
-          .eq('business_id', business.id)
-          .order('created_at', { ascending: false }),
+      const [devicesRes, bizRes] = await Promise.all([
         supabase
           .from('waiter_devices')
-          .select('*, waiters(*)')
+          .select('*')
           .eq('business_id', business.id)
           .order('created_at', { ascending: false }),
         supabase
@@ -61,7 +49,6 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
           .single(),
       ]);
 
-      if (waitersRes.data) setWaiters(waitersRes.data);
       if (bizRes.data?.pairing_secret) setPairingSecret(bizRes.data.pairing_secret);
 
       if (devicesRes.data) {
@@ -69,10 +56,16 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         const pending = devicesRes.data.filter((d) => d.status === 'pending');
         setApprovedDevices(approved);
         setPendingDevices(pending);
+
+        const initialNames: Record<string, string> = {};
+        pending.forEach((d) => {
+          initialNames[d.id] = d.waiter_name || '';
+        });
+        setEditingNames(initialNames);
       }
     } catch (e) {
-      console.error('Veriler yüklenemedi:', e);
-      toast.error('Garson ve cihaz listesi yüklenemedi.');
+      console.error('Cihaz listesi yüklenemedi:', e);
+      toast.error('Garson cihaz listesi yüklenemedi.');
     } finally {
       setLoading(false);
     }
@@ -89,7 +82,7 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         (payload: any) => {
           loadData();
           if (payload.eventType === 'INSERT' && payload.new?.status === 'pending') {
-            toast.info(`Garson Cihaz Talebi: "${payload.new.device_name}" onay bekliyor!`, {
+            toast.info(`Yeni Garson Talebi: "${payload.new.waiter_name || payload.new.device_name}" onay bekliyor!`, {
               duration: 6000,
             });
           }
@@ -120,64 +113,21 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
     }
   };
 
-  const handleCreateWaiter = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newWaiterName.trim()) {
-      toast.error('Lütfen garson adını giriniz.');
-      return;
-    }
-    if (!newWaiterPin.trim() || newWaiterPin.length < 4) {
-      toast.error('PIN en az 4 haneli olmalıdır.');
-      return;
-    }
-
-    try {
-      setIsAdding(true);
-      const pinHash = await hashPassword(newWaiterPin.trim());
-      const { data, error } = await supabase
-        .from('waiters')
-        .insert([{
-          business_id: business.id,
-          name: newWaiterName.trim(),
-          pin_hash: pinHash,
-          is_active: true,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setWaiters((prev) => [data, ...prev]);
-      toast.success(`"${data.name}" adlı garson başarıyla kaydedildi.`);
-      setNewWaiterName('');
-      setNewWaiterPin('');
-      setIsAddWaiterOpen(false);
-    } catch (err: any) {
-      toast.error('Garson eklenirken hata: ' + err.message);
-    } finally {
-      setIsAdding(false);
-    }
-  };
-
   const handleApproveDevice = async (deviceId: string) => {
-    const waiterId = selectedWaiterForPending[deviceId] || (waiters.length > 0 ? waiters[0].id : null);
-    if (!waiterId) {
-      toast.error('Lütfen bu cihaza atanacak garsonu seçiniz veya önce garson ekleyiniz.');
-      return;
-    }
+    const waiterName = editingNames[deviceId] || '';
 
     try {
       const { data, error } = await supabase.rpc('approve_waiter_device', {
         p_device_id: deviceId,
-        p_waiter_id: waiterId,
+        p_waiter_name: waiterName.trim() || null,
       });
 
       if (error) throw error;
 
-      toast.success('Garson cihazı başarıyla onaylandı ve eşlendi!');
+      toast.success(`"${data.waiter_name}" adlı garson cihazı başarıyla onaylandı.`);
       loadData();
     } catch (err: any) {
-      toast.error('Onaylama sırasında hata oluştu: ' + err.message);
+      toast.error('Onaylama sırasında hata: ' + err.message);
     }
   };
 
@@ -189,10 +139,29 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
 
       if (error) throw error;
 
-      toast.success('Cihaz talebi reddedildi.');
+      toast.success('Garson talebi reddedildi.');
       loadData();
     } catch (err: any) {
       toast.error('İşlem başarısız: ' + err.message);
+    }
+  };
+
+  const handleRevokeDevice = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      const { error } = await supabase.rpc('reject_waiter_device', {
+        p_device_id: deleteTarget.id,
+      });
+
+      if (error) throw error;
+
+      setApprovedDevices((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+      toast.success(`"${deleteTarget.waiter_name || 'Garson'}" cihazının yetkisi kaldırıldı.`);
+    } catch (err: any) {
+      toast.error('Yetki kaldırma başarısız: ' + err.message);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -203,28 +172,6 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-
-    try {
-      if (deleteTarget.type === 'waiter') {
-        const { error } = await supabase.from('waiters').delete().eq('id', deleteTarget.id);
-        if (error) throw error;
-        setWaiters((prev) => prev.filter((w) => w.id !== deleteTarget.id));
-        toast.success('Garson kaydı silindi.');
-      } else {
-        const { error } = await supabase.from('waiter_devices').delete().eq('id', deleteTarget.id);
-        if (error) throw error;
-        setApprovedDevices((prev) => prev.filter((d) => d.id !== deleteTarget.id));
-        toast.success('Cihazın işletme yetkisi kaldırıldı ve oturumu kapatıldı.');
-      }
-    } catch (err: any) {
-      toast.error('Silme işlemi başarısız: ' + err.message);
-    } finally {
-      setDeleteTarget(null);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* TOP BANNER: PAIRING QR CODE */}
@@ -232,13 +179,13 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <ShieldCheck className="w-3.5 h-3.5" /> Kalıcı Cihaz Eşleme Mimarisi
+              <ShieldCheck className="w-3.5 h-3.5" /> Garson Cihaz Eşleme Mimarisi
             </span>
             <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
               Garson Cihazı Eşleme QR Kodu
             </h2>
             <p className="text-xs text-slate-300 leading-relaxed">
-              İşe başlayan garson bu QR kodu telefonunun kamerasıyla 1 kez okutur. Telefonda açılan formdan talep gönderilir ve kasadan onayladığınız anda cihaz el terminali olarak kalıcı eşlenir.
+              İşe başlayan garson bu QR kodu telefonunun kamerasıyla okutur ve adını girerek yetki talebi gönderir. Kasadan onayladığınız anda garson doğrudan masa seçip sipariş almaya başlar.
             </p>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-2">
@@ -293,63 +240,44 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
               </h3>
             </div>
             <span className="text-[11px] font-bold text-amber-700 bg-amber-500/20 px-2.5 py-0.5 rounded-full">
-              Canlı İstek
+              Canlı Bildirim
             </span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {pendingDevices.map((device) => (
               <div key={device.id} className="bg-white border border-amber-200 rounded-2xl p-4 shadow-sm space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <Smartphone className="w-4 h-4 text-amber-600" />
-                      <span className="font-bold text-xs text-slate-900">{device.device_name}</span>
-                    </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">
-                      Talep Zamanı: {new Date(device.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="pt-1">
-                  <label className="text-[10px] font-bold text-slate-600 block mb-1">
-                    Bu Cihaza Atanacak Garson:
+                <div>
+                  <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                    Garson Adı & Cihaz:
                   </label>
-                  {waiters.length === 0 ? (
-                    <div className="text-xs text-rose-600 font-bold bg-rose-50 p-2 rounded-xl">
-                      Önce aşağıdan "+ Garson Ekle" butonuna basarak bir garson tanımlamalısınız.
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedWaiterForPending[device.id] || waiters[0]?.id}
-                      onChange={(e) => setSelectedWaiterForPending({ ...selectedWaiterForPending, [device.id]: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-medium outline-none"
-                    >
-                      {waiters.map((w) => (
-                        <option key={w.id} value={w.id}>
-                          {w.name} (Garson)
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <input
+                    type="text"
+                    value={editingNames[device.id] ?? (device.waiter_name || '')}
+                    onChange={(e) => setEditingNames({ ...editingNames, [device.id]: e.target.value })}
+                    placeholder="Garson Adı"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold outline-none focus:border-indigo-500"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1">
+                    <span>Cihaz: {device.device_name}</span>
+                    <span>Saat: {new Date(device.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
                   <button
                     onClick={() => handleApproveDevice(device.id)}
-                    disabled={waiters.length === 0}
-                    className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Cihazı Onayla</span>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Yetkiyi Onayla</span>
                   </button>
 
                   <button
                     onClick={() => handleRejectDevice(device.id)}
-                    className="px-3 py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition"
+                    className="px-3.5 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-600 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition"
                   >
-                    <XCircle className="w-3.5 h-3.5" />
+                    <XCircle className="w-4 h-4" />
                     <span>Reddet</span>
                   </button>
                 </div>
@@ -359,54 +287,62 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         </div>
       )}
 
-      {/* SECTION 1: REGISTERED WAITERS */}
+      {/* APPROVED DEVICES LIST */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <Users className="w-4 h-4 text-indigo-600" />
-              Kayıtlı Garsonlar ve PIN Kodları
+              <Smartphone className="w-4 h-4 text-emerald-600" />
+              Yetkili Garsonlar ve Cihazları ({approvedDevices.length})
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Restorandaki garson personelleri ve onların 4 haneli terminal giriş şifreleri.
+              QR okutulup onaylanan tüm garsonlar. İşten ayrılan personelin yetkisini buradan tek tıkla kaldırabilirsiniz.
             </p>
           </div>
 
           <button
-            onClick={() => setIsAddWaiterOpen(true)}
-            className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm transition self-start sm:self-auto"
+            onClick={loadData}
+            className="p-2 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition"
+            title="Listeyi Yenile"
           >
-            <Plus className="w-4 h-4" />
-            <span>Garson Ekle</span>
+            <RefreshCw className="w-4 h-4" />
           </button>
         </div>
 
         {loading ? (
           <div className="py-8 text-center text-xs text-slate-400 font-bold">Yükleniyor...</div>
-        ) : waiters.length === 0 ? (
+        ) : approvedDevices.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400 font-medium">
-            Henüz kayıtlı bir garson bulunmuyor. Garson ekleyerek başlayabilirsiniz.
+            Henüz onaylanmış bir garson cihazı bulunmuyor. Garsonlarınız yukarıdaki QR kodu okutarak talep gönderebilir.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {waiters.map((waiter) => (
-              <div key={waiter.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
+            {approvedDevices.map((device) => (
+              <div key={device.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-black text-sm">
-                    {waiter.name.slice(0, 2).toUpperCase()}
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
+                    {(device.waiter_name || 'G').slice(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-slate-900">{waiter.name}</h4>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                      <KeyRound className="w-3 h-3 text-slate-400" /> PIN Korumalı
+                    <div className="flex items-center gap-1.5">
+                      <h4 className="font-bold text-xs text-slate-900">{device.waiter_name || 'Garson'}</h4>
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
+                        Aktif
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-500 block mt-0.5">
+                      {device.device_name}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block mt-0.5">
+                      Son Giriş: {new Date(device.last_active_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setDeleteTarget({ type: 'waiter', id: waiter.id, name: waiter.name })}
+                  onClick={() => setDeleteTarget(device)}
                   className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition"
-                  title="Garsonu Sil"
+                  title="Yetkiyi Kaldır"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -416,120 +352,7 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
         )}
       </div>
 
-      {/* SECTION 2: APPROVED DEVICES */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-5 sm:p-6 shadow-xs space-y-4">
-        <div className="pb-3 border-b border-slate-100">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-emerald-600" />
-            Eşlenmiş Aktif Garson Cihazları ({approvedDevices.length})
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Onaylanmış telefonlar. Bir garson işten ayrıldığında buradan tek tıkla yetkisi iptal edilebilir.
-          </p>
-        </div>
-
-        {approvedDevices.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400 font-medium">
-            Henüz onaylanmış aktif bir garson telefonu bulunmuyor. Yukarıdaki QR kod ile cihaz eşleyebilirsiniz.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {approvedDevices.map((device) => (
-              <div key={device.id} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <h4 className="font-bold text-xs text-slate-900">{device.device_name}</h4>
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">
-                        Aktif
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-slate-500 block mt-0.5">
-                      Atanan: <strong className="text-slate-800">{device.waiters?.name || 'Genel Garson'}</strong>
-                    </span>
-                    <span className="text-[9px] text-slate-400 block mt-0.5">
-                      Son Etkinlik: {new Date(device.last_active_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setDeleteTarget({ type: 'device', id: device.id, name: device.device_name })}
-                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold transition flex items-center gap-1"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Yetkiyi Kaldır</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* MODAL: ADD WAITER */}
-      {isAddWaiterOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center justify-between">
-              <h3 className="font-black text-sm text-slate-900">Garson Tanımla</h3>
-              <button onClick={() => setIsAddWaiterOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateWaiter} className="space-y-3">
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">Garson Adı & Soyadı</label>
-                <input
-                  type="text"
-                  value={newWaiterName}
-                  onChange={(e) => setNewWaiterName(e.target.value)}
-                  placeholder="Örn: Ahmet Yılmaz"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-slate-900 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 outline-none transition"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[11px] font-bold text-slate-600 block mb-1">4 Haneli Giriş PIN Kodu</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={newWaiterPin}
-                  onChange={(e) => setNewWaiterPin(e.target.value.replace(/\D/g, ''))}
-                  placeholder="•••• (Örn: 1234)"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-slate-900 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 tracking-widest outline-none transition"
-                  required
-                />
-                <span className="text-[10px] text-slate-400 block mt-1">Garson terminali açarken bu şifreyi girecektir.</span>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddWaiterOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition"
-                >
-                  Vazgeç
-                </button>
-                <button
-                  type="submit"
-                  disabled={isAdding}
-                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition shadow-sm"
-                >
-                  {isAdding ? 'Kaydediliyor...' : 'Garsonu Kaydet'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: LARGE QR CODE FOR EASY SCANNING */}
+      {/* MODAL: LARGE QR CODE */}
       {isQrModalOpen && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-sm p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
@@ -545,7 +368,7 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
             </div>
 
             <p className="text-xs text-slate-500 leading-relaxed">
-              Garson bu QR kodu telefon kamerasıyla okutarak talep gönderebilir.
+              Garson bu QR kodu telefon kamerasıyla okutarak adını girip talep gönderir.
             </p>
 
             <div className="space-y-2">
@@ -574,12 +397,12 @@ export const WaitersManager: React.FC<WaitersManagerProps> = ({ business }) => {
       {deleteTarget && (
         <ConfirmModal
           isOpen={true}
-          title={deleteTarget.type === 'waiter' ? 'Garsonu Sil' : 'Cihaz Yetkisini Kaldır'}
-          message={`"${deleteTarget.name}" adlı ${deleteTarget.type === 'waiter' ? 'garson kaydını' : 'cihazın işletme yetkisini'} kaldırmak istediğinize emin misiniz?`}
+          title="Garson Yetkisini Kaldır"
+          message={`"${deleteTarget.waiter_name || 'Garson'}" adlı personelin terminal yetkisini kaldırmak istediğinize emin misiniz?`}
           confirmText="Evet, Kaldır"
           cancelText="Vazgeç"
           type="danger"
-          onConfirm={handleDelete}
+          onConfirm={handleRevokeDevice}
           onCancel={() => setDeleteTarget(null)}
         />
       )}

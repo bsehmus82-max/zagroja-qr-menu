@@ -102,6 +102,7 @@ export interface WaiterDevice {
   id: string;
   business_id: string;
   waiter_id?: string;
+  waiter_name?: string;
   device_token: string;
   device_name: string;
   status?: 'pending' | 'approved' | 'rejected';

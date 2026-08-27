@@ -1,29 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, Lock, Unlock, Search, Plus, Minus, Trash2, 
-  Send, QrCode, AlertTriangle, RefreshCw, CheckCircle2, 
-  Utensils, Users, LogOut, ChevronRight, MessageSquare 
+  ShieldCheck, Lock, Search, Plus, Minus, Trash2, 
+  Send, RefreshCw, CheckCircle2, Utensils, LogOut, Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
-import { supabase, hashPassword } from '../../lib/supabase';
-import { Business, Category, Product, Table, Order } from '../../types';
+import { supabase } from '../../lib/supabase';
+import { Business, Category, Product, Table } from '../../types';
 
 export const WaiterApp: React.FC = () => {
   const [deviceToken, setDeviceToken] = useState<string | null>(() => localStorage.getItem('restiva_waiter_device_token'));
   const [businessId, setBusinessId] = useState<string | null>(() => localStorage.getItem('restiva_waiter_biz_id'));
+  const [waiterName, setWaiterName] = useState<string>(() => localStorage.getItem('restiva_waiter_name') || 'Garson');
   const [business, setBusiness] = useState<Business | null>(null);
-
-  // Auth / PIN state
-  const [pin, setPin] = useState('');
-  const [activeWaiter, setActiveWaiter] = useState<{ id: string; name: string } | null>(null);
-  const [pinAttempts, setPinAttempts] = useState<number>(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(() => {
-    const stored = localStorage.getItem('waiter_pin_lockout_until');
-    return stored ? parseInt(stored, 10) : null;
-  });
-  const [lockTimeLeft, setLockTimeLeft] = useState<number>(0);
-  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+  const [isVerifying, setIsVerifying] = useState<boolean>(true);
+  const [isApproved, setIsApproved] = useState<boolean>(false);
 
   // POS State
   const [tables, setTables] = useState<Table[]>([]);
@@ -37,28 +28,17 @@ export const WaiterApp: React.FC = () => {
   const [isSendingOrder, setIsSendingOrder] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
 
-  // Check Lockout timer
-  useEffect(() => {
-    if (!lockoutUntil) return;
-    const interval = setInterval(() => {
-      const now = Date.now();
-      if (now >= lockoutUntil) {
-        setLockoutUntil(null);
-        localStorage.removeItem('waiter_pin_lockout_until');
-        setPinAttempts(0);
-      } else {
-        setLockTimeLeft(Math.ceil((lockoutUntil - now) / 1000));
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lockoutUntil]);
-
   // Check device validity on mount
   useEffect(() => {
-    if (!deviceToken) return;
+    if (!deviceToken) {
+      setIsVerifying(false);
+      setIsApproved(false);
+      return;
+    }
 
     const verifyDevice = async () => {
       try {
+        setIsVerifying(true);
         const { data, error } = await supabase.rpc('check_device_pairing_status', {
           p_device_token: deviceToken,
         });
@@ -66,24 +46,31 @@ export const WaiterApp: React.FC = () => {
         if (error || !data || data.status !== 'approved' || !data.is_trusted) {
           localStorage.removeItem('restiva_waiter_device_token');
           setDeviceToken(null);
-          toast.error('Bu cihazın işletme yetkisi onaylanmamış veya kaldırılmış.');
+          setIsApproved(false);
         } else {
+          setIsApproved(true);
+          if (data.waiter_name) {
+            setWaiterName(data.waiter_name);
+            localStorage.setItem('restiva_waiter_name', data.waiter_name);
+          }
           if (data.business_id && data.business_id !== businessId) {
             setBusinessId(data.business_id);
             localStorage.setItem('restiva_waiter_biz_id', data.business_id);
           }
         }
       } catch {
-        // Fallback network failure
+        // Network fallback
+      } finally {
+        setIsVerifying(false);
       }
     };
 
     verifyDevice();
   }, [deviceToken]);
 
-  // Load business & data if device token exists
+  // Load business & products if device is approved
   useEffect(() => {
-    if (!businessId) return;
+    if (!businessId || !isApproved) return;
 
     const fetchBusiness = async () => {
       try {
@@ -112,65 +99,7 @@ export const WaiterApp: React.FC = () => {
     };
 
     fetchBusiness();
-  }, [businessId]);
-
-  // Handle PIN Keypad input
-  const handleKeypadPress = (val: string) => {
-    if (lockoutUntil && Date.now() < lockoutUntil) return;
-    if (val === 'C') {
-      setPin('');
-      return;
-    }
-    if (val === 'DEL') {
-      setPin((prev) => prev.slice(0, -1));
-      return;
-    }
-    if (pin.length < 6) {
-      const nextPin = pin + val;
-      setPin(nextPin);
-      if (nextPin.length >= 4) {
-        verifyPin(nextPin);
-      }
-    }
-  };
-
-  const verifyPin = async (inputPin: string) => {
-    if (!businessId || !deviceToken) return;
-
-    try {
-      setIsVerifyingPin(true);
-      const pinHash = await hashPassword(inputPin);
-      const { data, error } = await supabase.rpc('verify_waiter_pin', {
-        p_business_id: businessId,
-        p_device_token: deviceToken,
-        p_pin_hash: pinHash,
-      });
-
-      if (error || !data || !data.success) {
-        throw new Error(error?.message || 'PIN hatalı.');
-      }
-
-      setActiveWaiter({ id: data.waiter_id, name: data.waiter_name });
-      setPin('');
-      setPinAttempts(0);
-      toast.success(`Hoş geldiniz, ${data.waiter_name}!`);
-    } catch (err: any) {
-      setPin('');
-      const nextAttempts = pinAttempts + 1;
-      setPinAttempts(nextAttempts);
-
-      if (nextAttempts >= 3) {
-        const lockTime = Date.now() + 5 * 60 * 1000; // 5 mins
-        setLockoutUntil(lockTime);
-        localStorage.setItem('waiter_pin_lockout_until', lockTime.toString());
-        toast.error('3 kez hatalı PIN girildi! Terminal 5 dakika kilitlendi.');
-      } else {
-        toast.error(`Hatalı PIN! (Kalan Hak: ${3 - nextAttempts})`);
-      }
-    } finally {
-      setIsVerifyingPin(false);
-    }
-  };
+  }, [businessId, isApproved]);
 
   const handleAddToCart = (product: Product) => {
     if (product.is_frozen) {
@@ -222,7 +151,7 @@ export const WaiterApp: React.FC = () => {
       toast.error('Lütfen bir masa seçiniz.');
       return;
     }
-    if (!businessId || !deviceToken || !activeWaiter) {
+    if (!businessId || !deviceToken) {
       toast.error('Oturum bilgisi eksik.');
       return;
     }
@@ -239,9 +168,8 @@ export const WaiterApp: React.FC = () => {
         })),
         p_customer_notes: orderNotes.trim(),
         p_order_source: 'waiter',
-        p_session_token: `waiter_${activeWaiter.id}_${Date.now()}`,
+        p_session_token: `waiter_${Date.now()}`,
         p_device_token: deviceToken,
-        p_waiter_id: activeWaiter.id,
       };
 
       const { data, error } = await supabase.rpc('create_customer_order', rpcPayload);
@@ -252,7 +180,7 @@ export const WaiterApp: React.FC = () => {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
       } catch {}
 
-      toast.success(`${selectedTable} siparişi mutfağa ve yazıcıya iletildi!`);
+      toast.success(`${selectedTable} siparişi mutfağa iletildi! (${waiterName})`);
       setCart([]);
       setOrderNotes('');
     } catch (err: any) {
@@ -262,17 +190,29 @@ export const WaiterApp: React.FC = () => {
     }
   };
 
-  // 1. UNPAIRED DEVICE SCREEN
-  if (!deviceToken || !businessId) {
+  // 1. VERIFYING LOADING SCREEN
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin mx-auto" />
+          <p className="text-xs font-bold text-slate-400">Garson Terminali Doğrulanıyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. UNPAIRED DEVICE SCREEN
+  if (!isApproved || !deviceToken || !businessId) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
         <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center shadow-lg">
             <Lock className="w-8 h-8" />
           </div>
-          <h2 className="text-base font-black text-white">Cihaz Yetkisi Bulunamadı</h2>
+          <h2 className="text-base font-black text-white">Cihaz Yetkisi Yok</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Bu telefon henüz işletme kasasıyla eşlenmemiştir. Lütfen kasadaki yetkili panelinden 
+            Bu telefon henüz işletme kasasından onaylanmamıştır. Lütfen kasadaki yetkili panelinden 
             <strong className="text-indigo-400"> "Garson Eşleme QR Kodu"</strong>nu okutunuz.
           </p>
           <a
@@ -286,85 +226,7 @@ export const WaiterApp: React.FC = () => {
     );
   }
 
-  // 2. PIN AUTH SCREEN (LOCKED)
-  if (!activeWaiter) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
-        <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
-              <ShieldCheck className="w-3.5 h-3.5" /> Onaylı Garson Terminali
-            </span>
-          </div>
-
-          <div>
-            <h2 className="text-base font-black text-white">{business?.name || 'Restiva Adisyon'}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Lütfen 4 haneli PIN kodunuzu giriniz</p>
-          </div>
-
-          {/* Lockout Warning */}
-          {lockoutUntil && Date.now() < lockoutUntil ? (
-            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-center space-y-1 animate-pulse">
-              <AlertTriangle className="w-6 h-6 text-rose-400 mx-auto" />
-              <p className="text-xs font-bold text-rose-400">Terminal Kilitlendi!</p>
-              <p className="text-[11px] text-slate-400">Kalan Süre: {lockTimeLeft} saniye</p>
-            </div>
-          ) : (
-            <>
-              {/* PIN Dots Display */}
-              <div className="flex justify-center items-center gap-3 py-1">
-                {[0, 1, 2, 3].map((idx) => (
-                  <div
-                    key={idx}
-                    className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
-                      pin.length > idx
-                        ? 'bg-indigo-500 scale-110 shadow-lg shadow-indigo-500/50'
-                        : 'bg-slate-800 border border-slate-700'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Numeric Keypad */}
-              <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto pt-1">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((val) => (
-                  <button
-                    key={val}
-                    disabled={isVerifyingPin}
-                    onClick={() => handleKeypadPress(val)}
-                    className={`h-12 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center justify-center ${
-                      val === 'C'
-                        ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 text-xs'
-                        : val === 'DEL'
-                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs'
-                        : 'bg-slate-950 text-white hover:bg-slate-800 border border-slate-800 hover:border-slate-700 shadow-sm'
-                    }`}
-                  >
-                    {val}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500">
-            <span>3 hatalı denemede 5 dk kilit</span>
-            <button
-              onClick={() => {
-                localStorage.removeItem('restiva_waiter_device_token');
-                setDeviceToken(null);
-              }}
-              className="text-slate-400 hover:text-slate-200 underline"
-            >
-              Yeniden Eşle
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 3. WAITER POS WORKSPACE
+  // 3. DIRECT POS WORKSPACE (NO PIN REQUIRED)
   const filteredProducts = products.filter((p) => {
     const matchCategory = selectedCategory === 'all' || p.category_id === selectedCategory;
     const matchSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -372,19 +234,19 @@ export const WaiterApp: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-[#090C10] text-slate-200 flex flex-col">
-      {/* Top Mobile Bar */}
-      <header className="sticky top-0 z-30 bg-[#12161F] border-b border-[#212634] px-4 py-3 flex items-center justify-between shadow-lg">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col selection:bg-indigo-600 selection:text-white">
+      {/* Top Bar */}
+      <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-indigo-600/30">
-            {activeWaiter.name.slice(0, 1).toUpperCase()}
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-indigo-600/30">
+            {waiterName.slice(0, 1).toUpperCase()}
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <h1 className="text-xs font-black text-white">{activeWaiter.name}</h1>
+              <h1 className="text-xs font-black text-white">{waiterName}</h1>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             </div>
-            <p className="text-[10px] text-slate-400">{business?.name}</p>
+            <p className="text-[10px] text-slate-400">{business?.name || 'Restiva Adisyon'}</p>
           </div>
         </div>
 
@@ -393,7 +255,7 @@ export const WaiterApp: React.FC = () => {
           <select
             value={selectedTable}
             onChange={(e) => setSelectedTable(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-[#090C10] border border-[#212634] text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
+            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
           >
             {tables.map((t) => (
               <option key={t.id} value={t.table_no}>
@@ -403,11 +265,17 @@ export const WaiterApp: React.FC = () => {
           </select>
 
           <button
-            onClick={() => setActiveWaiter(null)}
-            title="Garson Değiştir / Kilitle"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            onClick={() => {
+              if (confirm('Bu cihazın eşleşmesini sıfırlamak istiyor musunuz?')) {
+                localStorage.removeItem('restiva_waiter_device_token');
+                setDeviceToken(null);
+                setIsApproved(false);
+              }
+            }}
+            title="Oturumu Sıfırla"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition"
           >
-            <Lock className="w-4 h-4" />
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -421,10 +289,10 @@ export const WaiterApp: React.FC = () => {
             <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Hızlı ürün ara..."
+              placeholder="Ürün ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#12161F] border border-[#212634] text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 shadow-sm"
             />
           </div>
 
@@ -432,10 +300,10 @@ export const WaiterApp: React.FC = () => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => setSelectedCategory('all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                 selectedCategory === 'all'
                   ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                  : 'bg-[#12161F] text-slate-400 hover:text-white border border-[#212634]'
+                  : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
               Tümü ({products.length})
@@ -444,10 +312,10 @@ export const WaiterApp: React.FC = () => {
               <button
                 key={c.id}
                 onClick={() => setSelectedCategory(c.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   selectedCategory === c.id
                     ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'bg-[#12161F] text-slate-400 hover:text-white border border-[#212634]'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
                 {c.name}
@@ -463,12 +331,12 @@ export const WaiterApp: React.FC = () => {
                 <div
                   key={product.id}
                   onClick={() => handleAddToCart(product)}
-                  className={`relative p-3 rounded-2xl border transition-all cursor-pointer select-none active:scale-95 flex flex-col justify-between ${
+                  className={`relative p-3 rounded-2xl border transition cursor-pointer select-none active:scale-95 flex flex-col justify-between ${
                     product.is_frozen
-                      ? 'bg-[#12161F]/40 border-red-500/20 opacity-50'
+                      ? 'bg-slate-900/40 border-red-500/20 opacity-50'
                       : inCart
-                      ? 'bg-indigo-950/30 border-indigo-500/50 shadow-md shadow-indigo-500/10'
-                      : 'bg-[#12161F] border-[#212634] hover:border-slate-700'
+                      ? 'bg-indigo-950/40 border-indigo-500 shadow-md shadow-indigo-500/10'
+                      : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   {inCart && (
@@ -483,11 +351,11 @@ export const WaiterApp: React.FC = () => {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-[#212634]">
-                    <span className="text-xs font-extrabold text-orange-400">
+                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-800">
+                    <span className="text-xs font-extrabold text-amber-400">
                       {product.price.toFixed(2)} ₺
                     </span>
-                    <button className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition-all">
+                    <button className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition">
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -498,9 +366,9 @@ export const WaiterApp: React.FC = () => {
         </div>
 
         {/* Right / Bottom Drawer: Active Cart */}
-        <div className="w-full md:w-80 lg:w-96 bg-[#12161F] border-t md:border-t-0 md:border-l border-[#212634] p-4 flex flex-col justify-between shadow-2xl">
+        <div className="w-full md:w-80 lg:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 p-4 flex flex-col justify-between shadow-2xl">
           <div className="space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-[#212634]">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Utensils className="w-4 h-4 text-indigo-400" />
                 <h2 className="text-xs font-black text-white uppercase tracking-wider">
@@ -510,7 +378,7 @@ export const WaiterApp: React.FC = () => {
               {cart.length > 0 && (
                 <button
                   onClick={() => setCart([])}
-                  className="text-[10px] text-slate-500 hover:text-red-400 flex items-center gap-1"
+                  className="text-[10px] text-slate-500 hover:text-rose-400 flex items-center gap-1"
                 >
                   <Trash2 className="w-3 h-3" /> Temizle
                 </button>
@@ -527,11 +395,11 @@ export const WaiterApp: React.FC = () => {
                 cart.map((item) => (
                   <div
                     key={item.product.id}
-                    className="p-2.5 rounded-xl bg-[#090C10] border border-[#212634] space-y-1.5"
+                    className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1.5"
                   >
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-bold text-slate-200">{item.product.name}</h4>
-                      <span className="text-xs font-extrabold text-orange-400">
+                      <span className="text-xs font-extrabold text-amber-400">
                         {(item.product.price * item.quantity).toFixed(2)} ₺
                       </span>
                     </div>
@@ -558,7 +426,7 @@ export const WaiterApp: React.FC = () => {
                         placeholder="Not (Örn: Az pişmiş)..."
                         value={item.notes}
                         onChange={(e) => handleUpdateItemNote(item.product.id, e.target.value)}
-                        className="w-36 px-2 py-1 rounded-lg bg-[#12161F] border border-[#212634] text-[10px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                        className="w-36 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
                       />
                     </div>
                   </div>
@@ -571,17 +439,17 @@ export const WaiterApp: React.FC = () => {
               <div>
                 <input
                   type="text"
-                  placeholder="Masa Genel Notu (Örn: Çatal bıçak bol olsun)..."
+                  placeholder="Masa Notu..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#090C10] border border-[#212634] text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
                 />
               </div>
             )}
           </div>
 
           {/* Bottom Send Order Action */}
-          <div className="pt-3 border-t border-[#212634] space-y-2">
+          <div className="pt-3 border-t border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-400">Toplam Tutar:</span>
               <span className="text-base font-black text-white">{totalAmount.toFixed(2)} ₺</span>
@@ -590,7 +458,7 @@ export const WaiterApp: React.FC = () => {
             <button
               onClick={handleSendOrder}
               disabled={cart.length === 0 || isSendingOrder}
-              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-95 text-white font-extrabold text-xs transition-all shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-95 text-white font-extrabold text-xs transition shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
               {isSendingOrder ? 'Mutfağa İletiliyor...' : `${selectedTable} Siparişini Gönder`}

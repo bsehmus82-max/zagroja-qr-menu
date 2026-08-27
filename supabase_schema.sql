@@ -1146,3 +1146,299 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.rotate_business_pairing_secret TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.request_waiter_pairing TO anon, authenticated;
+-- ============================================================
+-- SADELEŞTİRİLMİŞ GARSON CİHAZ EŞLEME VE DİREKT SİPARİŞ MİMARİSİ
+-- ============================================================
+
+-- 1. waiter_devices tablosuna waiter_name alanı
+ALTER TABLE public.waiter_devices 
+ADD COLUMN IF NOT EXISTS waiter_name TEXT DEFAULT 'Garson',
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved',
+ADD COLUMN IF NOT EXISTS is_trusted BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ DEFAULT now();
+
+-- 2. RPC: Garson Telefonundan İsimle Talep Gönderme
+CREATE OR REPLACE FUNCTION public.request_waiter_pairing(
+    p_business_slug TEXT,
+    p_waiter_name TEXT,
+    p_device_name TEXT DEFAULT 'Mobil Cihaz',
+    p_pairing_key TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_business RECORD;
+    v_token UUID;
+    v_device_id UUID;
+    v_name TEXT;
+BEGIN
+    SELECT * INTO v_business 
+    FROM public.businesses 
+    WHERE slug = p_business_slug;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'İşletme bulunamadı.';
+    END IF;
+
+    IF NOT public.is_business_active(v_business.id) THEN
+        RAISE EXCEPTION 'İşletme hesabı aktif değil veya askıya alınmış.';
+    END IF;
+
+    -- Eğer işletmede pairing_secret tanımlıysa ve key uyuşmuyorsa
+    IF v_business.pairing_secret IS NOT NULL AND v_business.pairing_secret <> '' THEN
+        IF p_pairing_key IS NOT NULL AND p_pairing_key <> '' AND p_pairing_key <> v_business.pairing_secret THEN
+            RAISE EXCEPTION 'Bu QR kodun geçerlilik süresi dolmuş veya yenilenmiştir. Lütfen kasadaki güncel QR kodu okutunuz.';
+        END IF;
+    END IF;
+
+    v_name := TRIM(COALESCE(NULLIF(p_waiter_name, ''), 'Garson'));
+    v_token := gen_random_uuid();
+
+    INSERT INTO public.waiter_devices (
+        business_id,
+        waiter_name,
+        device_name,
+        device_token,
+        status,
+        is_trusted,
+        last_active_at
+    ) VALUES (
+        v_business.id,
+        v_name,
+        COALESCE(NULLIF(p_device_name, ''), 'Mobil Cihaz'),
+        v_token,
+        'pending',
+        false,
+        now()
+    )
+    RETURNING id INTO v_device_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'device_id', v_device_id,
+        'device_token', v_token,
+        'business_id', v_business.id,
+        'business_name', v_business.name,
+        'business_slug', v_business.slug,
+        'waiter_name', v_name
+    );
+END;
+$$;
+
+-- 3. RPC: Kasadan Garson Talebini Tek Tıkla Onaylama
+CREATE OR REPLACE FUNCTION public.approve_waiter_device(
+    p_device_id UUID,
+    p_waiter_name TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_device RECORD;
+    v_final_name TEXT;
+BEGIN
+    SELECT * INTO v_device FROM public.waiter_devices WHERE id = p_device_id;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Cihaz talebi bulunamadı.';
+    END IF;
+
+    v_final_name := COALESCE(NULLIF(TRIM(p_waiter_name), ''), v_device.waiter_name, 'Garson');
+
+    UPDATE public.waiter_devices
+    SET status = 'approved',
+        is_trusted = true,
+        waiter_name = v_final_name,
+        last_active_at = now()
+    WHERE id = p_device_id;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'waiter_name', v_final_name
+    );
+END;
+$$;
+
+-- 4. RPC: Kasadan Garson Cihazını Reddetme veya Yetkiyi Kaldırma
+CREATE OR REPLACE FUNCTION public.reject_waiter_device(
+    p_device_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    DELETE FROM public.waiter_devices WHERE id = p_device_id;
+    RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+-- 5. RPC: Cihaz Durumu ve Garson Bilgisi Sorgulama
+CREATE OR REPLACE FUNCTION public.check_device_pairing_status(
+    p_device_token UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_device RECORD;
+    v_business RECORD;
+BEGIN
+    SELECT * INTO v_device FROM public.waiter_devices WHERE device_token = p_device_token;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('status', 'not_found', 'is_trusted', false);
+    END IF;
+
+    SELECT name, slug INTO v_business FROM public.businesses WHERE id = v_device.business_id;
+
+    RETURN jsonb_build_object(
+        'status', v_device.status,
+        'is_trusted', v_device.is_trusted,
+        'business_id', v_device.business_id,
+        'business_name', COALESCE(v_business.name, ''),
+        'business_slug', COALESCE(v_business.slug, ''),
+        'waiter_name', COALESCE(v_device.waiter_name, 'Garson')
+    );
+END;
+$$;
+
+-- 6. RPC: Garson Siparişi Oluşturma (PIN gerekmez, Cihaz Tokenı yeterlidir)
+CREATE OR REPLACE FUNCTION public.create_customer_order(
+    p_business_id UUID,
+    p_table_no TEXT,
+    p_items JSONB,
+    p_customer_notes TEXT DEFAULT '',
+    p_order_source TEXT DEFAULT 'qr',
+    p_session_token TEXT DEFAULT '',
+    p_device_token UUID DEFAULT NULL,
+    p_waiter_id UUID DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_item JSONB;
+    v_product RECORD;
+    v_total_amount NUMERIC(10,2) := 0.00;
+    v_verified_items JSONB := '[]'::jsonb;
+    v_order_id UUID;
+    v_new_order JSONB;
+    v_qty INT;
+    v_device RECORD;
+    v_waiter_name TEXT := NULL;
+BEGIN
+    IF NOT public.is_business_active(p_business_id) THEN
+        RAISE EXCEPTION 'İşletme bulunamadı veya hesabı aktif değil.';
+    END IF;
+
+    IF p_order_source = 'qr' THEN
+        IF EXISTS (
+            SELECT 1 FROM public.orders 
+            WHERE business_id = p_business_id 
+              AND table_no = p_table_no 
+              AND created_at > (now() - interval '10 seconds')
+        ) THEN
+            RAISE EXCEPTION 'Çok hızlı sipariş gönderiliyor. Lütfen birkaç saniye bekleyin.';
+        END IF;
+    END IF;
+
+    IF p_order_source = 'waiter' THEN
+        IF p_device_token IS NULL THEN
+            RAISE EXCEPTION 'Yetkisiz garson cihazı.';
+        END IF;
+
+        SELECT * INTO v_device 
+        FROM public.waiter_devices 
+        WHERE business_id = p_business_id 
+          AND device_token = p_device_token 
+          AND is_trusted = true 
+          AND status = 'approved';
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Cihazın işletme yetkisi kaldırılmış veya onaylanmamış.';
+        END IF;
+
+        v_waiter_name := v_device.waiter_name;
+        UPDATE public.waiter_devices SET last_active_at = now() WHERE id = v_device.id;
+    END IF;
+
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
+    LOOP
+        v_qty := COALESCE((v_item->>'quantity')::INT, 1);
+        IF v_qty <= 0 THEN
+            CONTINUE;
+        END IF;
+
+        SELECT id, name, price, is_frozen, is_active 
+        INTO v_product 
+        FROM public.products 
+        WHERE id = (v_item->>'product_id')::UUID AND business_id = p_business_id;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Menüde bulunmayan veya silinmiş bir ürün sipariş edilemez.';
+        END IF;
+
+        IF v_product.is_frozen OR NOT v_product.is_active THEN
+            RAISE EXCEPTION 'Seçilen ürünlerden biri tükendi: %', v_product.name;
+        END IF;
+
+        v_total_amount := v_total_amount + (v_product.price * v_qty);
+
+        v_verified_items := v_verified_items || jsonb_build_object(
+            'id', v_product.id,
+            'product_id', v_product.id,
+            'name', v_product.name,
+            'price', v_product.price,
+            'quantity', v_qty,
+            'notes', COALESCE(v_item->>'notes', '')
+        );
+    END LOOP;
+
+    IF jsonb_array_length(v_verified_items) = 0 THEN
+        RAISE EXCEPTION 'Sipariş için geçerli ürün bulunamadı.';
+    END IF;
+
+    INSERT INTO public.orders (
+        business_id,
+        table_no,
+        items,
+        total_amount,
+        status,
+        customer_notes,
+        order_source,
+        session_token
+    ) VALUES (
+        p_business_id,
+        p_table_no,
+        v_verified_items,
+        v_total_amount,
+        'pending',
+        CASE 
+            WHEN v_waiter_name IS NOT NULL AND p_customer_notes <> '' THEN '[Garson: ' || v_waiter_name || '] ' || p_customer_notes
+            WHEN v_waiter_name IS NOT NULL THEN '[Garson: ' || v_waiter_name || ']'
+            ELSE p_customer_notes 
+        END,
+        p_order_source,
+        p_session_token
+    )
+    RETURNING id INTO v_order_id;
+
+    SELECT row_to_json(o)::jsonb INTO v_new_order FROM public.orders o WHERE o.id = v_order_id;
+    RETURN v_new_order;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.request_waiter_pairing TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.approve_waiter_device TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.reject_waiter_device TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.check_device_pairing_status TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
