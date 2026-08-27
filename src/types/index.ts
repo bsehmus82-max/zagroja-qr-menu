@@ -121,6 +121,7 @@ export interface ServiceRequest {
   table_no: string;
   request_type: 'waiter' | 'bill_cash' | 'bill_card';
   status: 'pending' | 'resolved';
+  notes?: string;
   created_at: string;
 }
 

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   BellRing, Receipt, Wifi, Check, X, Copy, 
   CreditCard, Banknote, Sparkles, MessageCircle, AlertCircle
@@ -44,19 +44,36 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
     setLoading(true);
     try {
       let requestType: 'waiter' | 'bill_cash' | 'bill_card' = 'waiter';
+      let noteText = selectedReason;
+
       if (type === 'bill') {
         requestType = billMethod === 'pos' ? 'bill_card' : 'bill_cash';
+        noteText = billMethod === 'pos' ? 'POS / Kredi Kartı ile Ödeme' : 'Nakit ile Ödeme';
+      } else if (!noteText) {
+        noteText = 'Garson Çağrısı';
       }
 
-      await supabase.from('service_requests').insert([
+      const { error: insertErr } = await supabase.from('service_requests').insert([
         {
           business_id: business.id,
           table_no: tableNo || 'Genel Masa',
           request_type: requestType,
           status: 'pending',
-          notes: selectedReason || null,
+          notes: noteText,
         },
       ]);
+
+      if (insertErr) {
+        // Fallback in case notes column is not present in database yet
+        await supabase.from('service_requests').insert([
+          {
+            business_id: business.id,
+            table_no: tableNo || 'Genel Masa',
+            request_type: requestType,
+            status: 'pending',
+          },
+        ]);
+      }
 
       setSubmitted(true);
       setTimeout(() => {
@@ -64,6 +81,8 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         onClose();
         setSelectedReason('');
       }, 2200);
+    } catch (err) {
+      console.error('Servis çağrısı gönderme hatası:', err);
     } finally {
       setLoading(false);
     }

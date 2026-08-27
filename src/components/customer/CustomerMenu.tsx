@@ -363,33 +363,44 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           </div>
 
-          {/* Active Order Status Tracker & Quick Actions (APPEARS ONLY AFTER ORDER IS PLACED) */}
-          {hasActiveOrders && (
-            <div className="mx-4 mt-2 space-y-2">
-              <OrderStatusTracker orders={activeOrders} />
+          {/* Active Order Status Tracker & Quick Actions (Always Available) */}
+          <div className="mx-4 mt-2 space-y-2">
+            {hasActiveOrders && <OrderStatusTracker orders={activeOrders} />}
 
-              {/* Action Bar (Garson & Hesap) after order */}
-              <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
-                <button
-                  onClick={() => setServiceModalType('waiter')}
-                  className="flex items-center gap-2 py-1.5 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
-                >
-                  <BellRing className="w-4 h-4 text-orange-400" />
-                  <span>{t.callWaiter}</span>
-                </button>
+            {/* Action Bar (Garson, Hesap & Wi-Fi) */}
+            <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
+              <button
+                onClick={() => setServiceModalType('waiter')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+              >
+                <BellRing className="w-4 h-4 text-orange-400 shrink-0" />
+                <span className="truncate">{t.callWaiter}</span>
+              </button>
 
-                <div className="w-px h-5 bg-slate-800" />
+              <div className="w-px h-5 bg-slate-800 mx-1" />
 
-                <button
-                  onClick={() => setServiceModalType('bill')}
-                  className="flex items-center gap-2 py-1.5 px-3.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
-                >
-                  <Receipt className="w-4 h-4 text-emerald-400" />
-                  <span>{t.requestBill}</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setServiceModalType('bill')}
+                className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+              >
+                <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="truncate">{t.requestBill}</span>
+              </button>
+
+              {business.wifi_ssid && (
+                <>
+                  <div className="w-px h-5 bg-slate-800 mx-1" />
+                  <button
+                    onClick={() => setServiceModalType('wifi')}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-sky-300 hover:text-white transition active:scale-95 text-xs font-bold shrink-0"
+                  >
+                    <Wifi className="w-4 h-4 text-sky-400 shrink-0" />
+                    <span>Wi-Fi</span>
+                  </button>
+                </>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Search Bar */}
           <div className="mx-4 mt-3">

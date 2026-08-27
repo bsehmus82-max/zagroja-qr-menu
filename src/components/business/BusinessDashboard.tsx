@@ -37,6 +37,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   });
   const [tableCount, setTableCount] = useState<number>(0);
   const [unreadSupportCount, setUnreadSupportCount] = useState<number>(0);
+  const [pendingCallsCount, setPendingCallsCount] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleTabChange = (tab: typeof activeTab) => {
@@ -64,21 +65,27 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
   const totalNotifications = unreadSupportCount + (isTrialExpiring ? 1 : 0) + (isMonthlyPdfReady ? 1 : 0);
 
-  // Fetch Table Count & Unread Support Messages for Sidebar Badge
+  // Fetch Table Count, Unread Support Messages & Pending Service Calls for Sidebar Badges
   useEffect(() => {
     const fetchCounts = async () => {
-      const [tRes, sRes] = await Promise.all([
+      const [tRes, sRes, cRes] = await Promise.all([
         supabase.from('tables').select('id').eq('business_id', business.id),
         supabase
           .from('support_messages')
           .select('id')
           .eq('business_id', business.id)
           .eq('sender', 'superadmin')
-          .eq('is_read', false)
+          .eq('is_read', false),
+        supabase
+          .from('service_requests')
+          .select('id')
+          .eq('business_id', business.id)
+          .eq('status', 'pending')
       ]);
 
       if (tRes.data) setTableCount(tRes.data.length);
       if (sRes.data) setUnreadSupportCount(sRes.data.length);
+      if (cRes.data) setPendingCallsCount(cRes.data.length);
     };
 
     fetchCounts();
@@ -91,6 +98,18 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           event: '*',
           schema: 'public',
           table: 'support_messages',
+          filter: `business_id=eq.${business.id}`,
+        },
+        () => {
+          fetchCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'service_requests',
           filter: `business_id=eq.${business.id}`,
         },
         () => {
@@ -124,8 +143,8 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       id: 'orders' as const,
       label: 'Canlı Siparişler',
       icon: ChefHat,
-      badge: null,
-      isAlert: false,
+      badge: pendingCallsCount > 0 ? `${pendingCallsCount} Çağrı` : null,
+      isAlert: pendingCallsCount > 0,
     },
     {
       id: 'menu' as const,

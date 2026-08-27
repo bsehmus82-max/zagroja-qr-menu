@@ -97,8 +97,14 @@ CREATE TABLE IF NOT EXISTS public.service_requests (
     session_token TEXT,
     request_type TEXT NOT NULL,
     status TEXT DEFAULT 'pending',
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.service_requests 
+ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT NULL,
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 7. SUPPORT MESSAGES
 CREATE TABLE IF NOT EXISTS public.support_messages (
