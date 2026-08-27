@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusTracker } from './OrderStatusTracker';
+import { ProductDetailModal } from './ProductDetailModal';
 import { 
   Language, translations, getCategoryTitle, 
   getTranslatedWorkingHours, getTranslatedDescription 
@@ -44,6 +45,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showCart, setShowCart] = useState(false);
+
+  // Product Detail Modal state
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
 
   // Service Modal state
   const [serviceModalType, setServiceModalType] = useState<'waiter' | 'bill' | 'wifi' | null>(null);
@@ -110,16 +114,16 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     return () => clearInterval(interval);
   }, []);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantityToAdd: number = 1) => {
     if (product.is_frozen) return;
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+          item.product.id === product.id ? { ...item, quantity: item.quantity + quantityToAdd } : item
         );
       }
-      return [...prev, { product, quantity: 1 }];
+      return [...prev, { product, quantity: quantityToAdd }];
     });
   };
 
@@ -158,6 +162,10 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
   const defaultBanner = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&auto=format&fit=crop&q=80';
   const displayWorkingHours = getTranslatedWorkingHours(business.working_hours, lang);
+
+  const detailCategory = selectedProductForDetail
+    ? categories.find((c) => c.id === selectedProductForDetail.category_id)
+    : undefined;
 
   return (
     <div className="min-h-screen bg-[#07090E] text-slate-800 antialiased flex justify-center selection:bg-orange-500 selection:text-white">
@@ -367,7 +375,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </div>
           )}
 
-          {/* VIEW 2: PRODUCTS INSIDE CATEGORY (COMPACT HORIZONTAL RECTANGULAR CARDS) */}
+          {/* VIEW 2: PRODUCTS INSIDE CATEGORY (COMPACT HORIZONTAL RECTANGULAR CARDS WITH POP-UP MODAL) */}
           {(isSearching || selectedCatId !== null) && (
             <div className="mt-3 space-y-3">
               {/* Category Breadcrumb / Back Bar */}
@@ -413,7 +421,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 </div>
               )}
 
-              {/* Products List (Compact Gourmet Rectangles) */}
+              {/* Products List */}
               <div className="px-4 space-y-2.5">
                 {loading ? (
                   <div className="py-16 text-center text-xs text-slate-400 font-bold">
@@ -427,21 +435,23 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                   currentProducts.map((prod) => {
                     const translatedDesc = getTranslatedDescription(prod.description, lang);
                     const qtyInCart = getItemQtyInCart(prod.id);
+                    const catImg = categories.find((c) => c.id === prod.category_id)?.image_url;
 
                     return (
                       <div
                         key={prod.id}
-                        className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs hover:shadow-sm transition flex items-center justify-between gap-3 overflow-hidden relative"
+                        onClick={() => setSelectedProductForDetail(prod)}
+                        className="bg-white rounded-2xl border border-slate-200/80 p-3 shadow-xs hover:shadow-sm transition flex items-center justify-between gap-3 overflow-hidden relative cursor-pointer active:scale-[0.99] group"
                       >
                         {/* Food Thumbnail on Left (Strictly Constrained 80x80px with right vignette) */}
                         <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-200/60 shadow-xs">
                           <img
                             src={
-                              categories.find((c) => c.id === prod.category_id)?.image_url ||
+                              catImg ||
                               'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
                             }
                             alt={prod.name}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                           {/* Right Vignette on Food Image */}
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/20" />
@@ -453,9 +463,9 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                           )}
                         </div>
 
-                        {/* Info in Center: Product Name (Original) + Translated Description + Price */}
+                        {/* Info in Center: Product Name + Translated Description + Price */}
                         <div className="flex-1 min-w-0 pr-1">
-                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate leading-snug">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate leading-snug group-hover:text-orange-600 transition-colors">
                             {prod.name}
                           </h3>
                           {translatedDesc && (
@@ -471,7 +481,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                         </div>
 
                         {/* Action Buttons on Right: Quantity Stepper or Plus Button */}
-                        <div className="shrink-0">
+                        <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                           {qtyInCart > 0 ? (
                             <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
                               <button
@@ -494,7 +504,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                             </div>
                           ) : (
                             <button
-                              onClick={() => addToCart(prod)}
+                              onClick={() => addToCart(prod, 1)}
                               disabled={prod.is_frozen}
                               className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-orange-600 text-white flex items-center justify-center font-black text-sm transition active:scale-90 shadow-xs disabled:opacity-40 disabled:pointer-events-none"
                               title={t.addToCart}
@@ -533,6 +543,17 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             </button>
           </div>
         )}
+
+        {/* Product Detail Modal (Pop-up with Blurred Backdrop & Top-Left Back Button) */}
+        <ProductDetailModal
+          product={selectedProductForDetail}
+          categoryName={detailCategory?.name}
+          categoryImage={detailCategory?.image_url}
+          isOpen={selectedProductForDetail !== null}
+          lang={lang}
+          onClose={() => setSelectedProductForDetail(null)}
+          onAddToCart={(prod, qty) => addToCart(prod, qty)}
+        />
 
         {/* Cart Drawer */}
         <CartDrawer

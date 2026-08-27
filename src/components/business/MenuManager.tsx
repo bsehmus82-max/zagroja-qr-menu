@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, Snowflake, Trash2, Edit2, 
   RefreshCw, X, Check, UtensilsCrossed
@@ -192,8 +192,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const handleLoadSampleCatalog = () => {
     setConfirmConfig({
       isOpen: true,
-      title: 'Örnek Menü Kataloğu Yüklensin mi?',
-      message: 'Menünüze 10 popüler gurme kategori ve zengin ürün içerikleri eklenecektir.',
+      title: '16 Kategori Menü Kataloğu Yüklensin mi?',
+      message: 'Menünüze 16 standart gurme kategori ve zengin ürün içerikleri eklenecektir.',
       type: 'info',
       action: async () => {
         setLoading(true);

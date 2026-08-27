@@ -76,7 +76,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
     return selectedDays.join(', ');
   };
 
-  const workingHoursDisplay = `${getDaysSummary()}: ${is24Hours ? '24 Saat Açık' : `${openTime} - ${closeTime}`}`;
+  const workingHoursDisplay = is24Hours ? 'Her Gün: 7/24 Açık' : `${getDaysSummary()}: ${openTime} - ${closeTime}`;
 
   const applyPresetHours = (preset: string) => {
     if (preset === '24') {
@@ -447,26 +447,26 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   { label: '09:00 - 00:00', val: '09:00-00:00' },
                   { label: '08:00 - 22:00', val: '08:00-22:00' },
                   { label: '11:00 - 02:00', val: '11:00-02:00' },
-                  { label: '24 Saat Açık', val: '24' },
-                ].map((preset) => (
+                  { label: '7/24 Açık', val: '24' },
+                ].map((p) => (
                   <button
-                    key={preset.val}
+                    key={p.val}
                     type="button"
-                    onClick={() => applyPresetHours(preset.val)}
-                    className="py-1 px-1 rounded-lg bg-[#090C12] hover:bg-white/5 text-[10px] text-slate-400 hover:text-slate-200 border border-white/[0.06] transition truncate text-center"
+                    onClick={() => applyPresetHours(p.val)}
+                    className="bg-[#090C12] hover:bg-indigo-600/20 hover:border-indigo-500/30 text-slate-400 hover:text-indigo-300 border border-white/[0.06] rounded-lg py-1 text-[9px] font-medium transition active:scale-95"
                   >
-                    {preset.label}
+                    {p.label}
                   </button>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Wi-Fi Section with Switch */}
+          {/* Wi-Fi Section (Frameless Icon) */}
           <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
                   <Wifi className="w-3.5 h-3.5 text-indigo-400" />
                   Müşteri Wi-Fi Bilgisi
                 </span>
@@ -517,7 +517,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
               <Utensils className="w-5 h-5 text-indigo-400 shrink-0" />
               <div>
                 <h3 className="font-semibold text-xs text-white">Örnek Menü Şablonunu Dahil Et</h3>
-                <p className="text-[10px] text-slate-400">10 hazır kategori ve zengin lezzetlerle anında başlayın</p>
+                <p className="text-[10px] text-slate-400">16 resmi restoran kategorisi ve zengin lezzetlerle anında başlayın</p>
               </div>
             </div>
 

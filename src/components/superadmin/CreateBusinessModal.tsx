@@ -1,7 +1,9 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { X, Building2, Layers, Calendar, Plus, AlertCircle } from 'lucide-react';
 import { supabase, slugify, generateTempPassword, hashPassword } from '../../lib/supabase';
 import { Business } from '../../types';
+
+import { DEFAULT_CATEGORIES } from '../../data/defaultCatalog';
 
 interface CreateBusinessModalProps {
   isOpen: boolean;
@@ -56,7 +58,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
         template_id: 'clean',
         phone: '',
         address: '',
-        working_hours: '',
+        working_hours: 'Her Gün: 7/24 Açık',
         wifi_ssid: '',
         wifi_password: '',
       };
@@ -71,8 +73,47 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
         throw new Error(insertError.message);
       }
 
+      const createdBusiness = data as Business;
+
+      // Automatically install all 16 default categories and products for this new business!
+      try {
+        for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+          const catTemplate = DEFAULT_CATEGORIES[i];
+          const { data: catData } = await supabase
+            .from('categories')
+            .insert([
+              {
+                business_id: createdBusiness.id,
+                name: catTemplate.name,
+                image_url: catTemplate.image_url,
+                order_index: i,
+                is_active: true,
+              },
+            ])
+            .select()
+            .single();
+
+          if (catData) {
+            const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
+              business_id: createdBusiness.id,
+              category_id: catData.id,
+              name: p.name,
+              description: p.description,
+              price: p.price,
+              is_frozen: false,
+              is_active: true,
+              order_index: pIdx,
+            }));
+
+            await supabase.from('products').insert(prodsToInsert);
+          }
+        }
+      } catch (seedErr) {
+        console.error('Katalog kurulum hatası:', seedErr);
+      }
+
       onCreated({
-        business: data as Business,
+        business: createdBusiness,
         tempPass: tempPass,
         days: Number(days),
       });
