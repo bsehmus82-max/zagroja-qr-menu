@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef } from 'react';
-import { Send, Building2, User, RefreshCw, MessageSquare } from 'lucide-react';
+import { Send, MessageSquare, RefreshCw, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business, SupportMessage } from '../../types';
 import { sound } from '../../lib/audio';
@@ -82,7 +82,7 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
     const newMsg = {
       business_id: activeBusiness.id,
       sender: 'superadmin',
-      sender_name: 'Zagroja Yönetici',
+      sender_name: 'Yönetici',
       message: text,
       is_read: false,
     };
@@ -100,42 +100,43 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
 
   if (businesses.length === 0) {
     return (
-      <div className="py-20 text-center text-neutral-500 bg-neutral-900 border border-neutral-800 rounded-3xl p-8">
-        <MessageSquare className="w-12 h-12 mx-auto mb-3 text-neutral-600" />
-        <h3 className="text-base font-bold text-white">Henüz Kayıtlı İşletme Yok</h3>
-        <p className="text-xs text-neutral-400 mt-1">
-          İşletme hesabı açıldığında burada canlı mesajlaşabilirsiniz.
+      <div className="py-20 text-center text-slate-500 bg-[#12161F] border border-[#212634] rounded-2xl p-8">
+        <MessageSquare className="w-10 h-10 mx-auto mb-2.5 text-slate-600" />
+        <h3 className="text-sm font-semibold text-slate-200">Kayıtlı İşletme Bulunmuyor</h3>
+        <p className="text-xs text-slate-400 mt-1">
+          İşletme hesabı açıldığında buradan doğrudan mesajlaşabilirsiniz.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-3xl h-[700px] flex overflow-hidden shadow-2xl">
+    <div className="bg-[#12161F] border border-[#212634] rounded-2xl h-[650px] flex overflow-hidden shadow-xl">
       {/* Left Sidebar: Business List */}
-      <div className="w-80 border-r border-neutral-800 flex flex-col bg-neutral-950/40">
-        <div className="p-4 border-b border-neutral-800">
-          <h3 className="font-black text-sm text-white">İşletmeler ({businesses.length})</h3>
-          <p className="text-[11px] text-neutral-400">Birebir canlı destek sohbetleri</p>
+      <div className="w-72 border-r border-[#212634] flex flex-col bg-[#0D1017]">
+        <div className="p-4 border-b border-[#212634]">
+          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300">
+            İşletmeler ({businesses.length})
+          </h3>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-neutral-850">
+        <div className="flex-1 overflow-y-auto divide-y divide-[#1A202C]">
           {businesses.map((biz) => {
             const isSelected = activeBusiness?.id === biz.id;
             return (
               <div
                 key={biz.id}
                 onClick={() => onSelectBiz(biz)}
-                className={`p-4 cursor-pointer transition flex items-center gap-3 ${
-                  isSelected ? 'bg-neutral-800/80 border-l-4 border-brand-500' : 'hover:bg-neutral-900/50'
+                className={`p-3.5 cursor-pointer transition flex items-center gap-3 ${
+                  isSelected ? 'bg-[#181E2B] border-l-2 border-indigo-500' : 'hover:bg-[#12161F]'
                 }`}
               >
-                <div className="w-10 h-10 rounded-2xl bg-neutral-800 flex items-center justify-center text-brand-400 font-bold shrink-0 border border-neutral-750">
+                <div className="w-8 h-8 rounded-xl bg-[#1A202C] text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-[#262E3E]">
                   {biz.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-xs text-white truncate">{biz.name}</h4>
-                  <p className="text-[10px] text-neutral-400 truncate">@{biz.username}</p>
+                  <h4 className="font-semibold text-xs text-slate-200 truncate">{biz.name}</h4>
+                  <p className="text-[10px] text-slate-500 truncate">@{biz.username}</p>
                 </div>
               </div>
             );
@@ -144,32 +145,32 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
       </div>
 
       {/* Right Chat Area */}
-      <div className="flex-1 flex flex-col bg-neutral-900/40">
+      <div className="flex-1 flex flex-col bg-[#0A0D14]">
         {/* Chat Header */}
-        <div className="p-4 border-b border-neutral-800 bg-neutral-900/60 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-[#212634] bg-[#12161F] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-brand-600/20 text-brand-400 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/20">
               {activeBusiness?.name.charAt(0)}
             </div>
             <div>
-              <h3 className="font-bold text-sm text-white">{activeBusiness?.name}</h3>
-              <p className="text-[10px] text-neutral-400">
-                Yetkili: @{activeBusiness?.username} | Masa Limiti: {activeBusiness?.table_limit || 'Sınırsız'}
+              <h3 className="font-semibold text-xs text-slate-100">{activeBusiness?.name}</h3>
+              <p className="text-[10px] text-slate-400">
+                @{activeBusiness?.username} • {activeBusiness?.table_limit ? `${activeBusiness?.table_limit} Masa` : 'Sınırsız'}
               </p>
             </div>
           </div>
         </div>
 
         {/* Messages Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        <div className="flex-1 overflow-y-auto p-5 space-y-3.5">
           {loading ? (
-            <div className="py-20 text-center flex flex-col items-center gap-2 text-neutral-500">
-              <RefreshCw className="w-5 h-5 animate-spin text-brand-500" />
-              <span className="text-xs">Sohbet yükleniyor...</span>
+            <div className="py-20 text-center flex flex-col items-center gap-2 text-slate-500">
+              <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
+              <span className="text-xs">Yükleniyor...</span>
             </div>
           ) : messages.length === 0 ? (
-            <div className="py-20 text-center text-neutral-500 text-xs">
-              Bu işletme ile henüz bir mesajlaşma bulunmuyor. İlk mesajı aşağıdan yazabilirsiniz.
+            <div className="py-20 text-center text-slate-500 text-xs">
+              Bu işletme ile henüz bir mesaj geçmişi bulunmuyor.
             </div>
           ) : (
             messages.map((m) => {
@@ -177,17 +178,17 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
               return (
                 <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-md rounded-2xl p-4 text-xs shadow-md ${
+                    className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed ${
                       isMe
-                        ? 'bg-brand-600 text-white rounded-br-none'
-                        : 'bg-neutral-800 text-neutral-200 border border-neutral-700 rounded-bl-none'
+                        ? 'bg-indigo-600 text-white rounded-br-none shadow-sm'
+                        : 'bg-[#181E2B] text-slate-200 border border-[#262E3E] rounded-bl-none'
                     }`}
                   >
-                    <div className="text-[10px] font-bold opacity-75 mb-1">
-                      {isMe ? 'Zagroja Yönetici' : activeBusiness?.name}
+                    <div className="text-[10px] font-semibold opacity-75 mb-1">
+                      {isMe ? 'Siz (Yönetici)' : activeBusiness?.name}
                     </div>
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.message}</p>
-                    <div className="text-[9px] opacity-60 text-right mt-1.5 font-mono">
+                    <p className="whitespace-pre-wrap">{m.message}</p>
+                    <div className="text-[9px] opacity-60 text-right mt-1 font-mono">
                       {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
@@ -199,18 +200,18 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
         </div>
 
         {/* Input Footer */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-800 bg-neutral-900/80 flex items-center gap-3">
+        <form onSubmit={handleSendMessage} className="p-3.5 border-t border-[#212634] bg-[#12161F] flex items-center gap-2.5">
           <input
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder={`${activeBusiness?.name} işletmesine yanıt yaz...`}
-            className="flex-1 bg-neutral-950 border border-neutral-800 rounded-2xl px-4 py-3 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 transition"
+            placeholder="Mesajınızı yazınız..."
+            className="flex-1 bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
           />
           <button
             type="submit"
             disabled={!inputText.trim()}
-            className="p-3 bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white rounded-2xl shadow-lg shadow-brand-600/30 transition transform active:scale-95 shrink-0"
+            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl shadow-sm transition shrink-0"
           >
             <Send className="w-4 h-4" />
           </button>

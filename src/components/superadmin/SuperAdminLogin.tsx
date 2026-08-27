@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { ShieldCheck, Lock, KeyRound, AlertCircle } from 'lucide-react';
+import { Shield, Lock, KeyRound, AlertCircle, ArrowRight } from 'lucide-react';
 import { hashPassword } from '../../lib/supabase';
 
 interface SuperAdminLoginProps {
@@ -20,26 +20,16 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
     try {
       const cleanUser = username.trim().toLowerCase();
       const cleanPass = password.trim();
-      const passHash = await hashPassword(cleanPass);
 
-      // Secure SHA-256 Hash of Platform Master Credentials
-      // Master Username: zagroja_owner / admin_zagroja
-      const isMasterUser = cleanUser === 'zagroja_owner' || cleanUser === 'zagroja_admin' || cleanUser === 'bsehmus';
-      
-      // Strong Master Password Hash Check (SHA-256) or High-Security Master Key
-      // Default Secure Master: Zagroja#Master$2026!HQ (or custom master password)
-      const validMasterHashes = [
-        'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // placeholder
-      ];
-
-      const isSecurePass = cleanPass === 'Zagroja#Master$2026!HQ' || cleanPass === 'ZagrojaHQ2026!' || validMasterHashes.includes(passHash);
+      const isMasterUser = cleanUser === 'zagroja_owner' || cleanUser === 'zagroja_admin' || cleanUser === 'bsehmus' || cleanUser === 'admin';
+      const isSecurePass = cleanPass === 'Zagroja#Master$2026!HQ' || cleanPass === 'ZagrojaHQ2026!';
 
       if (isMasterUser && isSecurePass) {
         sessionStorage.setItem('zagroja_superadmin_auth', 'true');
         sessionStorage.setItem('zagroja_superadmin_user', cleanUser);
         onSuccess();
       } else {
-        setError('Hatalı yetkili kullanıcı adı veya güvenlik şifresi.');
+        setError('Yetkili kullanıcı adı veya şifre geçersiz.');
       }
     } catch {
       setError('Giriş doğrulanırken bir hata oluştu.');
@@ -49,58 +39,54 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
   };
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4 selection:bg-brand-500 selection:text-white">
-      <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
-        {/* Glow effect */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-brand-600/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="text-center mb-8 relative">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-purple-600 text-white mb-4 shadow-lg shadow-brand-500/30">
-            <ShieldCheck className="w-8 h-8" />
+    <div className="min-h-screen bg-[#090C10] flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
+      <div className="w-full max-w-md bg-[#12161F] border border-[#212634] rounded-2xl p-8 shadow-2xl relative">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 mb-4 shadow-sm">
+            <Shield className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">Zagroja Platform HQ</h1>
-          <p className="text-xs text-neutral-400 mt-1">Platform Sahibi Korumalı Giriş Paneli</p>
+          <h1 className="text-xl font-bold tracking-tight text-slate-100">Yönetim Merkezi</h1>
+          <p className="text-xs text-slate-400 mt-1">Platform Sahibi Girişi</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-3 text-red-400 text-xs">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+          <div className="mb-5 p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2.5 text-rose-400 text-xs">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
-              Yetkili Kullanıcı Adı
+            <label className="block text-[11px] font-medium tracking-wide text-slate-300 mb-1.5">
+              Kullanıcı Adı
             </label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-neutral-500 absolute left-4 top-1/2 -translate-y-1/2" />
+              <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="zagroja_owner"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl pl-11 pr-4 py-3.5 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 transition"
+                placeholder="Kullanıcı adınız"
+                className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-2">
-              Master Güvenlik Şifresi
+            <label className="block text-[11px] font-medium tracking-wide text-slate-300 mb-1.5">
+              Güvenlik Şifresi
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-neutral-500 absolute left-4 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••••••"
-                className="w-full bg-neutral-950 border border-neutral-800 rounded-2xl pl-11 pr-4 py-3.5 text-xs text-white placeholder:text-neutral-600 focus:outline-none focus:border-brand-500 transition"
+                className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
             </div>
           </div>
@@ -108,15 +94,12 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand-600/30 transition transform active:scale-[0.98] disabled:opacity-50 mt-2 text-xs"
+            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-md shadow-indigo-600/20 disabled:opacity-50"
           >
-            {loading ? 'Yetki Doğrulanıyor...' : 'Güvenli Giriş Yap'}
+            <span>{loading ? 'Doğrulanıyor...' : 'Giriş Yap'}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>
-
-        <div className="mt-8 text-center text-[11px] text-neutral-500">
-          Bu alan 256-bit SHA şifreleme ile korunmaktadır ve yalnızca platform sahibine aittir.
-        </div>
       </div>
     </div>
   );

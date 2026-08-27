@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react';
-import { CheckCircle, Copy, Check, X, Shield, ExternalLink, QrCode } from 'lucide-react';
+import { CheckCircle, Copy, Check, X, Shield } from 'lucide-react';
 import { Business } from '../../types';
 
 interface CreatedCredentialsModalProps {
@@ -24,20 +24,18 @@ export const CreatedCredentialsModal: React.FC<CreatedCredentialsModalProps> = (
   const loginUrl = `${baseUrl}/admin`;
   const menuUrl = `${baseUrl}/m/${business.slug}`;
 
-  const messageText = `🎉 Sayın ${business.name} Yetkilisi,
+  const messageText = `Sayın ${business.name} Yetkilisi,
 
-Zagroja QR Menü & Restoran Yönetim Sistemi hesabınız başarıyla oluşturulmuştur.
+QR Menü ve Sipariş Yönetim Sistemi hesabınız açılmıştır.
 
-🔗 İşletme Giriş Paneli: ${loginUrl}
-👤 Kullanıcı Adı: ${business.username}
-🔑 Geçici Giriş Şifresi: ${tempPass}
-📅 Tanımlanan Süre: ${days} Gün
-🏷️ Masa Sınırı: ${business.table_limit ? `${business.table_limit} Masa` : 'Sınırsız'}
-📱 Canlı Müşteri QR Menünüz: ${menuUrl}
+Giriş Adresi: ${loginUrl}
+Kullanıcı Adı: ${business.username}
+Geçici Şifre: ${tempPass}
+Tanımlanan Süre: ${days} Gün
+Masa Limiti: ${business.table_limit ? `${business.table_limit} Masa` : 'Sınırsız'}
+Menü Bağlantınız: ${menuUrl}
 
-İlk girişinizde işletme profilinizi (telefon, adres, çalışma saatleri ve menü kategorilerinizi) tamamlayıp masalarınız için estetik QR kodlarınızı anında yazdırabilirsiniz.
-
-İyi çalışmalar dileriz.`;
+İlk girişinizde iletişim bilgilerinizi ve kategorilerinizi düzenleyebilir, masalarınız için QR kodlarınızı yazdırabilirsiniz.`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(messageText);
@@ -46,85 +44,78 @@ Zagroja QR Menü & Restoran Yönetim Sistemi hesabınız başarıyla oluşturulm
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-neutral-900 border border-neutral-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative animate-in fade-in zoom-in-95">
-        <div className="flex items-center justify-between pb-4 border-b border-neutral-800 mb-6">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[#12161F] border border-[#212634] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
+        <div className="flex items-center justify-between pb-4 border-b border-[#212634] mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-              <CheckCircle className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <CheckCircle className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">İşletme Başarıyla Açıldı!</h2>
-              <p className="text-xs text-neutral-400">Giriş bilgileri hazırlandı</p>
+              <h2 className="text-sm font-bold text-slate-100">İşletme Hesabı Oluşturuldu</h2>
+              <p className="text-[11px] text-slate-400">Giriş bilgileri hazırlandı</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#1A202C] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4 mb-6">
-          <div className="bg-neutral-950 p-4 rounded-2xl border border-neutral-800 space-y-2">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-neutral-400">İşletme Adı:</span>
-              <span className="font-bold text-white">{business.name}</span>
+        <div className="space-y-4 mb-5">
+          <div className="bg-[#0A0D14] p-4 rounded-xl border border-[#212634] space-y-2.5 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">İşletme Adı:</span>
+              <span className="font-semibold text-slate-100">{business.name}</span>
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-neutral-400">Kullanıcı Adı:</span>
-              <span className="font-mono font-bold text-brand-400">{business.username}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Kullanıcı Adı:</span>
+              <span className="font-mono font-semibold text-indigo-400">{business.username}</span>
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-neutral-400">Geçici Şifre:</span>
-              <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Geçici Şifre:</span>
+              <span className="font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                 {tempPass}
               </span>
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-neutral-400">Masa Limiti:</span>
-              <span className="text-white">{business.table_limit || 'Sınırsız'}</span>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Masa Limiti:</span>
+              <span className="text-slate-200">{business.table_limit || 'Sınırsız'}</span>
             </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-neutral-400">Abonelik Süresi:</span>
-              <span className="text-white">{days} Gün</span>
+            <div className="flex justify-between items-center">
+              <span className="text-slate-400">Tanımlanan Süre:</span>
+              <span className="text-slate-200">{days} Gün</span>
             </div>
-          </div>
-
-          <div className="p-3 bg-brand-500/10 border border-brand-500/20 rounded-2xl flex items-start gap-2.5 text-xs text-brand-300">
-            <Shield className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
-            <span>
-              Bu bilgileri işletme sahibine WhatsApp, SMS veya Canlı Destek üzerinden iletiniz. İşletme giriş yaptığında şifresini kendisi güncelleyebilir.
-            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           <button
             onClick={handleCopy}
-            className={`flex-1 py-3 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition ${
+            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
               copied
                 ? 'bg-emerald-600 text-white'
-                : 'bg-gradient-to-r from-brand-600 to-purple-600 hover:from-brand-500 hover:to-purple-500 text-white shadow-lg shadow-brand-600/30'
+                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'
             }`}
           >
             {copied ? (
               <>
                 <Check className="w-4 h-4" />
-                <span>Mesaj Panoya Kopyalandı!</span>
+                <span>Panoya Kopyalandı</span>
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4" />
-                <span>Giriş Metnini Kopyala (WhatsApp / Destek)</span>
+                <span>Giriş Bilgilerini Kopyala</span>
               </>
             )}
           </button>
 
           <button
             onClick={onClose}
-            className="px-5 py-3 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold transition"
+            className="px-4 py-2.5 rounded-xl bg-[#1A202C] hover:bg-[#252D3D] text-slate-300 text-xs font-medium transition"
           >
             Kapat
           </button>
