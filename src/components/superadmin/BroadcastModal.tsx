@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Radio, X, Send, AlertCircle, CheckCircle2, 
-  Gift, Wrench, Sparkles, Clock, Calendar, Heart, Flag
+  Gift, Wrench, Sparkles, Clock, Calendar, Heart, Flag, Eye
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business } from '../../types';
@@ -173,13 +173,13 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
             <div>
               <label className="block text-[11px] font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                Hazır Şablonlar (Bayram, Tatil & Bakım)
+                Hazır Şablonlar (Tek Tıkla Yükle & Düzenle)
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate('holiday_religious', 4)}
-                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-amber-500/50 text-[10px] font-bold text-amber-300 text-left transition flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-amber-500/50 text-[10px] font-bold text-amber-300 text-left transition flex items-center gap-1.5 active:scale-95"
                 >
                   <Heart className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>Dini Bayram (+4 Gün)</span>
@@ -187,7 +187,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate('holiday_national', 2)}
-                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-rose-500/50 text-[10px] font-bold text-rose-300 text-left transition flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-rose-500/50 text-[10px] font-bold text-rose-300 text-left transition flex items-center gap-1.5 active:scale-95"
                 >
                   <Flag className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                   <span>Resmi Tatil (+2 Gün)</span>
@@ -195,7 +195,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate('maintenance', 3)}
-                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-purple-500/50 text-[10px] font-bold text-purple-300 text-left transition flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-purple-500/50 text-[10px] font-bold text-purple-300 text-left transition flex items-center gap-1.5 active:scale-95"
                 >
                   <Wrench className="w-3.5 h-3.5 text-purple-400 shrink-0" />
                   <span>Bakım Telafisi (+3 Gün)</span>
@@ -203,7 +203,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate('compensation', 3)}
-                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-emerald-500/50 text-[10px] font-bold text-emerald-300 text-left transition flex items-center gap-1.5"
+                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-emerald-500/50 text-[10px] font-bold text-emerald-300 text-left transition flex items-center gap-1.5 active:scale-95"
                 >
                   <Gift className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>Özel Hediye (+3 Gün)</span>
@@ -211,7 +211,7 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
                 <button
                   type="button"
                   onClick={() => handleApplyTemplate('feature', 0)}
-                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-indigo-500/50 text-[10px] font-bold text-indigo-300 text-left transition flex items-center gap-1.5 sm:col-span-2"
+                  className="p-2.5 rounded-xl bg-[#0A0D14] border border-[#212634] hover:border-indigo-500/50 text-[10px] font-bold text-indigo-300 text-left transition flex items-center gap-1.5 sm:col-span-2 active:scale-95"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
                   <span>Yeni Özellik Duyurusu (Süresiz)</span>
@@ -219,11 +219,16 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
               </div>
             </div>
 
-            {/* Message Textarea */}
+            {/* Message Textarea (Directly Editable) */}
             <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
-                Duyuru Metni
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] font-bold text-slate-300">
+                  Duyuru Metni (Serbestçe Düzenleyebilirsiniz)
+                </label>
+                <span className="text-[10px] text-slate-500">
+                  {message.length} karakter
+                </span>
+              </div>
               <textarea
                 required
                 rows={4}
@@ -233,6 +238,31 @@ export const BroadcastModal: React.FC<BroadcastModalProps> = ({
                 className="w-full bg-[#0A0D14] border border-[#212634] focus:border-purple-500/60 rounded-xl p-3 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition resize-none leading-relaxed"
               />
             </div>
+
+            {/* Live Preview Box */}
+            {message.trim() && (
+              <div className="bg-[#0B0F17] border border-[#212634] rounded-2xl p-3.5 space-y-2 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                    <Eye className="w-3 h-3" />
+                    İşletme Ekranında Canlı Görünüm
+                  </span>
+                  {addFreeDays && compensationDays > 0 && (
+                    <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      +{compensationDays} Gün Hediye Dahil
+                    </span>
+                  )}
+                </div>
+
+                <div className="bg-[#12161F] border border-[#1E2433] rounded-xl p-3 text-xs text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
+                  <div className="text-[11px] font-extrabold text-purple-400 pb-1 border-b border-[#212634] mb-2 flex items-center gap-1.5">
+                    <Radio className="w-3 h-3" />
+                    <span>[SİSTEM DUYURUSU]</span>
+                  </div>
+                  {message}
+                </div>
+              </div>
+            )}
 
             {/* Compensation & Free Days Checkbox & Custom Days */}
             <div className="bg-[#0A0D14] border border-[#212634] p-3.5 rounded-2xl space-y-2.5">
