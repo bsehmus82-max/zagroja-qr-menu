@@ -1,6 +1,7 @@
 ﻿import React, { useState } from 'react';
-import { ChefHat, CheckCircle2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChefHat, CheckCircle2, Clock, ChevronDown, ChevronUp, BellRing } from 'lucide-react';
 import { Order } from '../../types';
+import { requestNotificationPermission, getNotificationPermissionStatus } from '../../lib/notifications';
 
 interface OrderStatusTrackerProps {
   orders: Order[];
@@ -8,10 +9,17 @@ interface OrderStatusTrackerProps {
 
 export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ orders }) => {
   const [expanded, setExpanded] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(getNotificationPermissionStatus());
 
   if (orders.length === 0) return null;
 
   const latestOrder = orders[0];
+
+  const handleEnableNotifs = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const granted = await requestNotificationPermission();
+    setNotifPermission(granted ? 'granted' : 'denied');
+  };
 
   const getStatusDisplay = (status: Order['status']) => {
     switch (status) {
@@ -69,6 +77,24 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ orders }
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
+
+      {/* Notification Permission Mini Banner */}
+      {notifPermission === 'default' && (
+        <div className="bg-orange-50/80 border border-orange-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <BellRing className="w-3.5 h-3.5 text-orange-500 shrink-0" />
+            <span className="text-[10px] font-bold text-orange-950 truncate">
+              Yemek hazırlandığında bildirim al
+            </span>
+          </div>
+          <button
+            onClick={handleEnableNotifs}
+            className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black rounded-lg transition active:scale-95 shrink-0 shadow-xs"
+          >
+            İzin Ver
+          </button>
+        </div>
+      )}
 
       {expanded && (
         <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">

@@ -24,8 +24,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
   }
 
   if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
+    try {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    } catch {
+      return false;
+    }
   }
 
   return false;
@@ -49,7 +53,7 @@ export interface NativeNotificationOptions {
 }
 
 /**
- * Dispatches a native OS / Device notification (works in background & minimized tabs)
+ * Dispatches a native OS / Device notification (auto-closes cleanly after 4.5s)
  */
 export async function sendNativeNotification(options: NativeNotificationOptions) {
   if (!isNotificationSupported()) return;
@@ -59,10 +63,10 @@ export async function sendNativeNotification(options: NativeNotificationOptions)
     if (!granted) return;
   }
 
-  // Mobile vibration
+  // Mobile vibration feedback
   if (typeof window !== 'undefined' && 'vibrate' in navigator) {
     try {
-      navigator.vibrate([200, 100, 200, 100, 300]);
+      navigator.vibrate([200, 100, 200]);
     } catch {
       // ignore
     }
@@ -77,10 +81,10 @@ export async function sendNativeNotification(options: NativeNotificationOptions)
     data: {
       url: options.url || window.location.href,
     },
-    requireInteraction: true,
+    requireInteraction: false, // Auto dismiss on modern OS!
   };
 
-  // 1. Try Service Worker showNotification (Best for background/PWA)
+  // 1. Try Service Worker showNotification
   if ('serviceWorker' in navigator) {
     try {
       const reg = await navigator.serviceWorker.ready;
@@ -89,11 +93,11 @@ export async function sendNativeNotification(options: NativeNotificationOptions)
         return;
       }
     } catch {
-      // fallback to regular Notification
+      // fallback
     }
   }
 
-  // 2. Direct Notification Fallback
+  // 2. Direct Notification Fallback with strict 4.5s auto-close
   try {
     const notif = new Notification(title, notifOptions);
     notif.onclick = () => {
@@ -101,8 +105,21 @@ export async function sendNativeNotification(options: NativeNotificationOptions)
       if (options.url) {
         window.location.href = options.url;
       }
-      notif.close();
+      try {
+        notif.close();
+      } catch {
+        // ignore
+      }
     };
+
+    // Auto close after 4.5 seconds so notification never stays stuck on screen!
+    setTimeout(() => {
+      try {
+        notif.close();
+      } catch {
+        // ignore
+      }
+    }, 4500);
   } catch (err) {
     console.warn('Native notification trigger failed:', err);
   }

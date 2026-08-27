@@ -1,7 +1,8 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShoppingBag, BellRing, Receipt, Wifi, Snowflake, 
-  Plus, Minus, Search, UtensilsCrossed, ArrowLeft, ChevronRight
+  Plus, Minus, Search, UtensilsCrossed, ArrowLeft, ChevronRight,
+  CheckCircle2, Sparkles
 } from 'lucide-react';
 import { Business, Category, Product, CartItem, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -9,6 +10,7 @@ import { ServiceActionsModal } from './ServiceActionsModal';
 import { CartDrawer } from './CartDrawer';
 import { OrderStatusTracker } from './OrderStatusTracker';
 import { ProductDetailModal } from './ProductDetailModal';
+import { sendNativeNotification } from '../../lib/notifications';
 import { 
   Language, translations, getCategoryTitle, 
   getTranslatedWorkingHours, getTranslatedDescription 
@@ -54,6 +56,8 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
   // Active Order Tracker state
   const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+  const [showPaidSessionModal, setShowPaidSessionModal] = useState(false);
+  const prevOrderStatusRef = useRef<Record<string, string>>({});
 
   const handleLanguageChange = (newLang: Language) => {
     setLang(newLang);
@@ -126,7 +130,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
     };
   }, [business.id]);
 
-  // Load Active Orders for tracking
+  // Load Active Orders for tracking and Customer Native Notifications
   useEffect(() => {
     const fetchMyActiveOrders = async () => {
       const storedOrderIds = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
@@ -135,16 +139,58 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
       const { data } = await supabase
         .from('orders')
         .select('*')
-        .in('id', storedOrderIds)
-        .in('status', ['pending', 'preparing', 'served']);
+        .in('id', storedOrderIds);
 
-      if (data) setActiveOrders(data as Order[]);
+      if (data) {
+        const allOrders = data as Order[];
+        const stillActive = allOrders.filter((o) => ['pending', 'preparing', 'served'].includes(o.status));
+        const newlyPaidOrders = allOrders.filter((o) => o.status === 'paid');
+
+        // Check for Status Changes and trigger Native Notifications for Customer
+        allOrders.forEach((order) => {
+          const prevStatus = prevOrderStatusRef.current[order.id];
+          if (prevStatus && prevStatus !== order.status) {
+            if (order.status === 'preparing') {
+              sendNativeNotification({
+                title: 'Siparişiniz Hazırlanıyor 👨‍🍳',
+                body: 'Şeflerimiz siparişinizi özenle hazırlamaya başladı.',
+              });
+            } else if (order.status === 'served') {
+              sendNativeNotification({
+                title: 'Siparişiniz Masanızda! 🍽️',
+                body: 'Siparişiniz servis edildi. Afiyet olsun!',
+              });
+            } else if (order.status === 'paid') {
+              sendNativeNotification({
+                title: 'Hesabınız Ödendi ✨',
+                body: 'Bizi tercih ettiğiniz için teşekkür ederiz. İyi günler dileriz!',
+              });
+            }
+          }
+          prevOrderStatusRef.current[order.id] = order.status;
+        });
+
+        // If all orders were paid by admin in dashboard, close session and forget device!
+        if (newlyPaidOrders.length > 0 && stillActive.length === 0) {
+          setShowPaidSessionModal(true);
+          localStorage.removeItem('my_active_orders');
+          localStorage.removeItem('cart');
+          setActiveOrders([]);
+        } else {
+          setActiveOrders(stillActive);
+        }
+      }
     };
 
     fetchMyActiveOrders();
-    const interval = setInterval(fetchMyActiveOrders, 8000);
+    const interval = setInterval(fetchMyActiveOrders, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleClosePaidSession = () => {
+    setShowPaidSessionModal(false);
+    fetchMenu();
+  };
 
   const addToCart = (product: Product, quantityToAdd: number = 1) => {
     if (product.is_frozen) return;
@@ -594,6 +640,36 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                 <ChevronRight className="w-4 h-4 text-white" />
               </div>
             </button>
+          </div>
+        )}
+
+        {/* Bill Paid & Session Reset Celebration Modal */}
+        {showPaidSessionModal && (
+          <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in">
+            <div className="bg-white rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl space-y-4 animate-in zoom-in-95 border border-slate-100">
+              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border-2 border-emerald-200 shadow-sm animate-bounce">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-black text-slate-900">Hesabınız Ödendi</h3>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  {tableNo ? <strong className="text-slate-800">{tableNo}</strong> : 'Masa'} hesabı başarıyla kapatıldı. Bizi tercih ettiğiniz için teşekkür eder, yine bekleriz!
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 text-[11px] text-slate-600 font-semibold flex items-center justify-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                <span>Oturumunuz güvenle sıfırlandı.</span>
+              </div>
+
+              <button
+                onClick={handleClosePaidSession}
+                className="w-full py-3.5 bg-slate-900 hover:bg-orange-600 text-white font-black text-xs rounded-2xl shadow-lg transition active:scale-98"
+              >
+                Yeni Menüyü Aç / Tamamla
+              </button>
+            </div>
           </div>
         )}
 
