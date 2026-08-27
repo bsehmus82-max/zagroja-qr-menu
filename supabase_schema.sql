@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS public.businesses (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+ALTER TABLE public.businesses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
 -- 2. CATEGORIES
 CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -133,6 +135,9 @@ CREATE TABLE IF NOT EXISTS public.waiter_devices (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+ALTER TABLE public.waiter_devices ADD COLUMN IF NOT EXISTS failed_pin_attempts INT DEFAULT 0;
+ALTER TABLE public.waiter_devices ADD COLUMN IF NOT EXISTS pin_locked_until TIMESTAMPTZ DEFAULT NULL;
+
 -- 10. DAILY SUMMARY (Günlük Ciro & Satış Defteri)
 CREATE TABLE IF NOT EXISTS public.daily_summary (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -147,7 +152,7 @@ CREATE TABLE IF NOT EXISTS public.daily_summary (
 );
 
 -- ============================================================
--- SAFE REALTIME REPLICATION (Hatasız Replikasyon Ekleme)
+-- SAFE REALTIME REPLICATION
 -- ============================================================
 DO $$
 BEGIN
@@ -215,15 +220,14 @@ BEGIN
     RETURN EXISTS (
         SELECT 1 FROM public.businesses
         WHERE id = p_business_id 
-          AND is_active = true 
-          AND subscription_status <> 'suspended'
+          AND COALESCE(subscription_status, 'active') <> 'suspended'
           AND (subscription_expires_at IS NULL OR subscription_expires_at > now())
     );
 END;
 $$;
 
 -- ============================================================
--- RLS POLİTİKALARI (Tekrarlanabilir / Idempotent)
+-- RLS POLİTİKALARI
 -- ============================================================
 
 -- Businesses
@@ -611,7 +615,6 @@ $$;
 -- 5. CRON FONKSİYONLARI (ZAMANLANMIŞ GÖREVLER)
 -- ============================================================
 
--- A. Süresi Dolan İşletmeleri Askıya Al
 CREATE OR REPLACE FUNCTION public.cron_auto_suspend_expired_businesses()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -627,7 +630,6 @@ BEGIN
 END;
 $$;
 
--- B. Günlük Ciro ve Satış Özeti Çıkar
 CREATE OR REPLACE FUNCTION public.cron_generate_daily_summary(p_target_date DATE DEFAULT (CURRENT_DATE - INTERVAL '1 day')::DATE)
 RETURNS VOID
 LANGUAGE plpgsql
@@ -664,7 +666,6 @@ BEGIN
 END;
 $$;
 
--- C. Biten Ayın Ciro Defterini Sil (Ham Siparişlere Dokunmaz)
 CREATE OR REPLACE FUNCTION public.cron_purge_previous_month_daily_summary()
 RETURNS VOID
 LANGUAGE plpgsql
