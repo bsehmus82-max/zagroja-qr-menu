@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   UtensilsCrossed, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode,
-  Menu, X, Users, Volume2
+  Menu, X, Users, Volume2, Lock, Sparkles, CreditCard
 } from 'lucide-react';
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -185,14 +185,21 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   }
 
   const menuLiveUrl = `${window.location.origin}/m/${business.slug}`;
+  const isLitePlan = business.plan_type === 'lite';
+
+  const isTabLockedInLite = (tabId: string) => {
+    if (!isLitePlan) return false;
+    return ['orders', 'pos', 'waiters', 'turnover'].includes(tabId);
+  };
 
   const navItems = [
     {
       id: 'orders' as const,
       label: 'Canlı Siparişler',
       icon: ChefHat,
-      badge: pendingCallsCount > 0 ? `${pendingCallsCount} Çağrı` : null,
-      isAlert: pendingCallsCount > 0,
+      badge: isTabLockedInLite('orders') ? 'Kilitli' : pendingCallsCount > 0 ? `${pendingCallsCount} Çağrı` : null,
+      isAlert: !isTabLockedInLite('orders') && pendingCallsCount > 0,
+      isLocked: isTabLockedInLite('orders'),
     },
     {
       id: 'menu' as const,
@@ -200,6 +207,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       icon: UtensilsCrossed,
       badge: null,
       isAlert: false,
+      isLocked: false,
     },
     {
       id: 'tables' as const,
@@ -207,27 +215,31 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       icon: QrCode,
       badge: tableCount > 0 ? `${tableCount} Masa` : null,
       isAlert: false,
+      isLocked: false,
     },
     {
       id: 'pos' as const,
       label: 'Kasa / POS Satış',
       icon: Calculator,
-      badge: null,
+      badge: isTabLockedInLite('pos') ? 'Kilitli' : null,
       isAlert: false,
+      isLocked: isTabLockedInLite('pos'),
     },
     {
       id: 'waiters' as const,
       label: 'Garson & Cihazlar',
       icon: Users,
-      badge: null,
+      badge: isTabLockedInLite('waiters') ? 'Kilitli' : null,
       isAlert: false,
+      isLocked: isTabLockedInLite('waiters'),
     },
     {
       id: 'turnover' as const,
       label: 'Gün Sonu & Ciro',
       icon: TrendingUp,
-      badge: null,
+      badge: isTabLockedInLite('turnover') ? 'Kilitli' : null,
       isAlert: false,
+      isLocked: isTabLockedInLite('turnover'),
     },
     {
       id: 'settings' as const,
@@ -235,6 +247,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       icon: Settings,
       badge: null,
       isAlert: false,
+      isLocked: false,
     },
     {
       id: 'support' as const,
@@ -242,6 +255,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       icon: MessageSquare,
       badge: totalNotifications > 0 ? totalNotifications.toString() : null,
       isAlert: totalNotifications > 0,
+      isLocked: false,
     },
   ];
 
@@ -322,15 +336,22 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition ${
                     isActive
                       ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25'
+                      : item.isLocked
+                      ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : item.isLocked ? 'text-amber-400/80' : 'text-slate-400'}`} />
                     <span>{item.label}</span>
                   </div>
 
-                  {item.badge && (
+                  {item.isLocked ? (
+                    <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      <Lock className="w-2.5 h-2.5" />
+                      <span>Lite</span>
+                    </span>
+                  ) : item.badge && (
                     item.isAlert ? (
                       <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md animate-pulse shrink-0">
                         {item.badge}
@@ -402,22 +423,61 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
         {/* Content Body */}
         <div className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {activeTab === 'orders' && <LiveOrders business={business} onNavigatePos={() => setActiveTab('pos')} />}
-          {activeTab === 'pos' && <ManualPos business={business} />}
-          {activeTab === 'menu' && <MenuManager business={business} />}
-          {activeTab === 'tables' && <TableManager business={business} />}
-          {activeTab === 'waiters' && <WaitersManager business={business} />}
-          {activeTab === 'turnover' && <TurnoverReport business={business} />}
-          {activeTab === 'settings' && (
-            <BusinessSettings
-              business={business}
-              onUpdate={(updated) => {
-                setBusiness(updated);
-                onBusinessUpdate?.(updated);
-              }}
-            />
+          {isTabLockedInLite(activeTab) ? (
+            <div className="bg-white border border-slate-200/90 rounded-3xl p-8 max-w-xl mx-auto text-center space-y-5 shadow-xs my-8">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto border border-amber-500/20 shadow-xs">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  Standart & Profesyonel Paket Özelliği
+                </span>
+                <h3 className="text-lg font-black text-slate-900">
+                  {activeTab === 'orders' ? 'Canlı Sipariş & Adisyon Modülü' :
+                   activeTab === 'pos' ? 'Kasa / Hızlı POS Satış Modülü' :
+                   activeTab === 'waiters' ? 'Garson El Terminalleri & Cihaz Yönetimi' :
+                   'Gün Sonu Z-Raporu & Ciro Analizi'}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-md mx-auto">
+                  İşletmeniz şu anda <strong>Lite (Sadece Akıllı QR Menü)</strong> paketindedir. Masadan doğrudan sipariş alma, otomatik termal fiş yazdırma motoru (.EXE), garson çağrıları ve POS modülünü aktif etmek için paketinizi Standart veya Profesyonel plana yükseltebilirsiniz.
+                </p>
+              </div>
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => handleTabChange('support')}
+                  className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Canlı Destekten Paket Yükseltme İste</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('menu')}
+                  className="w-full sm:w-auto px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  Menü Yönetimine Dön
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'orders' && <LiveOrders business={business} onNavigatePos={() => setActiveTab('pos')} />}
+              {activeTab === 'pos' && <ManualPos business={business} />}
+              {activeTab === 'menu' && <MenuManager business={business} />}
+              {activeTab === 'tables' && <TableManager business={business} />}
+              {activeTab === 'waiters' && <WaitersManager business={business} />}
+              {activeTab === 'turnover' && <TurnoverReport business={business} />}
+              {activeTab === 'settings' && (
+                <BusinessSettings
+                  business={business}
+                  onUpdate={(updated) => {
+                    setBusiness(updated);
+                    onBusinessUpdate?.(updated);
+                  }}
+                />
+              )}
+              {activeTab === 'support' && <BusinessSupportChat business={business} />}
+            </>
           )}
-          {activeTab === 'support' && <BusinessSupportChat business={business} />}
         </div>
       </main>
     </div>

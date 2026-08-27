@@ -401,38 +401,53 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
             {hasActiveOrders && <OrderStatusTracker orders={activeOrders} />}
 
             {/* Action Bar (Garson, Hesap & Wi-Fi) */}
-            <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
-              <button
-                onClick={() => setServiceModalType('waiter')}
-                className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
-              >
-                <BellRing className="w-4 h-4 text-orange-400 shrink-0" />
-                <span className="truncate">{t.callWaiter}</span>
-              </button>
+            {currentBiz.plan_type !== 'lite' ? (
+              <div className="bg-[#0B0F17] text-white rounded-2xl p-2 flex items-center justify-around shadow-xl border border-slate-800">
+                <button
+                  onClick={() => setServiceModalType('waiter')}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                >
+                  <BellRing className="w-4 h-4 text-orange-400 shrink-0" />
+                  <span className="truncate">{t.callWaiter}</span>
+                </button>
 
-              <div className="w-px h-5 bg-slate-800 mx-1" />
+                <div className="w-px h-5 bg-slate-800 mx-1" />
 
-              <button
-                onClick={() => setServiceModalType('bill')}
-                className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
-              >
-                <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span className="truncate">{t.requestBill}</span>
-              </button>
+                <button
+                  onClick={() => setServiceModalType('bill')}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 px-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-slate-200 hover:text-white transition active:scale-95 text-xs font-bold"
+                >
+                  <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="truncate">{t.requestBill}</span>
+                </button>
 
-              {(currentBiz.wifi_ssid || currentBiz.wifi_password) && (
-                <>
-                  <div className="w-px h-5 bg-slate-800 mx-1" />
+                {(currentBiz.wifi_ssid || currentBiz.wifi_password) && (
+                  <>
+                    <div className="w-px h-5 bg-slate-800 mx-1" />
+                    <button
+                      onClick={() => setServiceModalType('wifi')}
+                      className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-sky-300 hover:text-white transition active:scale-95 text-xs font-bold shrink-0"
+                    >
+                      <Wifi className="w-4 h-4 text-sky-400 shrink-0" />
+                      <span>Wi-Fi</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              (currentBiz.wifi_ssid || currentBiz.wifi_password) && (
+                <div className="bg-[#0B0F17] text-white rounded-2xl p-2.5 flex items-center justify-between shadow-md border border-slate-800">
+                  <span className="text-xs text-slate-300 font-semibold pl-2">Mekan Wi-Fi Ağı</span>
                   <button
                     onClick={() => setServiceModalType('wifi')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-800 text-sky-300 hover:text-white transition active:scale-95 text-xs font-bold shrink-0"
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition active:scale-95 text-xs font-bold shrink-0"
                   >
-                    <Wifi className="w-4 h-4 text-sky-400 shrink-0" />
-                    <span>Wi-Fi</span>
+                    <Wifi className="w-4 h-4 text-white shrink-0" />
+                    <span>Şifreyi Gör</span>
                   </button>
-                </>
-              )}
-            </div>
+                </div>
+              )
+            )}
           </div>
 
           {/* Search Bar */}
