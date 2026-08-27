@@ -1,10 +1,11 @@
 ﻿import React, { useState } from 'react';
 import { 
-  Settings, Palette, Wifi, Phone, Lock, 
-  Check, Save, KeyRound, AlertCircle, Eye, EyeOff
+  Palette, Wifi, Phone, Lock, 
+  Check, Save, KeyRound, AlertCircle, Eye, EyeOff, Image as ImageIcon, Clock, MapPin
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
+import { useToast } from '../../context/ToastContext';
 
 interface BusinessSettingsProps {
   business: Business;
@@ -12,10 +13,14 @@ interface BusinessSettingsProps {
 }
 
 export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, onUpdate }) => {
+  const toast = useToast();
   const [templateId, setTemplateId] = useState<TemplateId>(business.template_id || 'clean');
+  const [logoUrl, setLogoUrl] = useState(business.logo_url || '');
   const [phone, setPhone] = useState(business.phone || '');
   const [address, setAddress] = useState(business.address || '');
-  const [workingHours, setWorkingHours] = useState(business.working_hours || '');
+  
+  // Working Hours State
+  const [workingHours, setWorkingHours] = useState(business.working_hours || '09:00 - 00:00');
   const [wifiSsid, setWifiSsid] = useState(business.wifi_ssid || '');
   const [wifiPassword, setWifiPassword] = useState(business.wifi_password || '');
 
@@ -82,6 +87,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
     try {
       const payload = {
         template_id: templateId,
+        logo_url: logoUrl.trim() || null,
         phone: phone.trim(),
         address: address.trim(),
         working_hours: workingHours.trim(),
@@ -100,7 +106,10 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       if (!error && data) {
         onUpdate(data as Business);
         setSavedSuccess(true);
+        toast.success('İşletme ayarları ve şablon başarıyla kaydedildi!');
         setTimeout(() => setSavedSuccess(false), 2500);
+      } else {
+        toast.error('Ayarlar kaydedilirken bir hata oluştu.');
       }
     } finally {
       setSaving(false);
@@ -114,11 +123,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
 
     if (newPassword.length < 6) {
       setPassError('Yeni şifreniz en az 6 karakter olmalıdır.');
+      toast.warning('Yeni şifreniz en az 6 karakter olmalıdır.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
       setPassError('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
+      toast.error('Girdiğiniz şifreler birbiriyle eşleşmiyor.');
       return;
     }
 
@@ -143,10 +154,12 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         setPassSuccess(true);
         setNewPassword('');
         setConfirmPassword('');
+        toast.success('Giriş şifreniz kalıcı olarak güncellendi!');
         setTimeout(() => setPassSuccess(false), 3000);
       }
     } catch {
       setPassError('Şifre güncellenirken bir hata oluştu.');
+      toast.error('Şifre güncellenirken bir hata oluştu.');
     } finally {
       setSavingPass(false);
     }
@@ -159,7 +172,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div>
           <h2 className="text-base font-bold text-white">İşletme Ayarları & Görsel Tema</h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            QR menü şablonunuzu, iletişim bilgilerinizi ve giriş şifrenizi buradan yönetebilirsiniz.
+            Logonuzu, çalışma saatlerinizi, QR menü temanızı ve giriş şifrenizi buradan yönetebilirsiniz.
           </p>
         </div>
 
@@ -172,6 +185,44 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           {savedSuccess ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
           <span>{savedSuccess ? 'Kaydedildi' : saving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}</span>
         </button>
+      </div>
+
+      {/* Logo & Identity Card */}
+      <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4 text-indigo-400" />
+          <h3 className="font-bold text-xs text-white">İşletme Logosu</h3>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-[#0B0E14] p-4 rounded-2xl border border-[#1E2638]">
+          <div className="w-16 h-16 rounded-2xl bg-[#151C2C] border border-[#212C42] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Logo Önizleme"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <ImageIcon className="w-6 h-6 text-slate-500" />
+            )}
+          </div>
+
+          <div className="flex-1 w-full space-y-1">
+            <label className="block text-[11px] font-medium text-slate-300">
+              Logo Görsel Bağlantısı (URL)
+            </label>
+            <input
+              type="url"
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://... /logo.png (Müşteri menüsünde ve panelde görünür)"
+              className="w-full bg-[#111622] border border-[#1E2638] focus:border-indigo-500/60 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+            />
+          </div>
+        </div>
       </div>
 
       {/* 6 Luxury Themes Selector */}
@@ -226,7 +277,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div className="bg-[#111622] border border-[#1E2638] rounded-2xl p-5 space-y-3.5">
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4 text-indigo-400" />
-            <h3 className="font-bold text-xs text-white">İletişim & Adres</h3>
+            <h3 className="font-bold text-xs text-white">İletişim & Çalışma Saatleri</h3>
           </div>
 
           <div>
@@ -243,6 +294,33 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
           </div>
 
           <div>
+            <label className="block text-[11px] font-medium text-slate-300 mb-1 flex items-center justify-between">
+              <span>Çalışma Saatleri</span>
+              <span className="text-[10px] text-indigo-400 font-semibold">{workingHours}</span>
+            </label>
+            <input
+              type="text"
+              value={workingHours}
+              onChange={(e) => setWorkingHours(e.target.value)}
+              placeholder="09:00 - 00:00 veya 24 Saat Açık"
+              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none mb-1.5"
+            />
+            {/* Quick buttons */}
+            <div className="grid grid-cols-4 gap-1">
+              {['09:00 - 00:00', '08:00 - 22:00', '11:00 - 02:00', '24 Saat Açık'].map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setWorkingHours(h)}
+                  className="py-1 px-1 rounded-lg bg-[#0B0E14] hover:bg-[#182030] text-[10px] text-slate-400 hover:text-slate-200 border border-[#1E2638] transition truncate text-center"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
             <label className="block text-[11px] font-medium text-slate-300 mb-1">
               Adres
             </label>
@@ -252,19 +330,6 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               onChange={(e) => setAddress(e.target.value)}
               placeholder="İşletme açık adresi..."
               className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none resize-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1">
-              Çalışma Saatleri
-            </label>
-            <input
-              type="text"
-              value={workingHours}
-              onChange={(e) => setWorkingHours(e.target.value)}
-              placeholder="08:00 - 00:00"
-              className="w-full bg-[#0B0E14] border border-[#1E2638] focus:border-indigo-500/50 rounded-xl px-3.5 py-2 text-xs text-slate-100 focus:outline-none"
             />
           </div>
         </div>

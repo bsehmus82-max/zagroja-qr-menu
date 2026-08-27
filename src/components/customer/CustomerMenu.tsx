@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, Hand, Banknote, Wifi, Snowflake, 
   Plus, Search, Clock, Sparkles, Check, ChevronRight
@@ -197,8 +197,19 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
       <header className={`sticky top-0 z-30 border-b backdrop-blur-xl px-4 py-3 ${theme.headerBg}`}>
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
-              {business.name.charAt(0)}
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md overflow-hidden shrink-0">
+              {business.logo_url ? (
+                <img
+                  src={business.logo_url}
+                  alt={business.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                business.name.charAt(0)
+              )}
             </div>
             <div>
               <h1 className="font-bold text-xs tracking-tight text-white">{business.name}</h1>
