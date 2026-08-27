@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RefreshCw, QrCode } from 'lucide-react';
 import { Business } from './types';
 import { supabase } from './lib/supabase';
@@ -13,12 +13,20 @@ export default function App() {
   
   // Super Admin state
   const [isSuperAdminAuth, setIsSuperAdminAuth] = useState(
-    () => sessionStorage.getItem('zagroja_superadmin_auth') === 'true' || localStorage.getItem('zagroja_superadmin_auth') === 'true'
+    () => 
+      sessionStorage.getItem('restiva_sa_auth') === 'true' || 
+      localStorage.getItem('restiva_sa_auth') === 'true' ||
+      sessionStorage.getItem('zagroja_superadmin_auth') === 'true' || 
+      localStorage.getItem('zagroja_superadmin_auth') === 'true'
   );
 
   // Business Admin state
   const [activeBusiness, setActiveBusiness] = useState<Business | null>(() => {
-    const raw = sessionStorage.getItem('zagroja_business_data') || localStorage.getItem('zagroja_business_data');
+    const raw = 
+      sessionStorage.getItem('restiva_biz_session') || 
+      localStorage.getItem('restiva_biz_session') ||
+      sessionStorage.getItem('zagroja_business_data') || 
+      localStorage.getItem('zagroja_business_data');
     return raw ? JSON.parse(raw) : null;
   });
 
@@ -33,6 +41,10 @@ export default function App() {
     if (!activeBusiness?.id) return;
 
     const wipeSession = () => {
+      sessionStorage.removeItem('restiva_biz_id');
+      sessionStorage.removeItem('restiva_biz_session');
+      localStorage.removeItem('restiva_biz_id');
+      localStorage.removeItem('restiva_biz_session');
       sessionStorage.removeItem('zagroja_business_id');
       sessionStorage.removeItem('zagroja_business_data');
       localStorage.removeItem('zagroja_business_id');
@@ -59,8 +71,8 @@ export default function App() {
         }
 
         setActiveBusiness(biz);
-        sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
-        localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+        sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
+        localStorage.setItem('restiva_biz_session', JSON.stringify(biz));
       });
 
     // 2. Realtime listener: If deleted, suspended or updated in SuperAdmin
@@ -83,8 +95,8 @@ export default function App() {
               wipeSession();
             } else {
               setActiveBusiness(updated);
-              sessionStorage.setItem('zagroja_business_data', JSON.stringify(updated));
-              localStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+              sessionStorage.setItem('restiva_biz_session', JSON.stringify(updated));
+              localStorage.setItem('restiva_biz_session', JSON.stringify(updated));
             }
           }
         }
@@ -165,8 +177,8 @@ export default function App() {
       return (
         <SuperAdminLogin
           onSuccess={() => {
-            sessionStorage.setItem('zagroja_superadmin_auth', 'true');
-            localStorage.setItem('zagroja_superadmin_auth', 'true');
+            sessionStorage.setItem('restiva_sa_auth', 'true');
+            localStorage.setItem('restiva_sa_auth', 'true');
             setIsSuperAdminAuth(true);
           }}
         />
@@ -175,6 +187,8 @@ export default function App() {
     return (
       <SuperAdminDashboard
         onLogout={() => {
+          sessionStorage.removeItem('restiva_sa_auth');
+          localStorage.removeItem('restiva_sa_auth');
           sessionStorage.removeItem('zagroja_superadmin_auth');
           localStorage.removeItem('zagroja_superadmin_auth');
           setIsSuperAdminAuth(false);
@@ -217,10 +231,10 @@ export default function App() {
     return (
       <BusinessLogin
         onSuccess={(biz) => {
-          sessionStorage.setItem('zagroja_business_id', biz.id);
-          sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
-          localStorage.setItem('zagroja_business_id', biz.id);
-          localStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+          sessionStorage.setItem('restiva_biz_id', biz.id);
+          sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
+          localStorage.setItem('restiva_biz_id', biz.id);
+          localStorage.setItem('restiva_biz_session', JSON.stringify(biz));
           setActiveBusiness(biz);
         }}
       />
@@ -232,10 +246,14 @@ export default function App() {
       initialBusiness={activeBusiness}
       onBusinessUpdate={(updated) => {
         setActiveBusiness(updated);
-        sessionStorage.setItem('zagroja_business_data', JSON.stringify(updated));
-        localStorage.setItem('zagroja_business_data', JSON.stringify(updated));
+        sessionStorage.setItem('restiva_biz_session', JSON.stringify(updated));
+        localStorage.setItem('restiva_biz_session', JSON.stringify(updated));
       }}
       onLogout={() => {
+        sessionStorage.removeItem('restiva_biz_id');
+        sessionStorage.removeItem('restiva_biz_session');
+        localStorage.removeItem('restiva_biz_id');
+        localStorage.removeItem('restiva_biz_session');
         sessionStorage.removeItem('zagroja_business_id');
         sessionStorage.removeItem('zagroja_business_data');
         localStorage.removeItem('zagroja_business_id');

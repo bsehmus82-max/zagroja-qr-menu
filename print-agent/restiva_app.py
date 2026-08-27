@@ -3,7 +3,7 @@
 RESTIVA ADİSYON - MASAÜSTÜ TERMAL YAZICI UYGULAMASI (.EXE)
 - Windows RAW Spooler (ESC/POS) + CP857 Türkçe Karakter Seti + Otomatik Kağıt Kesme (\x1d\x56\x00)
 - Supabase Realtime WebSocket Dinleyicisi (Sıfır gecikmeli anlık bildirim ve yazdırma)
-- PowerShell Bağımlılığı Olmayan Saf Donanım Sinyali
+- Otomatik Bağlantı Kurtarma & Kaçırılan Siparişleri Senkronize Etme (Catch-up Sync)
 """
 
 import sys
@@ -64,23 +64,6 @@ def save_printed_cache():
 def get_installed_printers():
     printers = ["(Varsayılan Windows Yazıcısı)"]
     try:
-        winspool = ctypes.WinDLL("winspool.drv")
-        flags = 2 | 4 # PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS
-        needed = wintypes.DWORD(0)
-        returned = wintypes.DWORD(0)
-        winspool.EnumPrintersW(flags, None, 2, None, 0, ctypes.byref(needed), ctypes.byref(returned))
-        if needed.value > 0:
-            buf = (ctypes.c_byte * needed.value)()
-            if winspool.EnumPrintersW(flags, None, 2, buf, needed.value, ctypes.byref(needed), ctypes.byref(returned)):
-                class PRINTER_INFO_2W(ctypes.Structure):
-                    _fields_ = [("pServerName", wintypes.LPWSTR), ("pPrinterName", wintypes.LPWSTR)]
-                # Parse printer names
-                pass
-    except Exception:
-        pass
-    
-    # Fallback to wmic / powershell lookup for full printer names list
-    try:
         import subprocess
         cmd = 'powershell "Get-Printer | Select-Object -ExpandProperty Name"'
         out = subprocess.check_output(cmd, shell=True, text=True)
@@ -106,10 +89,6 @@ def get_default_printer_name():
     return None
 
 def send_raw_escpos(printer_name, raw_bytes):
-    """
-    Sends pure RAW ESC/POS byte commands directly to Windows Spooler
-    without any printer dialogs or PowerShell dependencies.
-    """
     target_printer = printer_name
     if not target_printer or target_printer == "(Varsayılan Windows Yazıcısı)":
         target_printer = get_default_printer_name()
@@ -139,13 +118,6 @@ def send_raw_escpos(printer_name, raw_bytes):
     return True, "Success"
 
 def build_escpos_ticket(b_name, b_phone, table_no, order_id, items, total, notes, source="QR Menü"):
-    """
-    Generates ESC/POS thermal ticket bytes with:
-    - Code Page CP857 (Turkish)
-    - Double-height table header
-    - Formatted 32-column item grid
-    - Auto-Cut Paper command (\x1d\x56\x00)
-    """
     time_str = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
     buf = bytearray()
     
@@ -219,7 +191,7 @@ def build_escpos_ticket(b_name, b_phone, table_no, order_id, items, total, notes
 class RestivaApp(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Restiva Adisyon - 7/24 Otomatik Termal Yazıcı v2.0")
+        self.title("Restiva Adisyon - 7/24 Otomatik Termal Yazıcı v2.1")
         self.geometry("660x620")
         self.minsize(600, 540)
         self.configure(bg="#0F172A")
@@ -235,7 +207,6 @@ class RestivaApp(tk.Tk):
         self.fetch_businesses()
         
     def build_ui(self):
-        # Header Banner
         header = tk.Frame(self, bg="#1E293B", pady=12, padx=16)
         header.pack(fill="x")
         
@@ -249,18 +220,15 @@ class RestivaApp(tk.Tk):
         )
         lbl_sub.pack(anchor="w")
         
-        # Form Container
         card = tk.Frame(self, bg="#1E293B", padx=16, pady=14)
         card.pack(fill="x", padx=16, pady=10)
         
-        # Business Selection
         tk.Label(card, text="İşletme Seçiniz veya Bağlantı Kodu Giriniz:", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
         
         self.biz_var = tk.StringVar()
         self.biz_combo = ttk.Combobox(card, textvariable=self.biz_var, font=("Arial", 10))
         self.biz_combo.pack(fill="x", pady=(4, 10))
         
-        # Printer Selection
         tk.Label(card, text="Termal Fiş Yazıcısı (RAW ESC/POS):", font=("Arial", 10, "bold"), fg="#E2E8F0", bg="#1E293B").pack(anchor="w")
         
         self.printer_var = tk.StringVar()
@@ -270,7 +238,6 @@ class RestivaApp(tk.Tk):
             self.printer_combo.current(0)
         self.printer_combo.pack(fill="x", pady=(4, 14))
         
-        # Action Buttons Row
         btn_row = tk.Frame(card, bg="#1E293B")
         btn_row.pack(fill="x")
         
@@ -288,11 +255,9 @@ class RestivaApp(tk.Tk):
         )
         btn_test.pack(side="left")
         
-        # Status Label
         self.lbl_status = tk.Label(self, text="● Servis Durumu: Durduruldu", font=("Arial", 10, "bold"), fg="#EF4444", bg="#0F172A")
         self.lbl_status.pack(anchor="w", padx=18, pady=(4, 4))
         
-        # Live Orders Log Window
         log_frame = tk.Frame(self, bg="#0F172A", padx=16, pady=4)
         log_frame.pack(fill="both", expand=True)
         
@@ -300,7 +265,7 @@ class RestivaApp(tk.Tk):
         
         self.log_text = tk.Text(log_frame, bg="#020617", fg="#38BDF8", font=("Consolas", 9), relief="flat", padx=8, pady=8)
         self.log_text.pack(fill="both", expand=True, pady=(4, 12))
-        self.log("Restiva Realtime Adisyon Motoru v2.0 Başlatıldı.")
+        self.log("Restiva Realtime Adisyon Motoru v2.1 Başlatıldı.")
 
     def log(self, msg):
         ts = datetime.now().strftime("%H:%M:%S")
@@ -322,6 +287,55 @@ class RestivaApp(tk.Tk):
             except Exception as e:
                 self.log(f"İşletmeler çekilemedi: {e}")
         threading.Thread(target=_fetch, daemon=True).start()
+
+    def sync_missed_orders(self):
+        """
+        Reconnect Catch-up: Queries Supabase for any unprinted pending orders during offline periods.
+        """
+        try:
+            b_id = self.selected_business["id"]
+            b_name = self.selected_business["name"]
+            b_phone = self.selected_business.get("phone", "")
+            headers = {"apikey": SUPABASE_ANON_KEY, "Authorization": f"Bearer {SUPABASE_ANON_KEY}"}
+            url = f"{SUPABASE_URL}/rest/v1/orders?business_id=eq.{b_id}&status=eq.pending&order=created_at.desc&limit=15"
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req) as resp:
+                orders = json.loads(resp.read().decode("utf-8"))
+                unprinted = [o for o in reversed(orders) if o["id"] not in PRINTED_ORDERS]
+                if unprinted:
+                    self.log(f"⚡ [SENKRONİZASYON] Kesinti sonrası {len(unprinted)} adet bekleyen sipariş yakalandı!")
+                    for order in unprinted:
+                        order_id = order["id"]
+                        PRINTED_ORDERS.add(order_id)
+                        save_printed_cache()
+                        
+                        t_no = order.get("table_no", "MASA")
+                        tot = float(order.get("total_amount", 0.0))
+                        self.log(f"-> Yazdırılıyor: {t_no} ({tot:.2f} TL)")
+                        
+                        if HAS_WINSOUND:
+                            try:
+                                winsound.Beep(1400, 250)
+                                time.sleep(0.08)
+                                winsound.Beep(1800, 350)
+                            except Exception:
+                                pass
+                                
+                        raw_bytes = build_escpos_ticket(
+                            b_name=b_name,
+                            b_phone=b_phone,
+                            table_no=t_no,
+                            order_id=order_id,
+                            items=order.get("items", []),
+                            total=tot,
+                            notes=order.get("customer_notes", ""),
+                            source="QR Menü" if order.get("order_source") == "qr" else "POS"
+                        )
+                        
+                        printer = self.printer_var.get()
+                        send_raw_escpos(printer, raw_bytes)
+        except Exception as e:
+            self.log(f"Senkronizasyon uyarısı: {e}")
 
     def print_test_ticket(self):
         printer = self.printer_var.get()
@@ -385,6 +399,9 @@ class RestivaApp(tk.Tk):
                 
                 def on_open(ws):
                     self.log("WebSocket bağlantısı kuruldu. Realtime kanalına abone olunuyor...")
+                    # Run catch-up on connect/reconnect
+                    self.sync_missed_orders()
+                    
                     join_payload = {
                         "topic": "realtime:public:orders",
                         "event": "phx_join",
@@ -410,7 +427,6 @@ class RestivaApp(tk.Tk):
                             order_biz_id = record.get("business_id")
                             order_id = record.get("id")
                             
-                            # Filter for this business and avoid double printing
                             if order_biz_id == b_id and order_id and order_id not in PRINTED_ORDERS:
                                 PRINTED_ORDERS.add(order_id)
                                 save_printed_cache()
@@ -452,7 +468,7 @@ class RestivaApp(tk.Tk):
                     self.log(f"WebSocket Uyarısı: {error}")
 
                 def on_close(ws, close_status_code, close_msg):
-                    self.log("WebSocket bağlantısı kapandı.")
+                    self.log("WebSocket bağlantısı kapandı. 3 sn içinde yeniden bağlanılacak...")
 
                 self.ws = websocket.WebSocketApp(
                     WS_URL,
@@ -462,7 +478,6 @@ class RestivaApp(tk.Tk):
                     on_close=on_close
                 )
                 
-                # Heartbeat thread
                 def _heartbeat():
                     while self.is_running and self.ws and self.ws.sock and self.ws.sock.connected:
                         try:

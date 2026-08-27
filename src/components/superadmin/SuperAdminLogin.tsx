@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Shield, Lock, KeyRound, AlertCircle, ArrowRight } from 'lucide-react';
 import { hashPassword } from '../../lib/supabase';
 
@@ -25,8 +25,8 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
       const isSecurePass = cleanPass === 'Zagroja#Master$2026!HQ' || cleanPass === 'ZagrojaHQ2026!';
 
       if (isMasterUser && isSecurePass) {
-        sessionStorage.setItem('zagroja_superadmin_auth', 'true');
-        sessionStorage.setItem('zagroja_superadmin_user', cleanUser);
+        sessionStorage.setItem('restiva_sa_auth', 'true');
+        sessionStorage.setItem('restiva_sa_user', cleanUser);
         onSuccess();
       } else {
         setError('Yetkili kullanıcı adı veya şifre geçersiz.');

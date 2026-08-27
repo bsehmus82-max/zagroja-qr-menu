@@ -242,3 +242,38 @@ BEGIN
     RETURN v_new_order;
 END;
 $$;
+
+-- ============================================================
+-- 9. ROW LEVEL SECURITY (RLS) SIKILASTIRMASI (ORDERS ISOLATION)
+-- ============================================================
+
+-- Orders tablosunda RLS aktif
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+-- Eski politikalari temizle
+DROP POLICY IF EXISTS "Deny direct anon order inserts" ON public.orders;
+DROP POLICY IF EXISTS "Allow select orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow update order status" ON public.orders;
+
+-- 1. Okuma Politikasi: Müşteri siparis takibi ve Isletme paneli icin SELECT serbest
+CREATE POLICY "Allow select orders" 
+ON public.orders 
+FOR SELECT 
+USING (true);
+
+-- 2. Dogrudan INSERT Engeli: orders tablosuna anon/authenticated dogrudan INSERT yapamaz!
+-- Siparis yalnizca SECURITY DEFINER olarak calisan create_customer_order() RPC uzerinden olusturulur.
+CREATE POLICY "Deny direct anon order inserts" 
+ON public.orders 
+FOR INSERT 
+WITH CHECK (false);
+
+-- 3. Guncelleme Politikasi: Isletme paneli siparis durumunu (preparing, served, paid) guncelleyebilir
+CREATE POLICY "Allow update order status" 
+ON public.orders 
+FOR UPDATE 
+USING (true)
+WITH CHECK (true);
+
+-- RPC Fonksiyon Calistirma Yetkisi
+GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;

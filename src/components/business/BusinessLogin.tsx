@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Lock, User, AlertCircle, ArrowRight } from 'lucide-react';
 import { supabase, hashPassword } from '../../lib/supabase';
 import { Business } from '../../types';
@@ -46,8 +46,8 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
         return;
       }
 
-      sessionStorage.setItem('zagroja_business_id', biz.id);
-      sessionStorage.setItem('zagroja_business_data', JSON.stringify(biz));
+      sessionStorage.setItem('restiva_biz_id', biz.id);
+      sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
       onSuccess(biz);
     } catch {
       setError('Giriş yapılırken bir hata oluştu.');

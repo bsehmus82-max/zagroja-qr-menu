@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
   Hand, Banknote, RefreshCw, Volume2, CreditCard,
@@ -131,8 +131,17 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
       )
       .subscribe();
 
+    const handleSync = () => {
+      loadData();
+    };
+
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('online', handleSync);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('online', handleSync);
     };
   }, [business.id, isSoundActive]);
 

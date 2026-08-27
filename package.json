@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "desktop:app": "python desktop-app/restiva_pos_app.py",
+    "desktop:build": "python -m PyInstaller --noconfirm --onefile --windowed --name RestivaPOS desktop-app/restiva_pos_app.py",
+    "tauri:dev": "cargo tauri dev",
+    "tauri:build": "cargo tauri build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
