@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Lock, Unlock, Search, Plus, Minus, Trash2, 
   Send, QrCode, AlertTriangle, RefreshCw, CheckCircle2, 
@@ -52,6 +52,34 @@ export const WaiterApp: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [lockoutUntil]);
+
+  // Check device validity on mount
+  useEffect(() => {
+    if (!deviceToken) return;
+
+    const verifyDevice = async () => {
+      try {
+        const { data, error } = await supabase.rpc('check_device_pairing_status', {
+          p_device_token: deviceToken,
+        });
+
+        if (error || !data || data.status !== 'approved' || !data.is_trusted) {
+          localStorage.removeItem('restiva_waiter_device_token');
+          setDeviceToken(null);
+          toast.error('Bu cihazın işletme yetkisi onaylanmamış veya kaldırılmış.');
+        } else {
+          if (data.business_id && data.business_id !== businessId) {
+            setBusinessId(data.business_id);
+            localStorage.setItem('restiva_waiter_biz_id', data.business_id);
+          }
+        }
+      } catch {
+        // Fallback network failure
+      }
+    };
+
+    verifyDevice();
+  }, [deviceToken]);
 
   // Load business & data if device token exists
   useEffect(() => {
@@ -237,19 +265,22 @@ export const WaiterApp: React.FC = () => {
   // 1. UNPAIRED DEVICE SCREEN
   if (!deviceToken || !businessId) {
     return (
-      <div className="min-h-screen bg-[#090C10] flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
-        <div className="w-full max-w-sm bg-[#12161F] border border-[#212634] rounded-3xl p-7 shadow-2xl text-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 text-amber-400 mx-auto flex items-center justify-center border border-amber-500/20">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
+        <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center shadow-lg">
             <Lock className="w-8 h-8" />
           </div>
-          <h2 className="text-base font-black text-white">Cihaz Eşlenmemiş</h2>
-          <p className="text-xs text-slate-400">
-            Bu terminal henüz bir işletmeyle eşlenmemiştir. Lütfen kasadaki yetkili panelinden 
-            <strong className="text-indigo-400"> "Yeni Cihaz Eşle (QR)"</strong> kodunu telefonunuzla okutunuz.
+          <h2 className="text-base font-black text-white">Cihaz Yetkisi Bulunamadı</h2>
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Bu telefon henüz işletme kasasıyla eşlenmemiştir. Lütfen kasadaki yetkili panelinden 
+            <strong className="text-indigo-400"> "Garson Eşleme QR Kodu"</strong>nu okutunuz.
           </p>
-          <div className="p-3 bg-[#090C10] rounded-2xl border border-[#212634] text-[11px] text-slate-500">
-            QR okutulduktan sonra bu cihaz otomatik olarak işletmeye kilitlenecektir.
-          </div>
+          <a
+            href="/pair-waiter"
+            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition block"
+          >
+            <span>Eşleme Talebi Ekranına Git</span>
+          </a>
         </div>
       </div>
     );
@@ -258,55 +289,55 @@ export const WaiterApp: React.FC = () => {
   // 2. PIN AUTH SCREEN (LOCKED)
   if (!activeWaiter) {
     return (
-      <div className="min-h-screen bg-[#090C10] flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
-        <div className="w-full max-w-sm bg-[#12161F] border border-[#212634] rounded-3xl p-6 shadow-2xl text-center space-y-5">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
+        <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
           <div className="flex items-center justify-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-[11px] font-bold border border-emerald-500/20">
-              <ShieldCheck className="w-3.5 h-3.5" /> Güvenli Garson Terminali
+              <ShieldCheck className="w-3.5 h-3.5" /> Onaylı Garson Terminali
             </span>
           </div>
 
           <div>
-            <h2 className="text-lg font-black text-white">{business?.name || 'Restiva Adisyon'}</h2>
-            <p className="text-xs text-slate-400 mt-1">Lütfen kişisel PIN kodunuzu giriniz</p>
+            <h2 className="text-base font-black text-white">{business?.name || 'Restiva Adisyon'}</h2>
+            <p className="text-xs text-slate-400 mt-0.5">Lütfen 4 haneli PIN kodunuzu giriniz</p>
           </div>
 
           {/* Lockout Warning */}
           {lockoutUntil && Date.now() < lockoutUntil ? (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center space-y-1 animate-pulse">
-              <AlertTriangle className="w-6 h-6 text-red-400 mx-auto" />
-              <p className="text-xs font-bold text-red-400">Terminal Kilitlendi!</p>
+            <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-center space-y-1 animate-pulse">
+              <AlertTriangle className="w-6 h-6 text-rose-400 mx-auto" />
+              <p className="text-xs font-bold text-rose-400">Terminal Kilitlendi!</p>
               <p className="text-[11px] text-slate-400">Kalan Süre: {lockTimeLeft} saniye</p>
             </div>
           ) : (
             <>
               {/* PIN Dots Display */}
-              <div className="flex justify-center items-center gap-3 py-2">
+              <div className="flex justify-center items-center gap-3 py-1">
                 {[0, 1, 2, 3].map((idx) => (
                   <div
                     key={idx}
-                    className={`w-4 h-4 rounded-full transition-all duration-200 ${
+                    className={`w-3.5 h-3.5 rounded-full transition-all duration-200 ${
                       pin.length > idx
                         ? 'bg-indigo-500 scale-110 shadow-lg shadow-indigo-500/50'
-                        : 'bg-[#212634] border border-slate-700'
+                        : 'bg-slate-800 border border-slate-700'
                     }`}
                   />
                 ))}
               </div>
 
               {/* Numeric Keypad */}
-              <div className="grid grid-cols-3 gap-2.5 max-w-xs mx-auto pt-2">
+              <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto pt-1">
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', 'DEL'].map((val) => (
                   <button
                     key={val}
                     disabled={isVerifyingPin}
                     onClick={() => handleKeypadPress(val)}
-                    className={`h-14 rounded-2xl font-extrabold text-base transition-all active:scale-95 flex items-center justify-center ${
+                    className={`h-12 rounded-2xl font-extrabold text-sm transition-all active:scale-95 flex items-center justify-center ${
                       val === 'C'
-                        ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 text-xs'
+                        ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/20 text-xs'
                         : val === 'DEL'
-                        ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 text-xs'
-                        : 'bg-[#090C10] text-white hover:bg-slate-800 border border-[#212634] hover:border-slate-700 shadow-sm'
+                        ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 text-xs'
+                        : 'bg-slate-950 text-white hover:bg-slate-800 border border-slate-800 hover:border-slate-700 shadow-sm'
                     }`}
                   >
                     {val}
@@ -316,8 +347,17 @@ export const WaiterApp: React.FC = () => {
             </>
           )}
 
-          <div className="text-[10px] text-slate-600">
-            3 hatalı denemede cihaz 5 dakika kilitlenir.
+          <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-500">
+            <span>3 hatalı denemede 5 dk kilit</span>
+            <button
+              onClick={() => {
+                localStorage.removeItem('restiva_waiter_device_token');
+                setDeviceToken(null);
+              }}
+              className="text-slate-400 hover:text-slate-200 underline"
+            >
+              Yeniden Eşle
+            </button>
           </div>
         </div>
       </div>

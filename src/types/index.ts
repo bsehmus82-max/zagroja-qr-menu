@@ -103,6 +103,7 @@ export interface WaiterDevice {
   waiter_id?: string;
   device_token: string;
   device_name: string;
+  status?: 'pending' | 'approved' | 'rejected';
   pairing_token?: string;
   pairing_expires_at?: string;
   is_trusted: boolean;
