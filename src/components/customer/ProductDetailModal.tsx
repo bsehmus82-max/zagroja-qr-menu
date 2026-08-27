@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Plus, Minus, Check, Snowflake, ShoppingBag, X } from 'lucide-react';
 import { Product } from '../../types';
 import { Language, translations, getTranslatedDescription, getCategoryTitle } from '../../lib/translations';
@@ -31,6 +31,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const translatedDesc = getTranslatedDescription(product.description, lang);
   const translatedCatName = categoryName ? getCategoryTitle(categoryName, lang) : '';
   const photoUrl =
+    product.image_url ||
     categoryImage ||
     'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
 

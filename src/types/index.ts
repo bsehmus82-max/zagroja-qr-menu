@@ -48,6 +48,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  image_url?: string;
   is_frozen: boolean;
   is_active: boolean;
   order_index: number;

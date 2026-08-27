@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Edit3, 
   ChevronLeft, ChevronRight, Check, X,
   Eye, EyeOff, Layers, Sparkles, Smartphone, ArrowRight,
-  RotateCcw
+  RotateCcw, Image as ImageIcon
 } from 'lucide-react';
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -11,6 +11,7 @@ import { DEFAULT_CATEGORIES } from '../../data/defaultCatalog';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { CustomerMenu } from '../customer/CustomerMenu';
+import { FoodImagePickerModal } from './FoodImagePickerModal';
 
 interface MenuManagerProps {
   business: Business;
@@ -28,6 +29,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   // Live Phone Preview Toggle
   const [showLivePreview, setShowLivePreview] = useState(false);
 
+  // Food Image Inventory Picker Modal
+  const [showImagePickerModal, setShowImagePickerModal] = useState(false);
+  const [imagePickerTarget, setImagePickerTarget] = useState<'new' | 'edit'>('new');
+
   // Modals
   const [showCategoryManagerModal, setShowCategoryManagerModal] = useState(false);
   const [showEditProductModal, setShowEditProductModal] = useState(false);
@@ -37,6 +42,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const [newProdName, setNewProdName] = useState('');
   const [newProdDesc, setNewProdDesc] = useState('');
   const [newProdPrice, setNewProdPrice] = useState<number | ''>('');
+  const [newProdImageUrl, setNewProdImageUrl] = useState('');
 
   // Confirm Modal
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -142,6 +148,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               description: editingProduct.description?.trim() || '',
               price: updatedPrice,
               category_id: editingProduct.category_id,
+              image_url: editingProduct.image_url?.trim() || undefined,
             }
           : p
       )
@@ -156,6 +163,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         description: editingProduct.description?.trim() || '',
         price: updatedPrice,
         category_id: editingProduct.category_id,
+        image_url: editingProduct.image_url?.trim() || null,
       })
       .eq('id', editingProduct.id);
 
@@ -178,6 +186,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       name: newProdName.trim(),
       description: newProdDesc.trim(),
       price: Number(newProdPrice),
+      image_url: newProdImageUrl.trim() || null,
       is_frozen: false,
       is_active: true,
       order_index: products.filter((p) => p.category_id === selectedCatId).length,
@@ -194,6 +203,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       setNewProdName('');
       setNewProdDesc('');
       setNewProdPrice('');
+      setNewProdImageUrl('');
       setShowAddProdModal(false);
       toast.success(`${payload.name} menüye eklendi.`);
     } else {
@@ -528,9 +538,33 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                         : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
                     }`}
                   >
-                    {/* Top Row: Name, Price & Action Buttons */}
+                    {/* Top Row: Thumbnail + Name, Price & Action Buttons */}
                     <div>
-                      <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* Food Thumbnail with Change Photo Button */}
+                        <div
+                          onClick={() => {
+                            setEditingProduct(prod);
+                            setImagePickerTarget('edit');
+                            setShowImagePickerModal(true);
+                          }}
+                          className="w-14 h-14 min-w-[56px] min-h-[56px] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative group/img cursor-pointer shadow-xs"
+                          title="Fotoğrafı Değiştir"
+                        >
+                          <img
+                            src={
+                              prod.image_url ||
+                              selectedCategory?.image_url ||
+                              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                            }
+                            alt={prod.name}
+                            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold">
+                            Değiştir
+                          </div>
+                        </div>
+
                         <div className="flex-1 min-w-0">
                           <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
                             {prod.name}
@@ -540,6 +574,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                           }`}>
                             {prod.price.toFixed(2)} ₺
                           </span>
+                          {prod.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                              {prod.description}
+                            </p>
+                          )}
                         </div>
 
                         {/* Edit & Delete Buttons */}
@@ -560,12 +599,6 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                           </button>
                         </div>
                       </div>
-
-                      {prod.description && (
-                        <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
-                          {prod.description}
-                        </p>
-                      )}
                     </div>
 
                     {/* Bottom Row: Pure Text "Tükendi Olarak İşaretle" / "Satışa Aç" Button */}
@@ -780,6 +813,47 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 </select>
               </div>
 
+              {/* Product Photo Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Görseli</label>
+                <div className="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300 relative">
+                    <img
+                      src={
+                        editingProduct.image_url ||
+                        categories.find((c) => c.id === editingProduct.category_id)?.image_url ||
+                        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                      }
+                      alt={editingProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePickerTarget('edit');
+                        setShowImagePickerModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Hazır Lezzet Galerisinden Seç / Yükle</span>
+                    </button>
+                    {editingProduct.image_url && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingProduct({ ...editingProduct, image_url: undefined })}
+                        className="text-[10px] text-red-600 hover:underline block font-semibold"
+                      >
+                        Özel Fotoğrafı Kaldır
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Malzeme & Servis Açıklaması
@@ -858,6 +932,47 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 />
               </div>
 
+              {/* Product Photo Picker */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Görseli</label>
+                <div className="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300 relative">
+                    <img
+                      src={
+                        newProdImageUrl ||
+                        selectedCategory?.image_url ||
+                        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                      }
+                      alt="Yeni Ürün"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePickerTarget('new');
+                        setShowImagePickerModal(true);
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
+                      <span>Hazır Lezzet Galerisinden Seç / Yükle</span>
+                    </button>
+                    {newProdImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setNewProdImageUrl('')}
+                        className="text-[10px] text-red-600 hover:underline block font-semibold"
+                      >
+                        Görseli Temizle
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Malzeme & Servis Açıklaması
@@ -890,6 +1005,20 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
           </div>
         </div>
       )}
+
+      {/* FOOD IMAGE GALLERY & INVENTORY PICKER MODAL */}
+      <FoodImagePickerModal
+        isOpen={showImagePickerModal}
+        currentImageUrl={imagePickerTarget === 'new' ? newProdImageUrl : editingProduct?.image_url}
+        onClose={() => setShowImagePickerModal(false)}
+        onSelectImage={(url) => {
+          if (imagePickerTarget === 'new') {
+            setNewProdImageUrl(url);
+          } else if (editingProduct) {
+            setEditingProduct({ ...editingProduct, image_url: url });
+          }
+        }}
+      />
     </div>
   );
 };

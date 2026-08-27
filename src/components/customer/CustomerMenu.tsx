@@ -535,6 +535,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                         <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-slate-100 border border-slate-200/60 shadow-xs">
                           <img
                             src={
+                              prod.image_url ||
                               catImg ||
                               'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
                             }
