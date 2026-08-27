@@ -1,34 +1,40 @@
 ================================================================================
-                    RESTIVADISYON - HIZLI KURULUM & BAŞLANGIÇ NOTU
+                    RESTIVADISYON POS & ADISYON SİSTEMİ
+                      KURULUM VE KULLANIM TALİMATLARI
 ================================================================================
 
-RestivAdisyon Bağımsız Masaüstü POS ve Otomatik Termal Fiş Yazıcı Sistemine Hoş Geldiniz.
-Bu yazılım hiçbir harici web sitesine bağımlı olmadan, gömülü yerel arayüzü ve 
-arka plan ESC/POS motoruyla çalışmaktadır.
-
+1. KURULUM SİHİRBAZI İLE TEK TIKLA YÜKLEME
 --------------------------------------------------------------------------------
-DÖRT ADIMDA HIZLI BAŞLANGIÇ REHBERİ:
+- "RestivAdisyon_Kurulum.exe" dosyasını çift tıklayarak çalıştırınız.
+- Açılan Türkçe Kurulum Sihirbazı'nda:
+    * Hedef Kurulum Konumu (Hangi diske/klasöre kurulacağını seçebilirsiniz)
+    * Masaüstü Kısayolu Oluşturma seçeneği
+    * Başlat Menüsü ve Otomatik Başlangıç tercihlerini belirleyiniz.
+- "Kurulumu Başlat" butonuna basarak yüklemeyi tamamlayınız.
+- Kurulum bittikten sonra Masaüstünüzde resmi logolu "RestivAdisyon" kısayolu 
+  otomatik olarak hazır olacaktır. Kurulum dosyasını silebilir veya saklayabilirsiniz.
+
+2. DOĞRUDAN TAŞINABİLİR (PORTABLE) ÇALIŞTIRMA
 --------------------------------------------------------------------------------
+- Dilerseniz "RestivAdisyon.exe" dosyasını herhangi bir kurulum yapmadan doğrudan 
+  çift tıklayarak USB bellekten veya klasörden çalıştırabilirsiniz.
 
-1. Adım: RestivAdisyon.exe'yi çalıştırın ve işletme kullanıcı adı/şifrenizle giriş yapın.
-   - Program açıldığında yerel arayüz yüklenir.
-   - Size iletilen işletme kullanıcı adı ve şifrenizle panele erişebilirsiniz.
-
-2. Adım: Windows Varsayılan Yazıcınızın bağlı olduğunu kontrol edin, Ayarlar menüsünden "Test Fişi Bas" ile doğrulayın.
-   - Termal yazıcınızın (80mm veya 58mm) USB kablosunun takılı ve Windows'ta "Varsayılan Yazıcı" olarak seçili olduğundan emin olun.
-   - "İşletme Ayarları" sekmesine giderek "Test Fişi Bas" butonuna tıklayın; yazıcınızdan Türkçe karakterli otomatik test fişi dökülecektir.
-
-3. Adım: Garson telefonundan PWA üzerinden gelen bağlantı taleplerini "Garson Yönetimi" sekmesinden onaylayın.
-   - Garsonlar kasadaki "Garson Eşleme QR Kodu"nu kendi telefon kameralarıyla okutur.
-   - Kasa ekranındaki "Garsonlar & Terminaller" sekmesinde talep canlı olarak görünür. "Yetkiyi Onayla" butonuna bastığınız anda personelin telefonu anında sipariş terminaline dönüşür.
-
-4. Adım: Tarayıcı üzerinden acil durum / tablet erişim adresi:
-   - https://restivadisyon.org/admin
-   - Masaüstü programı kapalı olsa veya tablet/telefon üzerinden erişmek istediğinizde bu adresi kullanabilirsiniz.
-
+3. RESMİ KULLANIM KILAVUZU
 --------------------------------------------------------------------------------
-SİSTEM BİLGİSİ & TEKNİK DESTEK:
-- Geliştirici & Platform: RestivAdisyon
-- Fiş Kod Sayfası: CP857 (Türkçe)
-- Otomatik Kağıt Kesme: GS V 0 Destekli
+- "RestivaAdisyon_Kilavuzu.pdf" dosyasını açarak:
+    * Süper Admin Giriş Bilgileri ve Yönetim Paneli
+    * Kasa POS & Canlı Masa Takibi
+    * Garson Çağrısı ve QR Menü Entegrasyonu
+    * Termal Yazıcı (58mm/80mm ESC/POS) Ayarları
+  gibi tüm adımları resimli ve detaylı olarak inceleyebilirsiniz.
+
+4. UYGULAMAYI BİLGİSAYARDAN KALDIRMA (UNINSTALL)
+--------------------------------------------------------------------------------
+- Uygulamayı kaldırmak istediğinizde:
+    * Windows Ayarlar > Uygulamalar > "RestivAdisyon POS & Adisyon Sistemi" > Kaldır
+    * veya kurulum klasöründeki "Uninstall.exe" dosyasını çalıştırınız.
+
+================================================================================
+Ürün Sürümü : 2.0.0
+Geliştirici : RestivAdisyon Ekibi
 ================================================================================
