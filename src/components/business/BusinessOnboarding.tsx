@@ -1,7 +1,7 @@
 ﻿import React, { useState, useRef, useEffect } from 'react';
 import { 
   Upload, Link2, Trash2, Camera, 
-  Sparkles, ArrowRight, Check, Wifi, Utensils
+  ArrowRight, Wifi, Utensils
 } from 'lucide-react';
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -42,7 +42,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   const [loadDefaultMenu, setLoadDefaultMenu] = useState<boolean>(true);
   const [loading, setLoading] = useState(false);
 
-  // 24 Hours Auto-Sync: automatically select all days
+  // 24 Hours Auto-Sync
   useEffect(() => {
     if (is24Hours) {
       setSelectedDays(ALL_DAYS);
@@ -228,7 +228,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
         </div>
 
         <form onSubmit={handleFinishOnboarding} className="space-y-4">
-          {/* Logo Section (Clean Tech-Giant Style) */}
+          {/* Logo Section (Frameless, Pure Clean Logo Display) */}
           <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-200">İşletme Logosu</span>
@@ -262,29 +262,29 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-3.5">
-              {/* Squircle Preview */}
-              <div className="w-14 h-14 rounded-2xl bg-[#090C12] border border-white/[0.08] flex items-center justify-center overflow-hidden shrink-0 shadow-md relative group">
-                {logoUrl ? (
-                  <>
-                    <img
-                      src={logoUrl}
-                      alt="Logo Önizleme"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setLogoUrl('')}
-                      className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
-                      title="Logoyu Kaldır"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </>
-                ) : (
-                  <Camera className="w-5 h-5 text-slate-500" />
-                )}
-              </div>
+            <div className="flex items-center gap-4">
+              {/* Pure Logo without clumsy border boxes */}
+              {logoUrl ? (
+                <div className="relative group shrink-0">
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    className="w-14 h-14 object-contain rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setLogoUrl('')}
+                    className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition"
+                    title="Logoyu Kaldır"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-12 h-12 flex items-center justify-center text-slate-500 shrink-0">
+                  <Camera className="w-6 h-6" />
+                </div>
+              )}
 
               {logoMode === 'upload' ? (
                 <div className="flex-1">
@@ -410,7 +410,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
               {!is24Hours ? (
                 <div className="grid grid-cols-2 gap-2 mb-2">
                   <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Açılış</span>
+                    <span className="block text-[10px] text-slate-400 mb-1">Açılış Saati</span>
                     <input
                       type="time"
                       value={openTime}
@@ -419,7 +419,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     />
                   </div>
                   <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Kapanış</span>
+                    <span className="block text-[10px] text-slate-400 mb-1">Kapanış Saati</span>
                     <input
                       type="time"
                       value={closeTime}
@@ -455,7 +455,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
             </div>
           </div>
 
-          {/* Wi-Fi Section with Switch / Checkbox */}
+          {/* Wi-Fi Section with Switch */}
           <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -504,12 +504,10 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
             )}
           </div>
 
-          {/* Sample Menu Template Section */}
+          {/* Sample Menu Template Section (Frameless Icon) */}
           <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
-                <Utensils className="w-4 h-4" />
-              </div>
+              <Utensils className="w-5 h-5 text-indigo-400 shrink-0" />
               <div>
                 <h3 className="font-semibold text-xs text-white">Örnek Menü Şablonunu Dahil Et</h3>
                 <p className="text-[10px] text-slate-400">10 hazır kategori ve zengin lezzetlerle anında başlayın</p>

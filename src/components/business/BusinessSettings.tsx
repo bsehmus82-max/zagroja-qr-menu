@@ -2,7 +2,7 @@
 import { 
   Palette, Wifi, Lock, Check, Save, KeyRound, 
   AlertCircle, Eye, EyeOff, Upload, Link2, Trash2, 
-  Camera, Calendar, Shield
+  Camera, Calendar
 } from 'lucide-react';
 import { Business, TemplateId } from '../../types';
 import { supabase, hashPassword } from '../../lib/supabase';
@@ -303,7 +303,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </button>
       </div>
 
-      {/* Dual Logo Field: Photo Upload & URL */}
+      {/* Dual Logo Field: Frameless, Pure Logo */}
       <div className="bg-[#111622] border border-white/[0.08] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-white">İşletme Logosu</span>
@@ -337,27 +337,27 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         </div>
 
         <div className="flex items-center gap-4 bg-[#090C12] p-4 rounded-2xl border border-white/[0.06]">
-          <div className="w-16 h-16 rounded-2xl bg-[#121724] border border-white/[0.08] flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
-            {logoUrl ? (
-              <>
-                <img
-                  src={logoUrl}
-                  alt="Logo Önizleme"
-                  className="w-full h-full object-cover"
-                />
-                <button
-                  type="button"
-                  onClick={() => setLogoUrl('')}
-                  className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center text-rose-400 transition"
-                  title="Logoyu Kaldır"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            ) : (
-              <Camera className="w-6 h-6 text-slate-500" />
-            )}
-          </div>
+          {logoUrl ? (
+            <div className="relative group shrink-0">
+              <img
+                src={logoUrl}
+                alt="Logo"
+                className="w-16 h-16 object-contain rounded-xl"
+              />
+              <button
+                type="button"
+                onClick={() => setLogoUrl('')}
+                className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition"
+                title="Logoyu Kaldır"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-14 h-14 flex items-center justify-center text-slate-500 shrink-0">
+              <Camera className="w-6 h-6" />
+            </div>
+          )}
 
           {logoMode === 'upload' ? (
             <div className="flex-1">

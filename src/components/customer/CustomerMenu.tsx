@@ -197,18 +197,20 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
       <header className={`sticky top-0 z-30 border-b backdrop-blur-xl px-4 py-3 ${theme.headerBg}`}>
         <div className="max-w-md mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md overflow-hidden shrink-0">
+            <div className="w-10 h-10 flex items-center justify-center overflow-hidden shrink-0">
               {business.logo_url ? (
                 <img
                   src={business.logo_url}
                   alt={business.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
                   }}
                 />
               ) : (
-                business.name.charAt(0)
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                  {business.name.charAt(0)}
+                </div>
               )}
             </div>
             <div>

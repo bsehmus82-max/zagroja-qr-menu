@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   UtensilsCrossed, Layers, ChefHat, Calculator, 
   TrendingUp, Settings, MessageSquare, LogOut, ExternalLink, QrCode
@@ -51,18 +51,20 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       {/* Top Header */}
       <header className="border-b border-[#1E2638] bg-[#10141E]/80 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md overflow-hidden shrink-0">
+          <div className="w-9 h-9 flex items-center justify-center overflow-hidden shrink-0">
             {business.logo_url ? (
               <img
                 src={business.logo_url}
                 alt={business.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
             ) : (
-              business.name.charAt(0)
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-xs shadow-md">
+                {business.name.charAt(0)}
+              </div>
             )}
           </div>
           <div>
