@@ -166,11 +166,6 @@ export function printZReport(
           <span>${total.toFixed(2)} ₺</span>
         </div>
         
-        <div class="divider"></div>
-        <div class="center" style="font-size: 10px; margin-top: 10px;">
-          Zagroja QR Menü & Restoran Sistemi
-        </div>
-        
         <script>
           window.onload = function() {
             window.print();

@@ -14,7 +14,7 @@ export const DEFAULT_CATEGORIES: DefaultCategoryTemplate[] = [
     image_url: 'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?w=600&q=80',
     products: [
       {
-        name: 'Zagroja Gurme Serpme Kahvaltı (2 Kişilik)',
+        name: 'Gurme Serpme Kahvaltı (2 Kişilik)',
         description: 'Ezine beyaz peynir, eski kaşar, van otlu peynir, petek bal & kaymak, ev reçelleri, siyah & yeşil zeytin, sahanda tereyağlı yumurta, pişi ve sınırsız demlik çay ile',
         price: 480.0,
       },
@@ -61,7 +61,7 @@ export const DEFAULT_CATEGORIES: DefaultCategoryTemplate[] = [
     image_url: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80',
     products: [
       {
-        name: 'Zagroja Trüflü Smash Burger',
+        name: 'Trüflü Smash Burger',
         description: '2x90 gr dana eti, trüflü mayonez, karamelize soğan, eritilmiş cheddar peyniri, çıtır baharatlı patates tava ile',
         price: 295.0,
       },
@@ -124,7 +124,7 @@ export const DEFAULT_CATEGORIES: DefaultCategoryTemplate[] = [
     image_url: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=600&q=80',
     products: [
       {
-        name: 'Zagroja Combo Snack Sepeti',
+        name: 'Combo Snack Sepeti',
         description: 'Mozzarella sticks, çıtır soğan halkaları, cajun baharatlı tavuk tenders, elma dilim patates, 3 çeşit özel dip sos ile',
         price: 245.0,
       },
