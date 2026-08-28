@@ -117,19 +117,22 @@ export default function App() {
     const pathname = window.location.pathname.toLowerCase();
     const searchParams = url.searchParams;
 
-    // 1. Check Subdomain (e.g. bistro.domain.com)
+    // 1. Check Subdomain (e.g. bistro.domain.com) - Exclude IP addresses (127.0.0.1) and localhost
     const hostname = window.location.hostname;
+    const isIpAddress = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
     const parts = hostname.split('.');
-    const isSubdomain = parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'menu';
+    const isSubdomain = !isIpAddress && parts.length > 2 && parts[0] !== 'www' && parts[0] !== 'localhost' && parts[0] !== 'menu';
     const subdomainSlug = isSubdomain ? parts[0] : null;
 
-    // 2. Route Check
-    if (pathname.includes('/pair-waiter') || (searchParams.get('token') && searchParams.get('biz'))) {
-      setCurrentRoute('pair_waiter');
-    } else if (pathname.includes('/waiter') || pathname.includes('/garson') || searchParams.get('mode') === 'waiter') {
-      setCurrentRoute('waiter');
-    } else if (pathname.includes('/superadmin') || pathname.includes('/hq') || searchParams.get('panel') === 'superadmin') {
+    // 2. Explicit Mode / Panel Parameters (Highest Priority)
+    if (searchParams.get('mode') === 'business' || searchParams.get('panel') === 'business' || pathname === '/business') {
+      setCurrentRoute('business');
+    } else if (searchParams.get('mode') === 'superadmin' || searchParams.get('panel') === 'superadmin' || pathname.includes('/superadmin') || pathname.includes('/hq')) {
       setCurrentRoute('superadmin');
+    } else if (searchParams.get('mode') === 'waiter' || pathname.includes('/waiter') || pathname.includes('/garson')) {
+      setCurrentRoute('waiter');
+    } else if (pathname.includes('/pair-waiter') || (searchParams.get('token') && searchParams.get('biz'))) {
+      setCurrentRoute('pair_waiter');
     } else if (pathname.startsWith('/m/') || searchParams.get('slug') || subdomainSlug) {
       let slug = '';
       if (pathname.startsWith('/m/')) {
@@ -140,10 +143,14 @@ export default function App() {
         slug = subdomainSlug;
       }
 
-      const table = searchParams.get('table') || '';
-      setCustomerTable(table);
-      loadCustomerBusiness(slug);
-      setCurrentRoute('customer');
+      if (slug && slug !== '127' && slug !== 'localhost' && slug !== '0') {
+        const table = searchParams.get('table') || '';
+        setCustomerTable(table);
+        loadCustomerBusiness(slug);
+        setCurrentRoute('customer');
+      } else {
+        setCurrentRoute('business');
+      }
     } else {
       // If this device is an approved waiter terminal and not logged in as business admin
       const hasWaiterToken = localStorage.getItem('restiva_waiter_device_token');

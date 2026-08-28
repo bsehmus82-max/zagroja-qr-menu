@@ -257,6 +257,9 @@ def background_printer_worker():
 
     # 1. Start Local Fast-Track HTTP Print Server (127.0.0.1:9100)
     class LocalHttpHandler(BaseHTTPRequestHandler):
+        def address_string(self):
+            return self.client_address[0]
+
         def _set_cors_headers(self):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -322,9 +325,12 @@ def background_printer_worker():
                     self.end_headers()
                     self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode("utf-8"))
 
+        def log_message(self, format, *args):
+            pass
+
     def start_http():
         try:
-            httpd = HTTPServer(('127.0.0.1', PRINT_BRIDGE_PORT), LocalHttpHandler)
+            httpd = HttpServerClass(('127.0.0.1', PRINT_BRIDGE_PORT), LocalHttpHandler)
             httpd.serve_forever()
         except Exception:
             pass
@@ -386,10 +392,15 @@ def background_printer_worker():
         except Exception:
             time.sleep(4)
 
+try:
+    from http.server import ThreadingHTTPServer as HttpServerClass
+except ImportError:
+    from http.server import HTTPServer as HttpServerClass
+
 def start_embedded_web_server():
     """
-    Starts internal local HTTP server that serves bundled React assets
-    with client-side SPA fallback.
+    Starts high-performance threaded local HTTP server that serves bundled React assets
+    with instant multi-threaded asset loading and client-side SPA fallback.
     """
     if getattr(sys, 'frozen', False):
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
@@ -402,11 +413,14 @@ def start_embedded_web_server():
         dist_dir = os.path.abspath("dist")
 
     class SpaHandler(SimpleHTTPRequestHandler):
+        def address_string(self):
+            # Disable slow reverse DNS lookups on Windows (Prevents startup black screen delay)
+            return self.client_address[0]
+
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=dist_dir, **kwargs)
 
         def do_GET(self):
-            # Parse path
             parsed = urllib.parse.urlparse(self.path)
             clean_path = parsed.path.lstrip('/')
             file_path = os.path.join(dist_dir, clean_path)
@@ -423,12 +437,13 @@ def start_embedded_web_server():
 
     def run_server():
         try:
-            httpd = HTTPServer(('127.0.0.1', WEB_SERVER_PORT), SpaHandler)
+            httpd = HttpServerClass(('127.0.0.1', WEB_SERVER_PORT), SpaHandler)
             httpd.serve_forever()
         except Exception:
             pass
 
-    threading.Thread(target=run_server, daemon=True).start()
+    t = threading.Thread(target=run_server, daemon=True)
+    t.start()
 
 def main():
     # 1. Win32 Single-Instance Mutex
