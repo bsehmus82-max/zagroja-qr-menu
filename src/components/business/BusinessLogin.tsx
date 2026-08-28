@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, AlertCircle, ArrowRight, Eye, EyeOff, UtensilsCrossed } from 'lucide-react';
 import { supabase, hashPassword } from '../../lib/supabase';
 import { Business } from '../../types';
 
@@ -60,11 +60,17 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#090C10] flex items-center justify-center p-4 selection:bg-indigo-500/30 selection:text-indigo-200">
-      <div className="w-full max-w-sm bg-[#12161F] border border-[#212634] rounded-2xl p-7 shadow-2xl">
-        <div className="text-center mb-6">
-          <h1 className="text-lg font-bold text-slate-100 tracking-tight">İşletme Girişi</h1>
-          <p className="text-xs text-slate-400 mt-1">Yönetim paneline erişmek için giriş yapınız</p>
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4 selection:bg-orange-500/30 selection:text-orange-200">
+      <div className="w-full max-w-sm bg-[#1E293B] border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl relative overflow-hidden">
+        {/* Top Decorative Orange Line */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-500" />
+
+        <div className="text-center mb-6 pt-2">
+          <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <UtensilsCrossed className="w-6 h-6" />
+          </div>
+          <h1 className="text-lg font-black text-slate-100 tracking-tight">RestivAdisyon İşletme Girişi</h1>
+          <p className="text-xs text-slate-400 mt-1">Yönetim ve POS paneline erişmek için giriş yapınız</p>
         </div>
 
         {error && (
@@ -74,9 +80,9 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-3.5">
+        <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
               Kullanıcı Adı
             </label>
             <div className="relative">
@@ -87,13 +93,13 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Kullanıcı adınız"
-                className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0B0F17] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-10 pr-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition font-medium"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
+            <label className="block text-[11px] font-bold text-slate-300 mb-1.5">
               Şifre
             </label>
             <div className="relative">
@@ -104,7 +110,7 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0B0F17] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
               <button
                 type="button"
@@ -119,9 +125,9 @@ export const BusinessLogin: React.FC<BusinessLoginProps> = ({ onSuccess }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-md shadow-indigo-600/20 disabled:opacity-50"
+            className="w-full mt-2 bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-orange-500/25 disabled:opacity-50"
           >
-            <span>{loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'}</span>
+            <span>{loading ? 'Giriş Yapılıyor...' : 'Yönetim Paneline Giriş Yap'}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </form>

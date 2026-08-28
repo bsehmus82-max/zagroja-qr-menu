@@ -1,123 +1,116 @@
-﻿import React, { useState } from 'react';
-import { CheckCircle, Copy, Check, X, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Copy, X, KeyRound, ExternalLink, ShieldCheck } from 'lucide-react';
 import { Business } from '../../types';
 
 interface CreatedCredentialsModalProps {
-  info: {
-    business: Business;
-    tempPass: string;
-    days: number;
-  } | null;
+  isOpen: boolean;
   onClose: () => void;
+  business: Business;
+  tempPass: string;
+  days: number;
 }
 
 export const CreatedCredentialsModal: React.FC<CreatedCredentialsModalProps> = ({
-  info,
+  isOpen,
   onClose,
+  business,
+  tempPass,
+  days,
 }) => {
   const [copied, setCopied] = useState(false);
 
-  if (!info) return null;
+  if (!isOpen) return null;
 
-  const { business, tempPass, days } = info;
-  const baseUrl = window.location.origin;
-  const loginUrl = `${baseUrl}/admin`;
-  const menuUrl = `${baseUrl}/m/${business.slug}`;
+  const loginUrl = window.location.origin;
+  const menuUrl = `${window.location.origin}/m/${business.slug}`;
 
-  const messageText = `Sayın ${business.name} Yetkilisi,
-
-QR Menü ve Sipariş Yönetim Sistemi hesabınız açılmıştır.
-
-Giriş Adresi: ${loginUrl}
+  const infoText = `RestivAdisyon Giriş Bilgileri:
+İşletme: ${business.name}
+Giriş Paneli: ${loginUrl}
 Kullanıcı Adı: ${business.username}
-Geçici Şifre: ${tempPass}
+Geçici Güvenlik Şifresi: ${tempPass}
 Tanımlanan Süre: ${days} Gün
-Masa Limiti: ${business.table_limit ? `${business.table_limit} Masa` : 'Sınırsız'}
-Menü Bağlantınız: ${menuUrl}
+Masa Sınırı: ${business.table_limit && business.table_limit < 9999 ? business.table_limit : 'Sınırsız'}
+QR Menü Linki: ${menuUrl}
 
-İlk girişinizde iletişim bilgilerinizi ve kategorilerinizi düzenleyebilir, masalarınız için QR kodlarınızı yazdırabilirsiniz.`;
+Lütfen ilk girişte şifrenizi Ayarlar bölümünden güncelleyiniz.`;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(messageText);
+    navigator.clipboard.writeText(infoText);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#12161F] border border-[#212634] rounded-2xl w-full max-w-md p-6 shadow-2xl relative">
-        <div className="flex items-center justify-between pb-4 border-b border-[#212634] mb-5">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-              <CheckCircle className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20 shadow-xs">
+              <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">İşletme Hesabı Oluşturuldu</h2>
-              <p className="text-[11px] text-slate-400">Giriş bilgileri hazırlandı</p>
+              <h2 className="text-sm font-bold text-slate-100">İşletme Giriş Bilgileri</h2>
+              <p className="text-[11px] text-slate-400">Bu bilgileri işletme sahibine WhatsApp / SMS ile iletiniz</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-[#1A202C] transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4 mb-5">
-          <div className="bg-[#0A0D14] p-4 rounded-xl border border-[#212634] space-y-2.5 text-xs">
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">İşletme Adı:</span>
-              <span className="font-semibold text-slate-100">{business.name}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Kullanıcı Adı:</span>
-              <span className="font-mono font-semibold text-indigo-400">{business.username}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Geçici Şifre:</span>
-              <span className="font-mono font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                {tempPass}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Masa Limiti:</span>
-              <span className="text-slate-200">{business.table_limit || 'Sınırsız'}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400">Tanımlanan Süre:</span>
-              <span className="text-slate-200">{days} Gün</span>
-            </div>
+        <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3 mb-5 text-xs">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-slate-400">İşletme Adı:</span>
+            <span className="font-bold text-slate-200">{business.name}</span>
+          </div>
+
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-slate-400">Kullanıcı Adı:</span>
+            <span className="font-mono font-bold text-orange-400">{business.username}</span>
+          </div>
+
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-slate-400">İlk Giriş Şifresi:</span>
+            <span className="font-mono font-black text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+              {tempPass}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span className="text-slate-400">Tanımlı Süre:</span>
+            <span className="font-bold text-emerald-400 font-mono">+{days} Gün</span>
+          </div>
+
+          <div className="flex items-center justify-between pt-1">
+            <span className="text-slate-400">Müşteri QR Menüsü:</span>
+            <a
+              href={menuUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-orange-400 hover:underline flex items-center gap-1 font-mono truncate max-w-[200px]"
+            >
+              <span>{business.slug}</span>
+              <ExternalLink className="w-3 h-3 shrink-0" />
+            </a>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-end gap-2.5">
           <button
+            type="button"
             onClick={handleCopy}
-            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
               copied
                 ? 'bg-emerald-600 text-white'
-                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20'
+                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/25 active:scale-95'
             }`}
           >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Panoya Kopyalandı</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Giriş Bilgilerini Kopyala</span>
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl bg-[#1A202C] hover:bg-[#252D3D] text-slate-300 text-xs font-medium transition"
-          >
-            Kapat
+            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            <span>{copied ? 'Bilgiler Kopyalandı' : 'Tüm Bilgileri Kopyala (WhatsApp / SMS)'}</span>
           </button>
         </div>
       </div>

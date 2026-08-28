@@ -87,7 +87,7 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       <div className="bg-[#0D111A] border border-[#1E293B] rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative text-slate-200">
         {/* Header Gradient */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-indigo-500 to-emerald-500" />
+        <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500" />
 
         {/* Close Button */}
         <button
@@ -117,7 +117,7 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
           {/* Clean Step Cards */}
           <div className="space-y-2.5">
             <div className="bg-[#131926] border border-[#1E293B] rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 font-bold text-xs border border-indigo-500/20">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 font-bold text-xs border border-orange-500/20">
                 1
               </div>
               <div className="text-xs">
@@ -145,7 +145,7 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
               className={`w-full py-3.5 px-5 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-xl ${
                 isSuccess
                   ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                  : 'bg-gradient-to-r from-orange-500 to-indigo-600 hover:from-orange-600 hover:to-indigo-700 text-white shadow-orange-500/20 active:scale-[0.99]'
+                  : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25 active:scale-[0.99]'
               }`}
             >
               {isSuccess ? (

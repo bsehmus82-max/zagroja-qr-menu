@@ -201,7 +201,7 @@ export const WaiterApp: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="text-center space-y-3">
-          <RefreshCw className="w-8 h-8 text-indigo-500 animate-spin mx-auto" />
+          <RefreshCw className="w-8 h-8 text-orange-500 animate-spin mx-auto" />
           <p className="text-xs font-bold text-slate-400">Garson Terminali Doğrulanıyor...</p>
         </div>
       </div>
@@ -211,7 +211,7 @@ export const WaiterApp: React.FC = () => {
   // 2. UNPAIRED DEVICE SCREEN
   if (!isApproved || !deviceToken || !businessId) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-orange-500 selection:text-white">
         <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center space-y-4">
           <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-400 mx-auto flex items-center justify-center shadow-lg">
             <Lock className="w-8 h-8" />
@@ -219,11 +219,11 @@ export const WaiterApp: React.FC = () => {
           <h2 className="text-base font-black text-white">Cihaz Yetkisi Yok</h2>
           <p className="text-xs text-slate-400 leading-relaxed">
             Bu telefon henüz işletme kasasından onaylanmamıştır. Lütfen kasadaki yetkili panelinden 
-            <strong className="text-indigo-400"> "Garson Eşleme QR Kodu"</strong>nu okutunuz.
+            <strong className="text-orange-400"> "Garson Eşleme QR Kodu"</strong>nu okutunuz.
           </p>
           <a
             href="/?mode=pair-waiter"
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition block"
+            className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition block"
           >
             <span>Eşleme Talebi Ekranına Git</span>
           </a>
@@ -240,11 +240,11 @@ export const WaiterApp: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col selection:bg-orange-500 selection:text-white">
       {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-xl">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md shadow-indigo-600/30">
+          <div className="w-9 h-9 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-xs shadow-md shadow-orange-500/30">
             {waiterName.slice(0, 1).toUpperCase()}
           </div>
           <div>
@@ -261,7 +261,7 @@ export const WaiterApp: React.FC = () => {
           <select
             value={selectedTable}
             onChange={(e) => setSelectedTable(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
+            className="px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-bold focus:outline-none focus:border-orange-500"
           >
             {tables.map((t) => (
               <option key={t.id} value={t.table_no}>
@@ -298,7 +298,7 @@ export const WaiterApp: React.FC = () => {
               placeholder="Ürün ara..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-orange-500 shadow-sm"
             />
           </div>
 
@@ -308,7 +308,7 @@ export const WaiterApp: React.FC = () => {
               onClick={() => setSelectedCategory('all')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                 selectedCategory === 'all'
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
                   : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
               }`}
             >
@@ -320,7 +320,7 @@ export const WaiterApp: React.FC = () => {
                 onClick={() => setSelectedCategory(c.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition ${
                   selectedCategory === c.id
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                    ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/30'
                     : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
                 }`}
               >
@@ -341,12 +341,12 @@ export const WaiterApp: React.FC = () => {
                     product.is_frozen
                       ? 'bg-slate-900/40 border-red-500/20 opacity-50'
                       : inCart
-                      ? 'bg-indigo-950/40 border-indigo-500 shadow-md shadow-indigo-500/10'
+                      ? 'bg-orange-950/30 border-orange-500 shadow-md shadow-orange-500/10'
                       : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   {inCart && (
-                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center shadow">
+                    <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] font-black flex items-center justify-center shadow">
                       {inCart.quantity}
                     </span>
                   )}
@@ -361,7 +361,7 @@ export const WaiterApp: React.FC = () => {
                     <span className="text-xs font-extrabold text-amber-400">
                       {product.price.toFixed(2)} ₺
                     </span>
-                    <button className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-indigo-600 hover:text-white transition">
+                    <button className="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-orange-500 hover:text-white transition">
                       <Plus className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -376,7 +376,7 @@ export const WaiterApp: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <Utensils className="w-4 h-4 text-indigo-400" />
+                <Utensils className="w-4 h-4 text-orange-400" />
                 <h2 className="text-xs font-black text-white uppercase tracking-wider">
                   {selectedTable} Sepeti ({cart.reduce((a, b) => a + b.quantity, 0)})
                 </h2>
@@ -432,7 +432,7 @@ export const WaiterApp: React.FC = () => {
                         placeholder="Not (Örn: Az pişmiş)..."
                         value={item.notes}
                         onChange={(e) => handleUpdateItemNote(item.product.id, e.target.value)}
-                        className="w-36 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                        className="w-36 px-2 py-1 rounded-lg bg-slate-900 border border-slate-800 text-[10px] text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-orange-500"
                       />
                     </div>
                   </div>
@@ -448,7 +448,7 @@ export const WaiterApp: React.FC = () => {
                   placeholder="Masa Notu..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-orange-500"
                 />
               </div>
             )}
@@ -464,7 +464,7 @@ export const WaiterApp: React.FC = () => {
             <button
               onClick={handleSendOrder}
               disabled={cart.length === 0 || isSendingOrder}
-              className="w-full py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 active:scale-95 text-white font-extrabold text-xs transition shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-orange-500 hover:bg-orange-600 disabled:opacity-50 active:scale-95 text-white font-extrabold text-xs transition shadow-xl shadow-orange-500/25 flex items-center justify-center gap-2"
             >
               <Send className="w-4 h-4" />
               {isSendingOrder ? 'Mutfağa İletiliyor...' : `${selectedTable} Siparişini Gönder`}

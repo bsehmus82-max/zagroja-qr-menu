@@ -99,7 +99,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
     if (type === 'mon_sat') setSelectedDays(['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']);
   };
 
-  // Image Upload Handler (Auto-compress & resize client-side)
+  // Image Upload Handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -219,35 +219,33 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#07090E] flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-500/30 selection:text-indigo-200">
-      {/* Background ambient lighting */}
-      <div className="fixed inset-0 pointer-events-none flex items-center justify-center overflow-hidden">
-        <div className="w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[140px]" />
-      </div>
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4 sm:p-6 selection:bg-orange-500/30 selection:text-orange-200">
+      <div className="w-full max-w-xl bg-[#1E293B] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
+        {/* Top Decorative Line */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-t-3xl" />
 
-      <div className="w-full max-w-xl bg-[#0D111A]/95 border border-white/[0.08] backdrop-blur-2xl rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 relative z-10 space-y-6">
         {/* Clean Header */}
-        <div className="text-center space-y-1.5 pb-2 border-b border-white/[0.06]">
-          <h1 className="text-xl font-bold tracking-tight text-white">İşletmeniz İçin Gerekli Bilgiler</h1>
+        <div className="text-center space-y-1.5 pb-2 border-b border-slate-800 pt-2">
+          <h1 className="text-xl font-black tracking-tight text-white">İşletmeniz İçin Gerekli Bilgiler</h1>
           <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-            <strong className="text-slate-200 font-semibold">{business.name}</strong> misafirlerine kusursuz bir dijital menü deneyimi sunmak için temel bilgileri tamamlayın.
+            <strong className="text-orange-400 font-semibold">{business.name}</strong> misafirlerine kusursuz bir dijital menü deneyimi sunmak için temel bilgileri tamamlayın.
           </p>
         </div>
 
         <form onSubmit={handleFinishOnboarding} className="space-y-4">
-          {/* Logo Section (Frameless, Pure Clean Logo Display) */}
-          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
+          {/* Logo Section */}
+          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-200">İşletme Logosu</span>
+              <span className="text-xs font-bold text-slate-200">İşletme Logosu</span>
 
               {/* Mode Toggle */}
-              <div className="flex items-center gap-1 bg-[#090C12] p-1 rounded-xl border border-white/[0.06]">
+              <div className="flex items-center gap-1 bg-[#1E293B] p-1 rounded-xl border border-slate-700/80">
                 <button
                   type="button"
                   onClick={() => setLogoMode('upload')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
                     logoMode === 'upload'
-                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                      ? 'bg-orange-500 text-white shadow-xs'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -257,223 +255,198 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 <button
                   type="button"
                   onClick={() => setLogoMode('url')}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
                     logoMode === 'url'
-                      ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                      ? 'bg-orange-500 text-white shadow-xs'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <Link2 className="w-3 h-3" />
-                  Görsel URL
+                  Görsel Linki
                 </button>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Pure Logo without clumsy border boxes */}
-              {logoUrl ? (
-                <div className="relative group shrink-0">
-                  <img
-                    src={logoUrl}
-                    alt="Logo"
-                    className="w-14 h-14 object-contain rounded-xl"
-                  />
+              {/* Seamless Round Badge Preview */}
+              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-6 h-6 text-slate-600" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 space-y-2">
+                {logoMode === 'upload' ? (
+                  <div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/png, image/jpeg, image/webp"
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border border-dashed border-slate-700 hover:border-orange-500 bg-[#1E293B] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white w-full"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-orange-400" />
+                      <span className="font-semibold">Logo Görseli Seç (PNG, JPG)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="url"
+                      value={logoUrl}
+                      onChange={(e) => setLogoUrl(e.target.value)}
+                      placeholder="https://site.com/logo.png"
+                      className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    />
+                  </div>
+                )}
+
+                {logoUrl && (
                   <button
                     type="button"
                     onClick={() => setLogoUrl('')}
-                    className="absolute -top-1.5 -right-1.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-lg transition"
-                    title="Logoyu Kaldır"
+                    className="text-[11px] text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3 h-3" /> Logoyu Kaldır
                   </button>
-                </div>
-              ) : (
-                <div className="w-12 h-12 flex items-center justify-center text-slate-500 shrink-0">
-                  <Camera className="w-6 h-6" />
-                </div>
-              )}
-
-              {logoMode === 'upload' ? (
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
-                    className="hidden"
-                  />
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border border-dashed border-white/[0.12] hover:border-indigo-500/60 bg-[#090C12]/80 rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>{logoUrl ? 'Logoyu Değiştir' : 'Cihazdan Fotoğraf Seç'}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1">
-                  <input
-                    type="url"
-                    value={logoUrl}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    placeholder="https://... /logo.png"
-                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-                  />
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Contact Fields */}
+          {/* Contact Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1">
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
                 İşletme Telefonu
               </label>
               <input
                 type="text"
-                required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="0 (212) 000 00 00"
-                className="w-full bg-[#121724]/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                placeholder="0212 000 00 00"
+                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
             </div>
 
             <div>
-              <label className="block text-[11px] font-medium text-slate-300 mb-1">
-                Açık Adres
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                Adres & Konum
               </label>
               <input
                 type="text"
-                required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Mahalle, Cadde, No, İlçe"
-                className="w-full bg-[#121724]/60 border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                placeholder="Kadıköy, İstanbul"
+                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
               />
             </div>
           </div>
 
-          {/* Working Schedule */}
-          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
+          {/* Working Schedule Section */}
+          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-200">Çalışma Günleri & Saatleri</span>
-              <span className="text-[10px] font-bold text-indigo-400 font-mono">{workingHoursDisplay}</span>
+              <span className="text-xs font-bold text-slate-200">Çalışma Saatleri & Günleri</span>
+              <span className="text-[10px] font-bold text-orange-400 font-mono">{workingHoursDisplay}</span>
             </div>
 
-            {/* Days Pills */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] text-slate-400">Haftalık Günler</span>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => applyDaysPreset('all')}
-                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
-                  >
-                    Her Gün
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyDaysPreset('weekdays')}
-                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
-                  >
-                    Hafta İçi
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyDaysPreset('mon_sat')}
-                    className="text-[9px] px-2 py-0.5 rounded-lg bg-[#090C12] hover:bg-white/5 text-slate-300 border border-white/[0.08] transition"
-                  >
-                    Pzt - Cmt
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-7 gap-1">
-                {ALL_DAYS.map((day) => {
-                  const isSelected = selectedDays.includes(day);
-                  return (
-                    <button
-                      key={day}
-                      type="button"
-                      onClick={() => toggleDay(day)}
-                      className={`py-1.5 rounded-xl text-xs font-semibold transition border text-center ${
-                        isSelected
-                          ? 'bg-indigo-600 border-indigo-500 text-white shadow-sm'
-                          : 'bg-[#090C12] border-white/[0.06] text-slate-400 hover:text-slate-200'
-                      }`}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Quick Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-slate-400 font-medium mr-1">Hızlı Ayarla:</span>
+              <button
+                type="button"
+                onClick={() => applyPresetHours('24')}
+                className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition ${
+                  is24Hours
+                    ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
+                    : 'bg-[#1E293B] border-slate-700 text-slate-400 hover:text-white'
+                }`}
+              >
+                7/24 Açık
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetHours('09:00-00:00')}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+              >
+                09:00 - 00:00
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPresetHours('08:00-22:00')}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+              >
+                08:00 - 22:00
+              </button>
+              <button
+                type="button"
+                onClick={() => applyDaysPreset('weekdays')}
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+              >
+                Hafta İçi
+              </button>
             </div>
 
-            {/* Time Pickers or 24h Message */}
-            <div>
-              {!is24Hours ? (
-                <div className="grid grid-cols-2 gap-2 mb-2">
-                  <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Açılış Saati</span>
-                    <input
-                      type="time"
-                      value={openTime}
-                      onChange={(e) => setOpenTime(e.target.value)}
-                      className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <span className="block text-[10px] text-slate-400 mb-1">Kapanış Saati</span>
-                    <input
-                      type="time"
-                      value={closeTime}
-                      onChange={(e) => setCloseTime(e.target.value)}
-                      className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="w-full bg-indigo-600/10 border border-indigo-500/25 rounded-xl py-2 px-3 text-xs text-indigo-300 font-semibold mb-2 text-center">
-                  24 Saat Açık Hizmet (Haftanın 7 Günü)
-                </div>
-              )}
-
-              {/* Quick Hours Presets */}
-              <div className="grid grid-cols-4 gap-1">
-                {[
-                  { label: '09:00 - 00:00', val: '09:00-00:00' },
-                  { label: '08:00 - 22:00', val: '08:00-22:00' },
-                  { label: '11:00 - 02:00', val: '11:00-02:00' },
-                  { label: '7/24 Açık', val: '24' },
-                ].map((p) => (
+            {/* Day Selectors */}
+            <div className="flex items-center gap-1.5 justify-between pt-1">
+              {ALL_DAYS.map((d) => {
+                const isSelected = selectedDays.includes(d);
+                return (
                   <button
-                    key={p.val}
+                    key={d}
                     type="button"
-                    onClick={() => applyPresetHours(p.val)}
-                    className="bg-[#090C12] hover:bg-indigo-600/20 hover:border-indigo-500/30 text-slate-400 hover:text-indigo-300 border border-white/[0.06] rounded-lg py-1 text-[9px] font-medium transition active:scale-95"
+                    onClick={() => toggleDay(d)}
+                    className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition border ${
+                      isSelected
+                        ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
+                        : 'bg-[#1E293B] border-slate-700/80 text-slate-400 hover:text-white'
+                    }`}
                   >
-                    {p.label}
+                    {d}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
+
+            {/* Time Selectors */}
+            {!is24Hours && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-semibold">Açılış Saati</label>
+                  <input
+                    type="time"
+                    value={openTime}
+                    onChange={(e) => setOpenTime(e.target.value)}
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-semibold">Kapanış Saati</label>
+                  <input
+                    type="time"
+                    value={closeTime}
+                    onChange={(e) => setCloseTime(e.target.value)}
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Wi-Fi Section (Frameless Icon) */}
-          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 space-y-3">
+          {/* Wi-Fi Section */}
+          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
-                  <Wifi className="w-3.5 h-3.5 text-indigo-400" />
-                  Müşteri Wi-Fi Bilgisi
-                </span>
-                <p className="text-[10px] text-slate-400">QR menüde misafirlere gösterilsin mi?</p>
+              <div className="flex items-center gap-2">
+                <Wifi className="w-4 h-4 text-orange-400" />
+                <span className="text-xs font-bold text-slate-200">Mekan Wi-Fi Paylaşımı</span>
               </div>
-
-              {/* iOS Style Pill Switch */}
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -481,55 +454,55 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   onChange={(e) => setShowWifi(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-[#090C12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 border border-white/[0.08]"></div>
+                <div className="w-10 h-5 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500 border border-slate-700" />
               </label>
             </div>
 
             {showWifi && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-white/[0.06] animate-in fade-in duration-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">Wi-Fi Ağ Adı (SSID)</label>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-semibold">Wi-Fi Ağ Adı (SSID)</label>
                   <input
                     type="text"
                     value={wifiSsid}
                     onChange={(e) => setWifiSsid(e.target.value)}
-                    placeholder="Restoran_Misafir"
-                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    placeholder="Restoran Wi-Fi"
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-400 mb-1">Wi-Fi Şifresi</label>
+                  <label className="block text-[10px] text-slate-400 mb-1 font-semibold">Wi-Fi Şifresi</label>
                   <input
                     type="text"
                     value={wifiPassword}
                     onChange={(e) => setWifiPassword(e.target.value)}
-                    placeholder="Misafir1234"
-                    className="w-full bg-[#090C12] border border-white/[0.08] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    placeholder="Şifre"
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Sample Menu Template Section (Frameless Icon) */}
-          <div className="bg-[#121724]/60 border border-white/[0.06] rounded-2xl p-4 flex items-center justify-between gap-3">
+          {/* Sample Catalog Checkbox */}
+          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Utensils className="w-5 h-5 text-indigo-400 shrink-0" />
+              <Utensils className="w-5 h-5 text-orange-400 shrink-0" />
               <div>
-                <h3 className="font-semibold text-xs text-white">Örnek Menü Şablonunu Dahil Et</h3>
-                <p className="text-[10px] text-slate-400">16 resmi restoran kategorisi ve zengin lezzetlerle anında başlayın</p>
+                <span className="text-xs font-bold text-slate-200 block">Örnek Menü & Kategorileri Yükle</span>
+                <span className="text-[10px] text-slate-400">
+                  Kahvaltı, Burger, İçecek vb. hazır ürünleri menünüze ekler.
+                </span>
               </div>
             </div>
-
-            {/* iOS Style Pill Switch */}
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
                 checked={loadDefaultMenu}
                 onChange={(e) => setLoadDefaultMenu(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-10 h-5 bg-[#090C12] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 border border-white/[0.08]"></div>
+              <div className="w-10 h-5 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500 border border-slate-700" />
             </label>
           </div>
 
@@ -537,9 +510,9 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-indigo-600/30 disabled:opacity-50"
+            className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-orange-500/25 disabled:opacity-50 active:scale-98"
           >
-            <span>{loading ? 'Kaydediliyor...' : 'Kurulumu Tamamla ve Yönetim Paneline Geç'}</span>
+            <span>{loading ? 'Kurulum Kaydediliyor...' : 'Kurulumu Tamamla & Yönetim Paneline Başla'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

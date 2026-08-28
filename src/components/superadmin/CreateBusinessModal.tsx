@@ -58,62 +58,42 @@ const PLAN_PRESETS: PlanPreset[] = [
   {
     id: 'standard',
     billingPeriod: 'monthly',
-    name: 'Standart (Aylık)',
+    name: 'Standart Kafe/Bistro (Aylık)',
     badge: '850 TL / Ay',
     days: 30,
     price: 850,
-    tableLimit: 25,
-    description: 'POS + Yazıcı + 3 Garson + Z Raporu (25 Masa)',
-  },
-  {
-    id: 'standard',
-    billingPeriod: 'semi_annual',
-    name: 'Standart (6 Ay)',
-    badge: '4.350 TL',
-    days: 180,
-    price: 4350,
-    tableLimit: 25,
-    description: '6 Aylık İndirimli Standart Paket (25 Masa)',
+    tableLimit: 30,
+    description: 'QR Menü + Masadan Sipariş + POS + Adisyon Fiş Motoru (30 Masa)',
   },
   {
     id: 'standard',
     billingPeriod: 'annual',
-    name: 'Standart (Yıllık)',
+    name: 'Standart Kafe/Bistro (Yıllık)',
     badge: '7.900 TL / Yıl',
     days: 365,
     price: 7900,
-    tableLimit: 25,
-    description: '2 Ay Bedava Yıllık Standart Paket (25 Masa)',
+    tableLimit: 30,
+    description: 'Yıllık Peşin Standart Kafe/Bistro (30 Masa)',
   },
   {
     id: 'pro',
     billingPeriod: 'monthly',
-    name: 'Profesyonel (Aylık)',
+    name: 'Profesyonel Restoran (Aylık)',
     badge: '1.450 TL / Ay',
     days: 30,
     price: 1450,
     tableLimit: null,
-    description: 'Tam Donanımlı + Sınırsız Masa & Garson',
-  },
-  {
-    id: 'pro',
-    billingPeriod: 'semi_annual',
-    name: 'Profesyonel (6 Ay)',
-    badge: '7.400 TL',
-    days: 180,
-    price: 7400,
-    tableLimit: null,
-    description: '6 Aylık Pro Paket + Öncelikli Canlı Destek',
+    description: 'Sınırsız Masa + Çoklu Garson Terminali + Kasa + Termal Yazıcı + Ciro Analizi',
   },
   {
     id: 'pro',
     billingPeriod: 'annual',
-    name: 'Profesyonel (Yıllık)',
-    badge: '13.900 TL / Yıl',
+    name: 'Profesyonel Restoran (Yıllık)',
+    badge: '13.500 TL / Yıl',
     days: 365,
-    price: 13900,
+    price: 13500,
     tableLimit: null,
-    description: 'Yıllık En Avantajlı Full Restoran Paketi',
+    description: 'Yıllık Peşin Profesyonel Full Paket (Sınırsız)',
   },
 ];
 
@@ -123,139 +103,145 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
   onCreated,
 }) => {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  
+  // Subscription Plan Selection State
+  const [selectedPresetIndex, setSelectedPresetIndex] = useState<number>(0);
   const [selectedPlanType, setSelectedPlanType] = useState<PlanType>('trial');
-  const [selectedBillingPeriod, setSelectedBillingPeriod] = useState<BillingPeriod>('trial');
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('trial');
+  const [days, setDays] = useState<number>(7);
   const [price, setPrice] = useState<number>(0);
   const [tableLimit, setTableLimit] = useState<number | ''>(20);
-  const [days, setDays] = useState<number>(7);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSelectPreset = (preset: PlanPreset) => {
-    setIsCustomMode(false);
+  const handleSelectPreset = (index: number) => {
+    setSelectedPresetIndex(index);
+    const preset = PLAN_PRESETS[index];
     setSelectedPlanType(preset.id);
-    setSelectedBillingPeriod(preset.billingPeriod);
-    setPrice(preset.price);
+    setBillingPeriod(preset.billingPeriod);
     setDays(preset.days);
+    setPrice(preset.price);
     setTableLimit(preset.tableLimit !== null ? preset.tableLimit : '');
   };
 
-  const handleEnableCustomMode = () => {
-    setIsCustomMode(true);
-    setSelectedPlanType('custom');
-    setSelectedBillingPeriod('custom');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      setError('Lütfen bir işletme adı giriniz.');
-      return;
-    }
+    if (!name.trim()) return;
 
     setLoading(true);
     setError('');
 
     try {
-      const trimmedName = name.trim();
-      const baseSlug = slugify(trimmedName);
-      const uniqueSuffix = Math.floor(1000 + Math.random() * 9000);
-      const slug = `${baseSlug}-${uniqueSuffix}`;
-      const username = `${baseSlug.replace(/-/g, '_')}_${uniqueSuffix}`;
-      const tempPass = generateTempPassword(8);
-      const passHash = await hashPassword(tempPass);
+      const slug = slugify(name);
+      const tempPass = generateTempPassword();
+      const passwordHash = await hashPassword(tempPass);
+      const username = `${slug}_${Math.floor(1000 + Math.random() * 9000)}`;
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + Number(days));
 
-      const payload = {
-        name: trimmedName,
-        slug: slug,
-        username: username,
-        password_hash: passHash,
-        table_limit: tableLimit === '' ? null : Number(tableLimit),
-        plan_type: selectedPlanType,
-        plan_price: Number(price),
-        billing_period: selectedBillingPeriod,
-        last_payment_date: new Date().toISOString(),
-        next_billing_date: expiresAt.toISOString(),
-        subscription_status: 'active',
-        subscription_days: Number(days),
-        subscription_expires_at: expiresAt.toISOString(),
-        template_id: 'dark_luxury',
-        phone: '',
-        address: '',
-        working_hours: 'Her Gün: 7/24 Açık',
-        wifi_ssid: '',
-        wifi_password: '',
-      };
+      const effectivePlan = isCustomMode ? 'custom' : selectedPlanType;
+      const effectivePeriod = isCustomMode ? 'monthly' : billingPeriod;
 
-      const { data, error: insertError } = await supabase
+      const { data: newBiz, error: insertError } = await supabase
         .from('businesses')
-        .insert([payload])
+        .insert([
+          {
+            name: name.trim(),
+            slug,
+            username,
+            password_hash: passwordHash,
+            phone: phone.trim(),
+            address: address.trim(),
+            subscription_status: 'active',
+            subscription_expires_at: expiresAt.toISOString(),
+            subscription_days: Number(days),
+            table_limit: tableLimit === '' ? 9999 : Number(tableLimit),
+            plan_type: effectivePlan,
+            plan_price: Number(price),
+            billing_period: effectivePeriod,
+            last_payment_date: new Date().toISOString(),
+            next_billing_date: expiresAt.toISOString(),
+            is_active: true,
+          },
+        ])
         .select()
         .single();
 
       if (insertError) {
-        throw new Error(insertError.message);
+        if (insertError.code === '23505') {
+          throw new Error('Bu işletme adı veya kullanıcı adı zaten kullanımda.');
+        }
+        throw insertError;
       }
 
-      const createdBusiness = data as Business;
-
-      // Automatically install all 16 default categories and products for this new business!
+      // Default Catalog Seeding
       try {
         for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-          const catTemplate = DEFAULT_CATEGORIES[i];
-          const { data: catData } = await supabase
+          const cat = DEFAULT_CATEGORIES[i];
+          const { data: catData, error: catError } = await supabase
             .from('categories')
             .insert([
               {
-                business_id: createdBusiness.id,
-                name: catTemplate.name,
-                image_url: catTemplate.image_url,
+                business_id: newBiz.id,
+                name: cat.name,
                 order_index: i,
-                is_active: true,
               },
             ])
             .select()
             .single();
 
-          if (catData) {
-            const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
-              business_id: createdBusiness.id,
+          if (!catError && catData && cat.products) {
+            const productInserts = cat.products.map((p, idx) => ({
+              business_id: newBiz.id,
               category_id: catData.id,
               name: p.name,
               description: p.description,
-              price: 0,
-              is_frozen: false,
-              is_active: true,
-              order_index: pIdx,
+              price: p.price,
+              is_available: true,
+              order_index: idx,
             }));
-
-            await supabase.from('products').insert(prodsToInsert);
+            await supabase.from('products').insert(productInserts);
           }
         }
-      } catch (seedErr) {
-        console.error('Katalog kurulum hatası:', seedErr);
+      } catch (catErr) {
+        console.warn('Default categories warning:', catErr);
+      }
+
+      // Default Tables Seeding
+      try {
+        const defaultTableCount = tableLimit === '' ? 12 : Math.min(Number(tableLimit), 12);
+        const tableRows = [];
+        for (let i = 1; i <= defaultTableCount; i++) {
+          tableRows.push({
+            business_id: newBiz.id,
+            table_no: `Masa ${i}`,
+            section: 'Salon',
+            capacity: 4,
+            is_active: true,
+          });
+        }
+        await supabase.from('tables').insert(tableRows);
+      } catch (tblErr) {
+        console.warn('Default tables warning:', tblErr);
       }
 
       onCreated({
-        business: createdBusiness,
-        tempPass: tempPass,
+        business: newBiz as Business,
+        tempPass,
         days: Number(days),
       });
 
-      setName('');
-      setTableLimit(20);
-      setDays(7);
-      setPrice(0);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'İşletme hesabı oluşturulurken bir hata oluştu.';
-      setError(message);
+      const msg = err instanceof Error ? err.message : 'İşletme oluşturulurken hata oluştu.';
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -263,21 +249,21 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#12161F] border border-[#212634] rounded-3xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col">
+      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#212634] mb-4 shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20 shadow-xs">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">Yeni İşletme & Abonelik Kaydı</h2>
-              <p className="text-[11px] text-slate-400">Paket seçin veya süre/fiyat bilgilerini manuel belirleyin</p>
+              <h2 className="text-sm font-bold text-slate-100">Yeni İşletme Kaydı & Paket Tanımla</h2>
+              <p className="text-[11px] text-slate-400">Restoran bilgilerini girin ve abonelik paketini seçin</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-[#1A202C] transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -290,162 +276,182 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1 flex-1">
-          {/* Business Name */}
-          <div>
-            <label className="block text-[11px] font-medium text-slate-300 mb-1.5">
-              İşletme Adı <span className="text-rose-400">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Örn: Restiva Kafe & Bistro"
-              className="w-full bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
-            />
+        <form onSubmit={handleCreate} className="space-y-4 overflow-y-auto pr-1 flex-1">
+          {/* Business Info Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                İşletme / Restoran Adı *
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Örn: Boğaziçi Steakhouse & Bistro"
+                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                Yetkili Telefon Numarası
+              </label>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="0532 000 00 00"
+                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                Şehir / Adres
+              </label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Kadıköy, İstanbul"
+                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+              />
+            </div>
           </div>
 
-          {/* Subscription Package Presets */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[11px] font-bold text-slate-200 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-indigo-400" />
-                Abonelik Paketi Seçin (1 Tıkla Doldur)
+          {/* Subscription Plans & Pricing Selection */}
+          <div className="border-t border-slate-800 pt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5 text-orange-400" />
+                <span>Abonelik Paketi & Tahsilat Tipi</span>
               </label>
+
               <button
                 type="button"
-                onClick={handleEnableCustomMode}
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition ${
+                onClick={() => setIsCustomMode(!isCustomMode)}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition ${
                   isCustomMode 
-                    ? 'bg-indigo-600 text-white border-indigo-500' 
-                    : 'bg-[#0A0D14] text-slate-400 border-[#212634] hover:text-slate-200'
+                    ? 'bg-orange-500 text-white border-orange-500' 
+                    : 'bg-[#0F172A] text-slate-400 border-slate-700 hover:text-slate-200'
                 }`}
               >
-                Özel / Manuel Giriş
+                {isCustomMode ? 'Hazır Paketlere Dön' : 'Özel Manuel Ayarla'}
               </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {PLAN_PRESETS.map((preset) => {
-                const isSelected = 
-                  !isCustomMode && 
-                  selectedPlanType === preset.id && 
-                  selectedBillingPeriod === preset.billingPeriod &&
-                  price === preset.price;
+            {/* Presets Grid */}
+            {!isCustomMode ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {PLAN_PRESETS.map((preset, idx) => {
+                  const isSelected = selectedPresetIndex === idx;
+                  return (
+                    <button
+                      key={`${preset.id}_${preset.billingPeriod}_${idx}`}
+                      type="button"
+                      onClick={() => handleSelectPreset(idx)}
+                      className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between relative ${
+                        isSelected
+                          ? 'bg-orange-500/15 border-orange-500 shadow-xs ring-1 ring-orange-500'
+                          : 'bg-[#0F172A] border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-bold text-xs text-slate-100">{preset.name}</span>
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
+                            isSelected ? 'bg-orange-500 text-white' : 'bg-[#1E293B] text-orange-300'
+                          }`}
+                        >
+                          {preset.badge}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1 leading-normal">
+                        {preset.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
-                return (
-                  <button
-                    key={`${preset.id}-${preset.billingPeriod}-${preset.days}`}
-                    type="button"
-                    onClick={() => handleSelectPreset(preset)}
-                    className={`p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                      isSelected
-                        ? 'bg-indigo-600/15 border-indigo-500 shadow-xs ring-1 ring-indigo-500'
-                        : 'bg-[#0A0D14] border-[#212634] hover:border-slate-700 hover:bg-[#12161F]'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-1 mb-1">
-                      <span className="text-xs font-bold text-slate-100">{preset.name}</span>
-                      <span className={`text-[10px] font-extrabold px-1.5 py-0.2 rounded-md ${
-                        isSelected ? 'bg-indigo-500 text-white' : 'bg-[#1E2433] text-indigo-300'
-                      }`}>
-                        {preset.badge}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-tight line-clamp-2">{preset.description}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Editable Parameters (Price, Days, Table Limit) */}
-          <div className="bg-[#0A0D14] border border-[#212634] p-3.5 rounded-2xl space-y-3">
-            <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
-              <span className="flex items-center gap-1">
-                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                Seçili Paket Parametreleri (İstediğiniz gibi düzenleyebilirsiniz)
-              </span>
-              <span className="text-indigo-400 font-mono">
-                {selectedPlanType.toUpperCase()} ({selectedBillingPeriod})
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                  <DollarSign className="w-3 h-3 text-emerald-400" />
-                  Paket Ücreti (TL)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  step={50}
-                  value={price}
-                  onChange={(e) => {
-                    setPrice(Number(e.target.value));
-                    setIsCustomMode(true);
-                  }}
-                  className="w-full bg-[#12161F] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none"
-                />
+            {/* Manual Customization Row (Price, Days, Tables) */}
+            <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-3.5 space-y-3">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-orange-400" />
+                  Paket Detayları (Gün, Fiyat, Masa Sınırı)
+                </span>
+                <span className="text-orange-400 font-mono">
+                  {isCustomMode ? 'Manuel Mod' : 'Seçili Paket Parametreleri'}
+                </span>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-indigo-400" />
-                  Abonelik Süresi (Gün)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={3650}
-                  value={days}
-                  onChange={(e) => {
-                    setDays(Number(e.target.value));
-                    setIsCustomMode(true);
-                  }}
-                  className="w-full bg-[#12161F] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
-                />
-              </div>
+              <div className="grid grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 mb-1">
+                    Tahsil Edilen Fiyat (TL)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={price}
+                    onChange={(e) => setPrice(Number(e.target.value))}
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-indigo-400" />
-                  Masa Limiti (Boş = Sınırsız)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={500}
-                  value={tableLimit}
-                  onChange={(e) => {
-                    setTableLimit(e.target.value === '' ? '' : Number(e.target.value));
-                    setIsCustomMode(true);
-                  }}
-                  placeholder="Sınırsız"
-                  className="w-full bg-[#12161F] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
-                />
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-orange-400" />
+                    Kullanım Süresi (Gün)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={days}
+                    onChange={(e) => setDays(Number(e.target.value))}
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-orange-400" />
+                    Masa Sınırı (Boş = Sınırsız)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Sınırsız"
+                    value={tableLimit}
+                    onChange={(e) => setTableLimit(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="pt-3 border-t border-[#212634] flex items-center justify-end gap-2.5 shrink-0">
+          {/* Action Footer */}
+          <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-[#1A202C] hover:bg-[#252D3D] text-xs font-medium text-slate-300 transition"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition"
             >
-              Vazgeç
+              İptal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
+              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
             >
-              <Plus className="w-4 h-4" />
-              <span>{loading ? 'Hesap Açılıyor...' : `İşletmeyi Aç (${price > 0 ? `${price.toLocaleString('tr-TR')} ₺` : 'Ücretsiz'})`}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>{loading ? 'İşletme Açılıyor...' : 'İşletmeyi & Paketi Başlat'}</span>
             </button>
           </div>
         </form>

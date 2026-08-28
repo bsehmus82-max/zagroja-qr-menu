@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, CheckCircle2, AlertTriangle, Smartphone, 
+  ShieldCheck, CheckCircle2, AlertTriangle, AlertCircle, Smartphone, 
   ArrowRight, RefreshCw, Send, Clock, Download
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -160,17 +160,17 @@ export const PairWaiter: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 selection:bg-orange-500 selection:text-white">
       <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl text-center">
         
         {(status === 'idle' || status === 'submitting') && (
           <form onSubmit={handleSendRequest} className="space-y-4">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center shadow-lg">
+            <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 mx-auto flex items-center justify-center shadow-lg">
               <Smartphone className="w-7 h-7" />
             </div>
 
             <div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full mb-1">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-orange-400 bg-orange-500/10 px-3 py-1 rounded-full mb-1">
                 Garson Terminali Eşleme
               </span>
               <h2 className="text-base font-black text-white">Garson Cihaz Girişi</h2>
@@ -189,7 +189,7 @@ export const PairWaiter: React.FC = () => {
                   value={waiterName}
                   onChange={(e) => setWaiterName(e.target.value)}
                   placeholder="Örn: Ahmet Yılmaz"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
                   required
                 />
               </div>
@@ -203,7 +203,7 @@ export const PairWaiter: React.FC = () => {
                   value={deviceName}
                   onChange={(e) => setDeviceName(e.target.value)}
                   placeholder="Örn: iPhone 14"
-                  className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
+                  className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
                 />
               </div>
 
@@ -217,7 +217,7 @@ export const PairWaiter: React.FC = () => {
                     value={businessSlug}
                     onChange={(e) => setBusinessSlug(e.target.value)}
                     placeholder="Örn: silvana-7133"
-                    className="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
+                    className="w-full bg-slate-950 border border-slate-800 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none transition"
                     required
                   />
                 </div>
@@ -227,7 +227,7 @@ export const PairWaiter: React.FC = () => {
             <button
               type="submit"
               disabled={status === 'submitting'}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 disabled:opacity-50 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition"
+              className="w-full py-3 bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-50 text-white font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25 transition"
             >
               {status === 'submitting' ? (
                 <>
@@ -251,46 +251,35 @@ export const PairWaiter: React.FC = () => {
             </div>
 
             <div>
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full mb-2">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full mb-1">
                 Kasa Onayı Bekleniyor
               </span>
-              <h2 className="text-base font-black text-white">Talebiniz Kasaya İletildi</h2>
+              <h2 className="text-base font-black text-white">{waiterName}</h2>
               <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                Lütfen kasa yetkilisinin panel üzerinden cihazınızı onaylamasını bekleyiniz. Onay verildiğinde bu ekran otomatik olarak açılacaktır.
+                Yetki talebiniz ana kasaya iletildi. Kasa yöneticisi onay verdiğinde bu ekran otomatik olarak açılacaktır.
               </p>
             </div>
 
-            <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 text-left text-xs text-slate-300 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Cihaz:</span>
-                <span className="font-bold text-white">{deviceName}</span>
-              </div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400">Durum:</span>
-                <span className="font-bold text-amber-400">Onay Bekliyor...</span>
-              </div>
-            </div>
-
-            <div className="pt-2 text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-              <span>Canlı bağlantı aktif...</span>
+            <div className="p-3 bg-slate-950 rounded-2xl border border-slate-800 text-xs text-slate-400 flex items-center justify-center gap-2">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <span>Onay sinyali dinleniyor...</span>
             </div>
           </div>
         )}
 
         {status === 'approved' && (
           <div className="py-6 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10">
-              <CheckCircle2 className="w-9 h-9" />
+            <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center shadow-lg">
+              <CheckCircle2 className="w-8 h-8" />
             </div>
 
             <div>
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full mb-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Yetki Onaylandı
+                Yetkilendirildi
               </span>
-              <h2 className="text-base font-black text-white">Cihaz Başarıyla Eşlendi</h2>
+              <h2 className="text-base font-black text-white">Eşleme Başarılı!</h2>
               <p className="text-xs text-slate-400 mt-1">
-                Garson terminali başlatılıyor, lütfen bekleyiniz...
+                Garson sipariş terminaliniz açılıyor...
               </p>
             </div>
           </div>
@@ -324,7 +313,7 @@ export const PairWaiter: React.FC = () => {
         {status === 'error' && (
           <div className="py-6 space-y-4 animate-in fade-in zoom-in-95">
             <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-400 mx-auto flex items-center justify-center shadow-lg">
-              <AlertTriangle className="w-8 h-8" />
+              <AlertCircle className="w-8 h-8" />
             </div>
 
             <div>
@@ -334,7 +323,7 @@ export const PairWaiter: React.FC = () => {
 
             <button
               onClick={() => setStatus('idle')}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition"
+              className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs transition"
             >
               Tekrar Dene
             </button>
@@ -343,7 +332,7 @@ export const PairWaiter: React.FC = () => {
 
         <div className="mt-6 pt-4 border-t border-slate-800 text-left">
           <div className="flex items-start gap-2.5 text-slate-400 text-[11px] leading-relaxed">
-            <Download className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <Download className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
             <div>
               <span className="font-bold text-slate-300 block">Uygulama Olarak İndirin:</span>
               Tarayıcı menünüzden <span className="text-white font-semibold">"Ana Ekrana Ekle"</span> seçeneğine dokunarak her gün doğrudan tek tıkla açabilirsiniz.

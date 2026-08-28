@@ -125,7 +125,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                   ? 'bg-[#1C0D0F]/95 border-rose-500/40 text-slate-100 shadow-rose-950/50'
                   : isWarning
                   ? 'bg-[#1C1408]/95 border-amber-500/40 text-slate-100 shadow-amber-950/50'
-                  : 'bg-[#0B101C]/95 border-indigo-500/40 text-slate-100 shadow-indigo-950/50'
+                  : 'bg-[#1E293B]/95 border-orange-500/40 text-slate-100 shadow-orange-950/50'
               }`}
             >
               {/* Animated 10s Progress Bar on Active Notification */}
@@ -140,7 +140,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 {isSuccess && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                 {isError && <AlertCircle className="w-4 h-4 text-rose-400" />}
                 {isWarning && <AlertTriangle className="w-4 h-4 text-amber-400" />}
-                {!isSuccess && !isError && !isWarning && <Info className="w-4 h-4 text-indigo-400" />}
+                {!isSuccess && !isError && !isWarning && <Info className="w-4 h-4 text-orange-400" />}
               </div>
 
               <div className="flex-1 min-w-0 pr-1">

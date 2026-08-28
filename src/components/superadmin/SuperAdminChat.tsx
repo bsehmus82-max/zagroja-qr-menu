@@ -1,72 +1,76 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, MessageSquare, RefreshCw } from 'lucide-react';
+import { 
+  Send, RefreshCw, CheckCheck, Clock, 
+  MessageSquare, User, Building2, Search 
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business, SupportMessage } from '../../types';
-import { sound } from '../../lib/audio';
 
 interface SuperAdminChatProps {
   businesses: Business[];
-  selectedBiz: Business | null;
-  onSelectBiz: (biz: Business) => void;
 }
 
-export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
-  businesses,
-  selectedBiz,
-  onSelectBiz,
-}) => {
+export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) => {
+  const [selectedBizId, setSelectedBizId] = useState<string>(businesses[0]?.id || '');
   const [messages, setMessages] = useState<SupportMessage[]>([]);
-  const [inputText, setInputText] = useState('');
+  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeBusiness = selectedBiz || (businesses.length > 0 ? businesses[0] : null);
+  const fetchMessages = async (bizId: string) => {
+    if (!bizId) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('*')
+        .eq('business_id', bizId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        setMessages(data as SupportMessage[]);
+
+        // Mark as read
+        await supabase
+          .from('support_messages')
+          .update({ is_read: true })
+          .eq('business_id', bizId)
+          .eq('sender', 'business')
+          .eq('is_read', false);
+      }
+    } catch (err) {
+      console.warn('Superadmin chat fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!activeBusiness) return;
+    if (selectedBizId) {
+      fetchMessages(selectedBizId);
 
-    const fetchMessages = async () => {
-      setLoading(true);
-      try {
-        const { data } = await supabase
-          .from('support_messages')
-          .select('*')
-          .eq('business_id', activeBusiness.id)
-          .order('created_at', { ascending: true });
-
-        if (data) setMessages(data as SupportMessage[]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMessages();
-
-    // Subscribe to realtime messages for this business
-    const channel = supabase
-      .channel(`chat-admin-${activeBusiness.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'support_messages',
-          filter: `business_id=eq.${activeBusiness.id}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as SupportMessage;
-          setMessages((prev) => [...prev, newMsg]);
-          if (newMsg.sender === 'business') {
-            sound.playMessageTone();
+      const channel = supabase
+        .channel(`sa_support_${selectedBizId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'support_messages',
+            filter: `business_id=eq.${selectedBizId}`,
+          },
+          (payload) => {
+            setMessages((prev) => [...prev, payload.new as SupportMessage]);
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeBusiness?.id]);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [selectedBizId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,155 +78,134 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeBusiness) return;
+    if (!newMessage.trim() || !selectedBizId) return;
 
-    const text = inputText.trim();
-    setInputText('');
+    const text = newMessage.trim();
+    setNewMessage('');
 
-    const newMsg = {
-      business_id: activeBusiness.id,
-      sender: 'superadmin',
-      message: text,
-      status: 'open',
-      is_read: false,
-    };
-
-    const { data, error } = await supabase
-      .from('support_messages')
-      .insert([newMsg])
-      .select()
-      .single();
-
-    if (!error && data) {
-      setMessages((prev) => [...prev, data as SupportMessage]);
+    try {
+      await supabase.from('support_messages').insert([
+        {
+          business_id: selectedBizId,
+          sender: 'superadmin',
+          message: text,
+          status: 'open',
+          is_read: false,
+        },
+      ]);
+    } catch (err) {
+      console.warn('Superadmin send message error:', err);
     }
   };
 
-  if (businesses.length === 0) {
-    return (
-      <div className="py-20 text-center text-slate-500 bg-[#12161F] border border-[#212634] rounded-2xl p-8">
-        <MessageSquare className="w-10 h-10 mx-auto mb-2.5 text-slate-600" />
-        <h3 className="text-sm font-semibold text-slate-200">Kayıtlı İşletme Bulunmuyor</h3>
-        <p className="text-xs text-slate-400 mt-1">
-          İşletme hesabı açıldığında buradan doğrudan mesajlaşabilirsiniz.
-        </p>
-      </div>
-    );
-  }
+  const filteredBusinesses = businesses.filter((b) =>
+    b.name.toLowerCase().includes(search.toLowerCase()) ||
+    b.username.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const activeBusiness = businesses.find((b) => b.id === selectedBizId);
 
   return (
-    <div className="bg-[#12161F] border border-[#212634] rounded-2xl h-[650px] flex overflow-hidden shadow-xl">
+    <div className="bg-[#1E293B] border border-slate-800 rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[680px] shadow-2xl">
       {/* Left Sidebar: Business List */}
-      <div className="w-72 border-r border-[#212634] flex flex-col bg-[#0D1017]">
-        <div className="p-4 border-b border-[#212634]">
-          <h3 className="font-bold text-xs uppercase tracking-wider text-slate-300">
-            İşletmeler ({businesses.length})
-          </h3>
+      <div className="border-r border-slate-800 flex flex-col h-full bg-[#0F172A]">
+        <div className="p-3.5 border-b border-slate-800">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="İşletme veya kullanıcı ara..."
+              className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
+            />
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-[#1A202C]">
-          {businesses.map((biz) => {
-            const isSelected = activeBusiness?.id === biz.id;
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-800">
+          {filteredBusinesses.map((biz) => {
+            const isSelected = biz.id === selectedBizId;
             return (
-              <div
+              <button
                 key={biz.id}
-                onClick={() => onSelectBiz(biz)}
-                className={`p-3.5 cursor-pointer transition flex items-center gap-3 ${
-                  isSelected ? 'bg-[#181E2B] border-l-2 border-indigo-500' : 'hover:bg-[#12161F]'
+                onClick={() => setSelectedBizId(biz.id)}
+                className={`w-full text-left p-3 transition flex items-center gap-3 ${
+                  isSelected ? 'bg-orange-500/10 border-l-2 border-orange-500' : 'hover:bg-slate-800/40'
                 }`}
               >
-                <div className="w-8 h-8 rounded-xl bg-[#1A202C] text-indigo-400 font-bold text-xs flex items-center justify-center shrink-0 border border-[#262E3E]">
+                <div className="w-8 h-8 rounded-xl bg-slate-800 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-700">
                   {biz.name.charAt(0)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-xs text-slate-200 truncate">{biz.name}</h4>
-                  <p className="text-[10px] text-slate-500 truncate">@{biz.username}</p>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-bold text-slate-200 truncate">{biz.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{biz.username}</div>
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>
       </div>
 
       {/* Right Chat Area */}
-      <div className="flex-1 flex flex-col bg-[#0A0D14]">
+      <div className="md:col-span-2 flex flex-col h-full bg-[#1E293B]">
         {/* Chat Header */}
-        <div className="px-5 py-3.5 border-b border-[#212634] bg-[#12161F] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center font-bold text-xs border border-indigo-500/20">
-              {activeBusiness?.name.charAt(0)}
+        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-[#1E293B]/80">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold text-xs border border-orange-500/20 shadow-xs">
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-semibold text-xs text-slate-100">{activeBusiness?.name}</h3>
-              <p className="text-[10px] text-slate-400">
-                @{activeBusiness?.username} • {activeBusiness?.table_limit ? `${activeBusiness?.table_limit} Masa` : 'Sınırsız'}
-              </p>
+              <h3 className="text-xs font-bold text-slate-100">{activeBusiness?.name || 'İşletme Seçin'}</h3>
+              <p className="text-[10px] text-slate-400">Canlı Destek & Destek Talepleri</p>
             </div>
           </div>
 
           <button
-            onClick={async () => {
-              if (!activeBusiness) return;
-              if (confirm(`${activeBusiness.name} ile olan sohbeti sonlandırmak istiyor musunuz?`)) {
-                await supabase.rpc('end_support_chat', { p_business_id: activeBusiness.id });
-                setMessages([]);
-              }
-            }}
-            className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-xs font-bold rounded-xl transition"
+            onClick={() => selectedBizId && fetchMessages(selectedBizId)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            title="Yenile"
           >
-            Sohbeti Bitir
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
 
         {/* Messages Body */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-3.5">
-          {loading ? (
-            <div className="py-20 text-center flex flex-col items-center gap-2 text-slate-500">
-              <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
-              <span className="text-xs">Yükleniyor...</span>
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0F172A]/40">
+          {loading && messages.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-xs text-slate-500">
+              <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
             </div>
           ) : messages.length === 0 ? (
-            <div className="py-20 text-center text-slate-500 text-xs">
-              Bu işletme ile henüz bir mesaj geçmişi bulunmuyor.
+            <div className="h-full flex flex-col items-center justify-center text-xs text-slate-500 space-y-2">
+              <MessageSquare className="w-8 h-8 text-slate-700" />
+              <span>Bu işletme ile henüz bir mesajlaşma bulunmuyor.</span>
             </div>
           ) : (
             messages.map((m) => {
               const isMe = m.sender === 'superadmin';
               return (
-                <div key={m.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  key={m.id}
+                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                >
                   <div
-                    className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed space-y-1.5 ${
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
                       isMe
-                        ? 'bg-indigo-600 text-white rounded-br-none shadow-sm'
-                        : 'bg-[#181E2B] text-slate-200 border border-[#262E3E] rounded-bl-none'
+                        ? 'bg-orange-500 text-white rounded-br-none shadow-md shadow-orange-500/15'
+                        : 'bg-[#0F172A] border border-slate-800 text-slate-200 rounded-bl-none'
                     }`}
                   >
-                    <div className="text-[10px] font-semibold opacity-75 mb-1 flex items-center justify-between">
-                      <span>{isMe ? 'Restiva Müşteri Hizmetleri' : activeBusiness?.name}</span>
-                      <span className="text-[9px] font-mono opacity-60">
-                        {new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-
-                    {m.subject && (
-                      <div className="text-[11px] font-bold text-orange-400">
-                        Konu: {m.subject}
-                      </div>
-                    )}
-
                     <p className="whitespace-pre-wrap">{m.message}</p>
-
-                    {m.image_url && (
-                      <div className="pt-1.5">
-                        <a href={m.image_url} target="_blank" rel="noopener noreferrer">
-                          <img
-                            src={m.image_url}
-                            alt="Ekran Görüntüsü"
-                            className="max-h-48 rounded-xl object-cover border border-slate-700 hover:opacity-90 transition"
-                          />
-                        </a>
-                      </div>
-                    )}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1 text-[9px] text-slate-500">
+                    <Clock className="w-2.5 h-2.5" />
+                    <span>
+                      {new Date(m.created_at).toLocaleTimeString('tr-TR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    {isMe && m.is_read && <CheckCheck className="w-3 h-3 text-emerald-400" />}
                   </div>
                 </div>
               );
@@ -231,19 +214,19 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Footer */}
-        <form onSubmit={handleSendMessage} className="p-3.5 border-t border-[#212634] bg-[#12161F] flex items-center gap-2.5">
+        {/* Input Bar */}
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 flex items-center gap-2 bg-[#1E293B]">
           <input
             type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Mesajınızı yazınız..."
-            className="flex-1 bg-[#0A0D14] border border-[#212634] focus:border-indigo-500/60 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="İşletmeye yanıt yazın..."
+            className="flex-1 bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
           />
           <button
             type="submit"
-            disabled={!inputText.trim()}
-            className="p-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl shadow-sm transition shrink-0"
+            disabled={!newMessage.trim() || !selectedBizId}
+            className="p-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-xl shadow-md shadow-orange-500/25 transition shrink-0 active:scale-95"
           >
             <Send className="w-4 h-4" />
           </button>

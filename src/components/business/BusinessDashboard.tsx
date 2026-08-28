@@ -309,11 +309,13 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         <div className="space-y-6">
           {/* Brand Header */}
           <div className="flex items-center gap-3 px-2 pt-2">
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center p-1.5 overflow-hidden shrink-0 shadow-sm">
+            <div className="w-10 h-10 rounded-xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
               {business.logo_url ? (
-                <img src={business.logo_url} alt={business.name} className="w-full h-full object-contain" />
+                <img src={business.logo_url} alt={business.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-slate-900 font-black text-sm">{business.name.charAt(0)}</span>
+                <div className="w-full h-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-sm">
+                  {business.name.charAt(0)}
+                </div>
               )}
             </div>
             <div className="min-w-0">
@@ -452,7 +454,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={() => handleTabChange('support')}
-                  className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span>Canlı Destekten Paket Yükseltme İste</span>

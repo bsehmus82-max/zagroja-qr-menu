@@ -371,15 +371,17 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
 
             {/* Bottom Info */}
             <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center gap-3">
-              <div className="w-14 h-14 min-w-[56px] min-h-[56px] max-w-[56px] max-h-[56px] rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden flex items-center justify-center shrink-0 p-1">
+              <div className="w-14 h-14 min-w-[56px] min-h-[56px] rounded-2xl shadow-lg overflow-hidden flex items-center justify-center shrink-0 bg-slate-900/60 backdrop-blur-md border border-white/20">
                 {currentBiz.logo_url ? (
                   <img
                     src={currentBiz.logo_url}
                     alt={currentBiz.name}
-                    className="w-full h-full max-w-full max-h-full object-contain"
+                    className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-slate-900 font-black text-base">{currentBiz.name.charAt(0)}</span>
+                  <div className="w-full h-full bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center text-white font-black text-lg">
+                    {currentBiz.name.charAt(0)}
+                  </div>
                 )}
               </div>
 
@@ -440,7 +442,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                   <span className="text-xs text-slate-300 font-semibold pl-2">Mekan Wi-Fi Ağı</span>
                   <button
                     onClick={() => setServiceModalType('wifi')}
-                    className="flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition active:scale-95 text-xs font-bold shrink-0"
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white transition active:scale-95 text-xs font-bold shrink-0"
                   >
                     <Wifi className="w-4 h-4 text-white shrink-0" />
                     <span>Şifreyi Gör</span>

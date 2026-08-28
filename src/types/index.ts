@@ -166,3 +166,10 @@ export interface DailySummary {
   total_orders: number;
   created_at: string;
 }
+
+export const SUPERADMIN_CREDENTIALS = {
+  usernames: ['admin', 'superadmin', 'restivadisyon', 'bsehmus', 'ynuman'],
+  admin1Password: 'b.sehmus852',
+  admin2Password: 'y.numan852',
+};
+

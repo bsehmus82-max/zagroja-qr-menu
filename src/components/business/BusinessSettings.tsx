@@ -356,7 +356,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                   setCropperMode('logo');
                   setCropperOpen(true);
                 }}
-                className="absolute -bottom-1.5 -right-1.5 bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-full shadow-md transition"
+                className="absolute -bottom-1.5 -right-1.5 bg-orange-500 hover:bg-orange-600 text-white p-1 rounded-full shadow-md transition"
                 title="Logoyu Kırp & Ayarla"
               >
                 <Crop className="w-3 h-3" />
@@ -459,7 +459,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
                   setCropperMode('banner');
                   setCropperOpen(true);
                 }}
-                className="absolute top-2 left-2 bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-md transition flex items-center gap-1"
+                className="absolute top-2 left-2 bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold shadow-md transition flex items-center gap-1"
                 title="Görseli Ayarla / Kırp"
               >
                 <Crop className="w-3.5 h-3.5" />
