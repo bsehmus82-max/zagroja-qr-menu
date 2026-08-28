@@ -7,7 +7,7 @@ import {
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
-import { sendNativeNotification } from '../../lib/notifications';
+import { sendNativeNotification, isDesktopApp } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
 import { MenuManager } from './MenuManager';
 import { TableManager } from './TableManager';
@@ -410,14 +410,21 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button
-              onClick={() => setShowPermModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition"
-              title="Ses ve Bildirim İzin Kılavuzunu Görüntüle"
-            >
-              <Volume2 className="w-3.5 h-3.5 text-orange-500" />
-              <span className="hidden sm:inline">Ses & Bildirim İzinleri</span>
-            </button>
+            {isDesktopApp() ? (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold shadow-xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Masaüstü Motoru Aktif</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowPermModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition"
+                title="Ses ve Bildirim İzin Kılavuzunu Görüntüle"
+              >
+                <Volume2 className="w-3.5 h-3.5 text-orange-500" />
+                <span className="hidden sm:inline">Ses & Bildirim İzinleri</span>
+              </button>
+            )}
           </div>
         </header>
 

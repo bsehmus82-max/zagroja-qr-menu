@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -8,6 +8,7 @@ interface Toast {
   message: string;
   type: ToastType;
   duration: number; // 10000 ms (10 seconds)
+  createdAt: number;
 }
 
 interface ToastContextType {
@@ -24,44 +25,76 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [activeProgress, setActiveProgress] = useState(100);
 
+  // References to preserve active toast timing across state updates
+  const activeToastRef = useRef<string | null>(null);
+  const activeStartTimeRef = useRef<number>(0);
+  const recentMessagesRef = useRef<Map<string, number>>(new Map());
+
   const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    setToasts((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      // Reset active refs if removing the active toast
+      if (activeToastRef.current === id) {
+        activeToastRef.current = next.length > 0 ? next[0].id : null;
+        activeStartTimeRef.current = Date.now();
+      }
+      return next;
+    });
   }, []);
 
   const showToast = useCallback(
     (message: string, type: ToastType = 'info', duration: number = 10000) => {
-      const id = `toast_${Date.now()}_${Math.random()}`;
-      setToasts((prev) => [...prev, { id, message, type, duration }]);
+      const now = Date.now();
+      
+      // Debounce identical duplicate messages within 2.5 seconds to prevent spam
+      const lastSeen = recentMessagesRef.current.get(message);
+      if (lastSeen && now - lastSeen < 2500) {
+        return;
+      }
+      recentMessagesRef.current.set(message, now);
+
+      const id = `toast_${now}_${Math.random().toString(36).substring(2, 7)}`;
+      setToasts((prev) => [...prev, { id, message, type, duration, createdAt: now }]);
     },
     []
   );
 
   // 10-Second Sequential Countdown Queue
-  // The first notification (toasts[0]) counts down for 10 seconds.
-  // Subsequent notifications wait underneath. When the active one expires, the next one moves up and counts for 10 seconds.
+  // The first (topmost) notification is the ONLY active one counting down for 10 seconds.
+  // When a new notification arrives, the top notification's timer DOES NOT restart.
+  // When the top notification finishes or is closed, the next notification moves to top and starts its 10 seconds.
+  const activeToast = toasts.length > 0 ? toasts[0] : null;
+  const activeToastId = activeToast ? activeToast.id : null;
+
   useEffect(() => {
-    if (toasts.length === 0) {
+    if (!activeToast || !activeToastId) {
+      activeToastRef.current = null;
       setActiveProgress(100);
       return;
     }
 
-    const currentToast = toasts[0];
-    const duration = currentToast.duration || 10000;
-    const startTime = Date.now();
+    // If this is a new active toast, initialize its start time
+    if (activeToastRef.current !== activeToastId) {
+      activeToastRef.current = activeToastId;
+      activeStartTimeRef.current = Date.now();
+      setActiveProgress(100);
+    }
+
+    const duration = activeToast.duration || 10000;
 
     const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
+      const elapsed = Date.now() - activeStartTimeRef.current;
       const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
       setActiveProgress(remaining);
 
       if (elapsed >= duration) {
         clearInterval(interval);
-        removeToast(currentToast.id);
+        removeToast(activeToastId);
       }
-    }, 50);
+    }, 40);
 
     return () => clearInterval(interval);
-  }, [toasts, removeToast]);
+  }, [activeToastId, activeToast?.duration, removeToast]);
 
   const success = useCallback((msg: string) => showToast(msg, 'success', 10000), [showToast]);
   const error = useCallback((msg: string) => showToast(msg, 'error', 10000), [showToast]);
@@ -72,7 +105,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
       {children}
 
-      {/* Floating Notification Queue Container (Top-Right, 10s per item) */}
+      {/* Floating Notification Queue Container (Top-Right, 10s per item, First is Topmost) */}
       <div className="fixed top-4 right-4 z-[99999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-3 sm:px-0">
         {toasts.map((toast, index) => {
           const isActive = index === 0;
@@ -98,7 +131,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {/* Animated 10s Progress Bar on Active Notification */}
               {isActive && (
                 <div
-                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-white/30 to-white/80 transition-all duration-75"
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-400 via-amber-300 to-white transition-all duration-75"
                   style={{ width: `${activeProgress}%` }}
                 />
               )}
@@ -122,6 +155,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               <button
                 onClick={() => removeToast(toast.id)}
                 className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg transition hover:bg-white/10"
+                title="Kapat"
               >
                 <X className="w-3.5 h-3.5" />
               </button>

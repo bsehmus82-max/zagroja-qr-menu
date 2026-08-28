@@ -1,9 +1,19 @@
-﻿/**
+/**
  * Native Browser & Background Push Notification Engine
  */
 
+export function isDesktopApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === 'localhost' ||
+    !!(window as unknown as { chrome?: { webview?: unknown } }).chrome?.webview ||
+    navigator.userAgent.includes('RestivAdisyon')
+  );
+}
+
 export async function registerServiceWorker() {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator && !isDesktopApp()) {
     try {
       const reg = await navigator.serviceWorker.register('/sw.js');
       return reg;
@@ -15,6 +25,10 @@ export async function registerServiceWorker() {
 }
 
 export async function requestNotificationPermission(): Promise<boolean> {
+  if (isDesktopApp()) {
+    return true; // Desktop app handles audio & printing natively on Windows
+  }
+
   if (typeof window === 'undefined' || !('Notification' in window)) {
     return false;
   }
@@ -36,10 +50,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 export function isNotificationSupported(): boolean {
+  if (isDesktopApp()) return true;
   return typeof window !== 'undefined' && 'Notification' in window;
 }
 
 export function getNotificationPermissionStatus(): NotificationPermission | 'unsupported' {
+  if (isDesktopApp()) return 'granted';
   if (!isNotificationSupported()) return 'unsupported';
   return Notification.permission;
 }
@@ -56,6 +72,8 @@ export interface NativeNotificationOptions {
  * Dispatches a native OS / Device notification (auto-closes cleanly after 4.5s)
  */
 export async function sendNativeNotification(options: NativeNotificationOptions) {
+  if (isDesktopApp()) return; // Desktop app uses native Windows beep and thermal printer engine
+
   if (!isNotificationSupported()) return;
 
   if (Notification.permission !== 'granted') {
