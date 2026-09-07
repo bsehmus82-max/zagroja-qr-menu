@@ -649,9 +649,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
                     </button>
                   </div>
 
-                  {/* Balanced Vignette Divider Between Logical Navigation Groups */}
-                  {(index === 3 || index === 6) && (
-                    <div className="h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent my-1.5 mx-2 shrink-0 pointer-events-none" />
+                  {/* Subtle Vignette Divider Between Every Navigation Item */}
+                  {index < navItems.length - 1 && (
+                    <div className="h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-1 mx-3 shrink-0 pointer-events-none" />
                   )}
                 </React.Fragment>
               );
@@ -660,9 +660,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
         </div>
 
         {/* Sidebar Bottom: Settings + Preview QR Menu Button & Logout */}
-        <div className="space-y-1.5 pt-1 px-3 shrink-0">
+        <div className="space-y-1 pt-1 px-3 shrink-0">
           {/* Inset Vignette Divider Before Settings */}
-          <div className="h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent my-1.5 mx-2 shrink-0 pointer-events-none" />
+          <div className="h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-1 mx-3 shrink-0 pointer-events-none" />
 
           {/* Settings Tab Button */}
           <button
@@ -697,8 +697,8 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
             </div>
           </button>
 
-          {/* Inset Vignette Divider Before QR Menu & Logout */}
-          <div className="h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent my-1.5 mx-2 shrink-0 pointer-events-none" />
+          {/* Inset Vignette Divider Before QR Menu */}
+          <div className="h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-1 mx-3 shrink-0 pointer-events-none" />
 
           {/* Müşteri Menüsünü Aç */}
           <a
@@ -724,6 +724,9 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
               <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-transform group-hover:translate-x-0.5 shrink-0" />
             </div>
           </a>
+
+          {/* Inset Vignette Divider Before Logout */}
+          <div className="h-[1px] bg-gradient-to-r from-transparent via-white/[0.08] to-transparent my-1 mx-3 shrink-0 pointer-events-none" />
 
           {/* Logout */}
           <button
