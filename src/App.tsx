@@ -26,19 +26,24 @@ export default function App() {
       localStorage.getItem('zagroja_superadmin_auth') === 'true'
   );
 
-  // Business Admin state
+  // Business Admin state (Checks active session or remembered device)
   const [activeBusiness, setActiveBusiness] = useState<Business | null>(() => {
-    const raw = 
-      sessionStorage.getItem('restiva_biz_session') || 
-      localStorage.getItem('restiva_biz_session') ||
-      sessionStorage.getItem('zagroja_business_data') || 
-      localStorage.getItem('zagroja_business_data');
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
+    const sessionRaw = sessionStorage.getItem('restiva_biz_session');
+    if (sessionRaw) {
+      try {
+        return JSON.parse(sessionRaw);
+      } catch {}
     }
+    const isRemembered = localStorage.getItem('restiva_remember_me') === 'true';
+    if (isRemembered) {
+      const localRaw = localStorage.getItem('restiva_biz_session');
+      if (localRaw) {
+        try {
+          return JSON.parse(localRaw);
+        } catch {}
+      }
+    }
+    return null;
   });
 
   // Customer Menu state
@@ -302,10 +307,6 @@ export default function App() {
     return (
       <BusinessLogin
         onSuccess={(biz) => {
-          sessionStorage.setItem('restiva_biz_id', biz.id);
-          sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
-          localStorage.setItem('restiva_biz_id', biz.id);
-          localStorage.setItem('restiva_biz_session', JSON.stringify(biz));
           setActiveBusiness(biz);
         }}
       />
@@ -318,17 +319,19 @@ export default function App() {
       onBusinessUpdate={(updated) => {
         setActiveBusiness(updated);
         sessionStorage.setItem('restiva_biz_session', JSON.stringify(updated));
-        localStorage.setItem('restiva_biz_session', JSON.stringify(updated));
+        if (localStorage.getItem('restiva_remember_me') === 'true') {
+          localStorage.setItem('restiva_biz_session', JSON.stringify(updated));
+        }
       }}
       onLogout={() => {
         sessionStorage.removeItem('restiva_biz_id');
         sessionStorage.removeItem('restiva_biz_session');
         localStorage.removeItem('restiva_biz_id');
         localStorage.removeItem('restiva_biz_session');
-        sessionStorage.removeItem('zagroja_business_id');
-        sessionStorage.removeItem('zagroja_business_data');
         localStorage.removeItem('zagroja_business_id');
         localStorage.removeItem('zagroja_business_data');
+        sessionStorage.removeItem('zagroja_business_id');
+        sessionStorage.removeItem('zagroja_business_data');
         setActiveBusiness(null);
       }}
     />
