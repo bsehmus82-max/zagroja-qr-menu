@@ -187,7 +187,7 @@ export const PRESET_THEMES: Record<TemplateId, PresetThemeDefinition> = {
     previewGradient: 'from-orange-600 via-zinc-900 to-black',
     config: {
       template_id: 'artisan_burger',
-      font_family: 'bebas',
+      font_family: 'inter',
       card_style: 'rounded_card',
       primary_color: '#F97316', // Flame Orange
       secondary_color: '#FB923C',
