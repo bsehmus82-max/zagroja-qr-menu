@@ -12,6 +12,7 @@ import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common/ConfirmModal';
 import { CustomerMenu } from '../customer/CustomerMenu';
 import { FoodImagePickerModal } from './FoodImagePickerModal';
+import { getProductSpecificImage } from '../../lib/aiBrandThemeEngine';
 
 interface MenuManagerProps {
   business: Business;
@@ -555,8 +556,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                           <img
                             src={
                               prod.image_url ||
-                              selectedCategory?.image_url ||
-                              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                              getProductSpecificImage(prod.name, prod.description, selectedCategory?.image_url)
                             }
                             alt={prod.name}
                             className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
@@ -822,8 +822,11 @@ export const MenuManager: React.FC<MenuManagerProps> = ({
                     <img
                       src={
                         editingProduct.image_url ||
-                        categories.find((c) => c.id === editingProduct.category_id)?.image_url ||
-                        'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
+                        getProductSpecificImage(
+                          editingProduct.name,
+                          editingProduct.description,
+                          categories.find((c) => c.id === editingProduct.category_id)?.image_url
+                        )
                       }
                       alt={editingProduct.name}
                       className="w-full h-full object-cover"

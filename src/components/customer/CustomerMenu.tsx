@@ -15,7 +15,10 @@ import {
   Language, translations, getCategoryTitle, 
   getTranslatedWorkingHours, getTranslatedDescription 
 } from '../../lib/translations';
-import { getEffectiveThemeConfig, FONT_FAMILY_MAP, injectGoogleFont } from '../../lib/aiBrandThemeEngine';
+import { 
+  getEffectiveThemeConfig, FONT_FAMILY_MAP, injectGoogleFont, 
+  getProductSpecificImage 
+} from '../../lib/aiBrandThemeEngine';
 
 interface CustomerMenuProps {
   business: Business;
@@ -618,7 +621,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     const translatedDesc = getTranslatedDescription(prod.description, lang);
                     const qtyInCart = getItemQtyInCart(prod.id);
                     const catImg = categories.find((c) => c.id === prod.category_id)?.image_url;
-                    const photoSrc = prod.image_url || catImg || '';
+                    const photoSrc = prod.image_url || getProductSpecificImage(prod.name, prod.description, catImg);
 
                     return (
                       <div

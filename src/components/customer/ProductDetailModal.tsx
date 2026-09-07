@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Plus, Minus, Check, Snowflake, ShoppingBag, X } from 'lucide-react';
 import { Product } from '../../types';
 import { Language, translations, getTranslatedDescription, getCategoryTitle } from '../../lib/translations';
+import { getProductSpecificImage } from '../../lib/aiBrandThemeEngine';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -32,8 +33,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const translatedCatName = categoryName ? getCategoryTitle(categoryName, lang) : '';
   const photoUrl =
     product.image_url ||
-    categoryImage ||
-    '';
+    getProductSpecificImage(product.name, product.description, categoryImage);
 
   const handleAdd = () => {
     if (product.is_frozen) return;
