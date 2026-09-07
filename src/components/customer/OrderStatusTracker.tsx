@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ChefHat, CheckCircle2, Clock, ChevronDown, ChevronUp, BellRing } from 'lucide-react';
 import { Order } from '../../types';
 import { requestNotificationPermission, getNotificationPermissionStatus } from '../../lib/notifications';
@@ -27,28 +27,28 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ orders }
         return {
           title: 'Siparişiniz Alındı',
           subtitle: 'Mutfak onaylaması bekleniyor...',
-          badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+          badgeClass: 'bg-[#141A26] text-amber-400',
           icon: Clock,
         };
       case 'preparing':
         return {
           title: 'Mutfakta Hazırlanıyor',
           subtitle: 'Şeflerimiz siparişinizi özenle hazırlıyor.',
-          badgeClass: 'bg-sky-100 text-sky-800 border-sky-200 animate-pulse',
+          badgeClass: 'bg-[#141A26] text-sky-400 animate-pulse',
           icon: ChefHat,
         };
       case 'served':
         return {
           title: 'Siparişiniz Masanızda',
           subtitle: 'Afiyet olsun! İlave istekleriniz için çağrı butonunu kullanabilirsiniz.',
-          badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          badgeClass: 'bg-[#141A26] text-emerald-400',
           icon: CheckCircle2,
         };
       default:
         return {
           title: 'Sipariş Durumu',
           subtitle: '',
-          badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
+          badgeClass: 'bg-[#141A26] text-slate-300',
           icon: Clock,
         };
     }
@@ -58,38 +58,38 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ orders }
   const StatusIcon = statusInfo.icon;
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm p-4 space-y-3">
+    <div className="bg-[#111622] rounded-2xl shadow-sm p-4 space-y-3 text-slate-100">
       <div
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between cursor-pointer"
       >
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${statusInfo.badgeClass}`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${statusInfo.badgeClass}`}>
             <StatusIcon className="w-4 h-4" />
           </div>
           <div>
-            <h4 className="font-extrabold text-xs text-slate-900">{statusInfo.title}</h4>
-            <p className="text-[10px] text-slate-500">{statusInfo.subtitle}</p>
+            <h4 className="font-bold text-xs text-white">{statusInfo.title}</h4>
+            <p className="text-[10px] text-slate-400 font-normal">{statusInfo.subtitle}</p>
           </div>
         </div>
 
-        <button className="text-slate-400 p-1">
+        <button className="text-slate-400 p-1 hover:text-white">
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
       </div>
 
       {/* Notification Permission Mini Banner */}
       {notifPermission === 'default' && (
-        <div className="bg-orange-50/80 border border-orange-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2">
+        <div className="bg-[#141A26] rounded-xl p-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <BellRing className="w-3.5 h-3.5 text-orange-500 shrink-0" />
-            <span className="text-[10px] font-bold text-orange-950 truncate">
+            <BellRing className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="text-[10px] font-medium text-slate-300 truncate">
               Yemek hazırlandığında bildirim al
             </span>
           </div>
           <button
             onClick={handleEnableNotifs}
-            className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-black rounded-lg transition active:scale-95 shrink-0 shadow-xs"
+            className="px-2.5 py-1 bg-white hover:bg-slate-200 text-[#0F172A] text-[10px] font-bold rounded-lg transition active:scale-95 shrink-0 shadow-xs"
           >
             İzin Ver
           </button>
@@ -97,17 +97,17 @@ export const OrderStatusTracker: React.FC<OrderStatusTrackerProps> = ({ orders }
       )}
 
       {expanded && (
-        <div className="pt-3 border-t border-slate-100 space-y-2 text-xs">
-          <div className="flex justify-between font-bold text-slate-700">
+        <div className="pt-3 space-y-2 text-xs">
+          <div className="flex justify-between font-bold text-slate-300">
             <span>Sipariş Tutarı:</span>
-            <span className="text-orange-600 font-extrabold">{latestOrder.total_amount.toFixed(2)} ₺</span>
+            <span className="text-white font-bold">{latestOrder.total_amount.toFixed(2)} ₺</span>
           </div>
 
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-white/[0.04]">
             {latestOrder.items.map((item, i) => (
-              <div key={i} className="py-1.5 flex justify-between text-[11px] text-slate-600">
+              <div key={i} className="py-1.5 flex justify-between text-[11px] text-slate-400">
                 <span>{item.quantity}x {item.name}</span>
-                <span className="font-bold">{(item.price * item.quantity).toFixed(2)} ₺</span>
+                <span className="font-bold text-slate-200">{(item.price * item.quantity).toFixed(2)} ₺</span>
               </div>
             ))}
           </div>

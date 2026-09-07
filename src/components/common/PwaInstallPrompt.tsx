@@ -63,21 +63,21 @@ export const PwaInstallPrompt: React.FC<{ panelName?: string }> = ({ panelName =
     <>
       <button
         onClick={handleInstallClick}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-300 border border-orange-500/20 text-xs font-semibold transition"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-200 border border-[#2B384E] text-xs font-semibold transition"
         title="Uygulamayı Cihazına İndir"
       >
-        <Download className="w-3.5 h-3.5 text-orange-400" />
+        <Download className="w-3.5 h-3.5 text-slate-300" />
         <span className="hidden sm:inline">Uygulamayı İndir</span>
         <span className="sm:hidden">İndir</span>
       </button>
 
       {/* iOS Installation Instructions Modal */}
       {showIosModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-end sm:items-center justify-center p-4">
-          <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[99999] flex items-end sm:items-center justify-center p-4 font-medium text-slate-200">
+          <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-sm p-6 shadow-2xl space-y-4 animate-in slide-in-from-bottom">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F293D]">
               <div className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5 text-orange-400" />
+                <Smartphone className="w-5 h-5 text-slate-300" />
                 <h3 className="font-bold text-sm text-white">iPhone / iPad'e İndir</h3>
               </div>
               <button
@@ -92,27 +92,27 @@ export const PwaInstallPrompt: React.FC<{ panelName?: string }> = ({ panelName =
               {panelName} uygulamasını ana ekranınıza ekleyip tam ekran uygulama olarak kullanmak için:
             </p>
 
-            <div className="space-y-3 bg-[#0F172A] p-4 rounded-2xl border border-slate-800 text-xs">
+            <div className="space-y-3 bg-[#0C1017] p-4 rounded-2xl border border-[#1F293D] text-xs">
               <div className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-white text-slate-900 flex items-center justify-center text-[10px] font-bold shrink-0">
                   1
                 </span>
                 <span className="text-slate-200">
-                  Safari alt çubuğundaki <Share className="w-3.5 h-3.5 inline text-orange-400 mx-1" /> <strong>Paylaş</strong> butonuna dokunun.
+                  Safari alt çubuğundaki <Share className="w-3.5 h-3.5 inline text-slate-300 mx-1" /> <strong>Paylaş</strong> butonuna dokunun.
                 </span>
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-white text-slate-900 flex items-center justify-center text-[10px] font-bold shrink-0">
                   2
                 </span>
                 <span className="text-slate-200">
-                  Aşağı kaydırıp <PlusSquare className="w-3.5 h-3.5 inline text-orange-400 mx-1" /> <strong>"Ana Ekrana Ekle"</strong> seçeneğini seçin.
+                  Aşağı kaydırıp <PlusSquare className="w-3.5 h-3.5 inline text-slate-300 mx-1" /> <strong>"Ana Ekrana Ekle"</strong> seçeneğini seçin.
                 </span>
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                <span className="w-5 h-5 rounded-full bg-white text-slate-900 flex items-center justify-center text-[10px] font-bold shrink-0">
                   3
                 </span>
                 <span className="text-slate-200">
@@ -123,7 +123,7 @@ export const PwaInstallPrompt: React.FC<{ panelName?: string }> = ({ panelName =
 
             <button
               onClick={() => setShowIosModal(false)}
-              className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl text-xs transition"
+              className="w-full py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-extrabold rounded-xl text-xs transition shadow-sm"
             >
               Tamam, Anladım
             </button>

@@ -3,7 +3,7 @@ import {
   Plus, Trash2, Edit3, 
   ChevronLeft, ChevronRight, Check, X,
   Eye, EyeOff, Layers, Sparkles, Smartphone, ArrowRight,
-  RotateCcw, Image as ImageIcon
+  RotateCcw, Image as ImageIcon, QrCode, Palette, Wand2
 } from 'lucide-react';
 import { Business, Category, Product } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -15,9 +15,13 @@ import { FoodImagePickerModal } from './FoodImagePickerModal';
 
 interface MenuManagerProps {
   business: Business;
+  onOpenThemeStudio?: () => void;
 }
 
-export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
+export const MenuManager: React.FC<MenuManagerProps> = ({ 
+  business,
+  onOpenThemeStudio,
+}) => {
   const toast = useToast();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -31,6 +35,12 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const handleSelectCategory = (id: string) => {
     setSelectedCatId(id);
     localStorage.setItem(`menu_selected_cat_${business.id}`, id);
+  };
+
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
   };
 
   // Live Phone Preview Toggle
@@ -103,124 +113,92 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
     loadMenuData();
   }, [business.id]);
 
-  // Scroll Category Navigation Bar horizontally
   const scrollCategories = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const offset = direction === 'left' ? -220 : 220;
-      scrollContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+      const scrollAmount = direction === 'left' ? -250 : 250;
+      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
-  // Toggle Sold Out (Tükendi / Satışta) Instantly
-  const handleToggleSoldOut = async (prod: Product) => {
-    const nextState = !prod.is_frozen;
+  // Add Product
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCatId) {
+      toast.error('Lütfen önce bir kategori seçiniz.');
+      return;
+    }
+    if (!newProdName.trim() || newProdPrice === '') {
+      toast.error('Lütfen ürün adı ve fiyatını giriniz.');
+      return;
+    }
 
-    // Instant local state update
-    setProducts((prev) =>
-      prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: nextState } : p))
-    );
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert([
+          {
+            business_id: business.id,
+            category_id: selectedCatId,
+            name: newProdName.trim(),
+            description: newProdDesc.trim() || null,
+            price: Number(newProdPrice),
+            image_url: newProdImageUrl.trim() || null,
+            is_frozen: false,
+            is_active: true,
+            order_index: products.filter((p) => p.category_id === selectedCatId).length,
+          },
+        ])
+        .select()
+        .single();
 
-    const { error } = await supabase
-      .from('products')
-      .update({ is_frozen: nextState })
-      .eq('id', prod.id);
+      if (error) throw error;
 
-    if (error) {
-      // Revert if error
-      setProducts((prev) =>
-        prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: !nextState } : p))
-      );
-      toast.error('Durum güncellenirken hata oluştu.');
-    } else {
-      toast.info(nextState ? `${prod.name} tükendi olarak işaretlendi.` : `${prod.name} tekrar satışa açıldı.`);
+      if (data) {
+        setProducts((prev) => [...prev, data as Product]);
+        toast.success(`${newProdName} başarıyla eklendi!`);
+        setNewProdName('');
+        setNewProdDesc('');
+        setNewProdPrice('');
+        setNewProdImageUrl('');
+        setShowAddProdModal(false);
+      }
+    } catch (err: any) {
+      toast.error('Ürün eklenirken bir hata oluştu: ' + err.message);
     }
   };
 
-  // Open Edit Product Modal
+  // Edit Product
   const openEditProduct = (prod: Product) => {
-    setEditingProduct(prod);
+    setEditingProduct({ ...prod });
     setShowEditProductModal(true);
   };
 
-  // Save Edited Product Instantly
   const handleSaveProductEdit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingProduct || !editingProduct.name.trim()) return;
+    if (!editingProduct) return;
 
-    const updatedPrice = Number(editingProduct.price) || 0;
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: editingProduct.name.trim(),
+          description: editingProduct.description?.trim() || null,
+          price: Number(editingProduct.price),
+          category_id: editingProduct.category_id,
+          image_url: editingProduct.image_url?.trim() || null,
+        })
+        .eq('id', editingProduct.id)
+        .eq('business_id', business.id);
 
-    // Instant local update
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === editingProduct.id
-          ? {
-              ...p,
-              name: editingProduct.name.trim(),
-              description: editingProduct.description?.trim() || '',
-              price: updatedPrice,
-              category_id: editingProduct.category_id,
-              image_url: editingProduct.image_url?.trim() || undefined,
-            }
-          : p
-      )
-    );
+      if (error) throw error;
 
-    setShowEditProductModal(false);
-
-    const { error } = await supabase
-      .from('products')
-      .update({
-        name: editingProduct.name.trim(),
-        description: editingProduct.description?.trim() || '',
-        price: updatedPrice,
-        category_id: editingProduct.category_id,
-        image_url: editingProduct.image_url?.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', editingProduct.id)
-      .eq('business_id', business.id);
-
-    if (error) {
-      toast.error('Ürün kaydedilirken hata oluştu.');
-      loadMenuData();
-    } else {
-      toast.success(`${editingProduct.name} başarıyla güncellendi.`);
-    }
-  };
-
-  // Add Product to Selected Category
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCatId || !newProdName.trim() || newProdPrice === '') return;
-
-    const payload = {
-      business_id: business.id,
-      category_id: selectedCatId,
-      name: newProdName.trim(),
-      description: newProdDesc.trim(),
-      price: Number(newProdPrice),
-      image_url: newProdImageUrl.trim() || null,
-      is_frozen: false,
-      is_active: true,
-      order_index: products.filter((p) => p.category_id === selectedCatId).length,
-    };
-
-    const { data, error } = await supabase
-      .from('products')
-      .insert([payload])
-      .select()
-      .single();
-
-    if (!error && data) {
-      setProducts((prev) => [...prev, data as Product]);
-      setNewProdName('');
-      setNewProdDesc('');
-      setNewProdPrice('');
-      setNewProdImageUrl('');
-      setShowAddProdModal(false);
-      toast.success(`${payload.name} menüye eklendi.`);
-    } else {
-      toast.error('Ürün eklenirken bir hata oluştu.');
+      setProducts((prev) =>
+        prev.map((p) => (p.id === editingProduct.id ? editingProduct : p))
+      );
+      toast.success('Ürün güncellendi.');
+      setShowEditProductModal(false);
+    } catch (err: any) {
+      toast.error('Güncelleme hatası: ' + err.message);
     }
   };
 
@@ -229,144 +207,70 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
     setConfirmConfig({
       isOpen: true,
       title: `${prod.name} Silinsin mi?`,
-      message: 'Bu ürünü menüden tamamen silmek istediğinize emin misiniz?',
+      message: 'Bu ürün menünüzden kalıcı olarak silinecektir.',
       type: 'danger',
       action: async () => {
-        setProducts((prev) => prev.filter((p) => p.id !== prod.id));
-        await supabase.from('products').delete().eq('id', prod.id).eq('business_id', business.id);
-        toast.success(`${prod.name} silindi.`);
-      },
-    });
-  };
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', prod.id)
+          .eq('business_id', business.id);
 
-  // Delete Category completely
-  const handleDeleteCategory = (catId: string, catName: string) => {
-    setConfirmConfig({
-      isOpen: true,
-      title: `${catName} Kategorisi Silinsin mi?`,
-      message: 'Bu kategoriyi ve içindeki tüm ürünleri silmek istediğinize emin misiniz?',
-      type: 'danger',
-      action: async () => {
-        setCategories((prev) => prev.filter((c) => c.id !== catId));
-        setProducts((prev) => prev.filter((p) => p.category_id !== catId));
-        if (selectedCatId === catId) {
-          const remaining = categories.filter((c) => c.id !== catId);
-          setSelectedCatId(remaining.length > 0 ? remaining[0].id : null);
-        }
-
-        await supabase.from('products').delete().eq('category_id', catId).eq('business_id', business.id);
-        await supabase.from('categories').delete().eq('id', catId).eq('business_id', business.id);
-        toast.success(`${catName} silindi.`);
-      },
-    });
-  };
-
-  // Clean and Reset Menu to EXACT 16 Standard Categories
-  const handleResetAndCleanTo16 = () => {
-    setConfirmConfig({
-      isOpen: true,
-      title: '16 Standart Kategoriye Sıfırlansın mı?',
-      message: 'Mevcut mükerrer veya eski kategoriler temizlenip standart 16 kategori ve lezzetleri sıfırdan tertemiz kurulacaktır. Onaylıyor musunuz?',
-      type: 'warning',
-      action: async () => {
-        setLoading(true);
-        try {
-          // 1. Delete old products and categories
-          await supabase.from('products').delete().eq('business_id', business.id);
-          await supabase.from('categories').delete().eq('business_id', business.id);
-
-          // 2. Insert clean 16 DEFAULT_CATEGORIES
-          for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-            const catTemplate = DEFAULT_CATEGORIES[i];
-            const { data: catData } = await supabase
-              .from('categories')
-              .insert([
-                {
-                  business_id: business.id,
-                  name: catTemplate.name,
-                  image_url: catTemplate.image_url,
-                  order_index: i,
-                  is_active: true,
-                },
-              ])
-              .select()
-              .single();
-
-            if (catData) {
-              const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
-                business_id: business.id,
-                category_id: catData.id,
-                name: p.name,
-                description: p.description,
-                price: p.price,
-                is_frozen: false,
-                is_active: true,
-                order_index: pIdx,
-              }));
-
-              await supabase.from('products').insert(prodsToInsert);
-            }
-          }
-
-          await loadMenuData();
-          setShowCategoryManagerModal(false);
-          toast.success('Menü temizlendi ve tam 16 standart kategori kuruldu!');
-        } catch {
-          toast.error('Menü sıfırlanırken hata oluştu.');
-        } finally {
-          setLoading(false);
+        if (!error) {
+          setProducts((prev) => prev.filter((p) => p.id !== prod.id));
+          toast.success(`${prod.name} silindi.`);
+        } else {
+          toast.error('Ürün silinemedi.');
         }
       },
     });
   };
 
-  // Toggle Category Active Status
-  const handleToggleCategoryActive = async (catId: string, currentActive: boolean) => {
-    const nextActive = !currentActive;
-    setCategories((prev) =>
-      prev.map((c) => (c.id === catId ? { ...c, is_active: nextActive } : c))
-    );
+  // Toggle Sold Out (Freeze)
+  const handleToggleSoldOut = async (prod: Product) => {
+    const nextState = !prod.is_frozen;
+    const { error } = await supabase
+      .from('products')
+      .update({ is_frozen: nextState })
+      .eq('id', prod.id)
+      .eq('business_id', business.id);
 
-    await supabase
-      .from('categories')
-      .update({ is_active: nextActive })
-      .eq('id', catId);
-
-    toast.info(nextActive ? 'Kategori menüde aktif edildi.' : 'Kategori menüden gizlendi.');
-  };
-
-  // Toggle Standard Category in Category Manager Modal
-  const handleToggleCategory = async (catTemplate: (typeof DEFAULT_CATEGORIES)[0]) => {
-    const existingCat = categories.find(
-      (c) => c.name.toLowerCase() === catTemplate.name.toLowerCase()
-    );
-
-    if (existingCat) {
-      // Toggle active status or delete
-      const nextActive = !existingCat.is_active;
-      setCategories((prev) =>
-        prev.map((c) => (c.id === existingCat.id ? { ...c, is_active: nextActive } : c))
+    if (!error) {
+      setProducts((prev) =>
+        prev.map((p) => (p.id === prod.id ? { ...p, is_frozen: nextState } : p))
       );
+      toast.success(nextState ? `${prod.name} tükendi olarak işaretlendi.` : `${prod.name} satışa açıldı.`);
+    }
+  };
 
-      await supabase
+  // Category Toggle & Clean
+  const handleToggleCategory = async (template: typeof DEFAULT_CATEGORIES[0]) => {
+    const existing = categories.find(
+      (c) => c.name.toLowerCase() === template.name.toLowerCase()
+    );
+
+    if (existing) {
+      const nextActive = !existing.is_active;
+      const { error } = await supabase
         .from('categories')
         .update({ is_active: nextActive })
-        .eq('id', existingCat.id);
+        .eq('id', existing.id)
+        .eq('business_id', business.id);
 
-      toast.info(
-        nextActive
-          ? `${existingCat.name} menüde gösteriliyor.`
-          : `${existingCat.name} menüden gizlendi.`
-      );
+      if (!error) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === existing.id ? { ...c, is_active: nextActive } : c))
+        );
+        toast.success(`${existing.name} kategorisi ${nextActive ? 'aktif edildi' : 'gizlendi'}.`);
+      }
     } else {
-      // Create new category and its products
-      const { data: newCat, error } = await supabase
+      const { data: newCat, error: catErr } = await supabase
         .from('categories')
         .insert([
           {
             business_id: business.id,
-            name: catTemplate.name,
-            image_url: catTemplate.image_url,
+            name: template.name,
+            image_url: template.image_url,
             order_index: categories.length,
             is_active: true,
           },
@@ -374,33 +278,105 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
         .select()
         .single();
 
-      if (!error && newCat) {
-        const cat = newCat as Category;
-        setCategories((prev) => [...prev, cat]);
-        if (!selectedCatId) setSelectedCatId(cat.id);
+      if (!catErr && newCat) {
+        setCategories((prev) => [...prev, newCat as Category]);
+        if (template.products && template.products.length > 0) {
+          const prodsToInsert = template.products.map((p, idx) => ({
+            business_id: business.id,
+            category_id: newCat.id,
+            name: p.name,
+            description: p.description,
+            price: p.price,
+            is_frozen: false,
+            is_active: true,
+            order_index: idx,
+          }));
 
-        const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
-          business_id: business.id,
-          category_id: cat.id,
-          name: p.name,
-          description: p.description,
-          price: p.price,
-          is_frozen: false,
-          is_active: true,
-          order_index: pIdx,
-        }));
+          const { data: insertedProds } = await supabase
+            .from('products')
+            .insert(prodsToInsert)
+            .select();
 
-        const { data: newProds } = await supabase
-          .from('products')
-          .insert(prodsToInsert)
-          .select();
-
-        if (newProds) {
-          setProducts((prev) => [...prev, ...(newProds as Product[])]);
+          if (insertedProds) {
+            setProducts((prev) => [...prev, ...(insertedProds as Product[])]);
+          }
         }
-
-        toast.success(`${cat.name} ve ürünleri menüye eklendi.`);
+        toast.success(`${template.name} kategorisi ve lezzetleri eklendi!`);
       }
+    }
+  };
+
+  const handleDeleteCategory = (catId: string, catName: string) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: `${catName} Kategorisi Silinsin mi?`,
+      message: 'Bu kategoriyi ve altındaki tüm ürünleri kalıcı olarak silmek istediğinizden emin misiniz?',
+      type: 'danger',
+      action: async () => {
+        await supabase.from('products').delete().eq('category_id', catId).eq('business_id', business.id);
+        const { error } = await supabase.from('categories').delete().eq('id', catId).eq('business_id', business.id);
+
+        if (!error) {
+          setCategories((prev) => prev.filter((c) => c.id !== catId));
+          setProducts((prev) => prev.filter((p) => p.category_id !== catId));
+          if (selectedCatId === catId) {
+            setSelectedCatId(null);
+          }
+          toast.success(`${catName} kategorisi silindi.`);
+        }
+      },
+    });
+  };
+
+  const handleResetAndCleanTo16 = async () => {
+    if (!confirm('Menünüzdeki tüm kategoriler sıfırlanacak ve 16 standart hazır kategoriye eşitlenecektir. Onaylıyor musunuz?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await supabase.from('products').delete().eq('business_id', business.id);
+      await supabase.from('categories').delete().eq('business_id', business.id);
+
+      for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        const catTemplate = DEFAULT_CATEGORIES[i];
+        const { data: catData, error: catError } = await supabase
+          .from('categories')
+          .insert([
+            {
+              business_id: business.id,
+              name: catTemplate.name,
+              image_url: catTemplate.image_url,
+              order_index: i,
+              is_active: true,
+            },
+          ])
+          .select()
+          .single();
+
+        if (!catError && catData) {
+          const prodsToInsert = catTemplate.products.map((p, pIdx) => ({
+            business_id: business.id,
+            category_id: catData.id,
+            name: p.name,
+            description: p.description,
+            price: p.price,
+            is_frozen: false,
+            is_active: true,
+            order_index: pIdx,
+          }));
+
+          await supabase.from('products').insert(prodsToInsert);
+        }
+      }
+
+      await loadMenuData();
+      toast.success('Menünüz 16 standart kategori ile sıfırlandı ve yenilendi.');
+      setShowCategoryManagerModal(false);
+    } catch {
+      toast.error('Sıfırlama sırasında hata oluştu.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -415,7 +391,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
   const selectedCategory = categories.find((c) => c.id === selectedCatId);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 font-medium text-slate-200">
       <ConfirmModal
         isOpen={confirmConfig.isOpen}
         title={confirmConfig.title}
@@ -432,14 +408,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         <div className={`${showLivePreview ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} space-y-4`}>
           {/* Top Bar: Left Category Scroller, Right Manager & Live Preview Buttons */}
-          <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
+          <div className="bg-[#111622] p-3.5 rounded-3xl shadow-lg space-y-3">
             <div className="flex items-center justify-between gap-2">
               {/* Category Carousel with Left / Right Chevron Controls */}
               <div className="flex items-center gap-1 min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => scrollCategories('left')}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shrink-0"
+                  className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-300 flex items-center justify-center transition active:scale-95 shrink-0"
                   title="Sola Kaydır"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -456,16 +432,16 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                       <button
                         key={cat.id}
                         onClick={() => handleSelectCategory(cat.id)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
                           isSelected
-                            ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/25'
-                            : 'bg-slate-50 border border-slate-200 text-slate-700 hover:bg-slate-100'
+                            ? 'bg-white/20 text-white border border-white/25 shadow-sm'
+                            : 'bg-[#182030] text-slate-400 hover:text-slate-100 hover:bg-[#1C2433] border border-white/[0.06] hover:border-white/[0.12]'
                         }`}
                       >
                         <span className="truncate max-w-[140px]">{cat.name}</span>
                         <span
-                          className={`text-[10px] font-black px-1.5 py-0.2 rounded-md ${
-                            isSelected ? 'bg-black/20 text-white' : 'bg-slate-200 text-slate-600'
+                          className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-[#0C1017] text-slate-400'
                           }`}
                         >
                           {count}
@@ -478,7 +454,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 <button
                   type="button"
                   onClick={() => scrollCategories('right')}
-                  className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95 shrink-0"
+                  className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-300 flex items-center justify-center transition active:scale-95 shrink-0"
                   title="Sağa Kaydır"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -487,18 +463,30 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
               {/* Action Buttons: Kategori Yönetimi & Ürün Ekle & Canlı Önizleme */}
               <div className="flex items-center gap-1.5 shrink-0">
+                {onOpenThemeStudio && (
+                  <button
+                    onClick={onOpenThemeStudio}
+                    className="px-3 py-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm"
+                    title="Mekan Teması & Yazı Tipi"
+                  >
+                    <Palette className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="hidden sm:inline">Tema & Font</span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => setShowCategoryManagerModal(true)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-xs"
+                  className="px-3 py-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs flex items-center gap-1.5 transition active:scale-95 shadow-sm border border-white/[0.06] hover:border-white/[0.12]"
                 >
-                  <Layers className="w-3.5 h-3.5 text-orange-400" />
+                  <Layers className="w-3.5 h-3.5 text-slate-300" />
                   <span>Kategoriler ({categories.length})</span>
                 </button>
 
                 {selectedCatId && (
                   <button
                     onClick={() => setShowAddProdModal(true)}
-                    className="px-3 py-1.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1 transition active:scale-95 shadow-xs"
+                    onMouseMove={handleSpotlightMove}
+                    className="px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs flex items-center gap-1 transition active:scale-95 shadow-md border border-white/25 spotlight-card spotlight-glow"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>+ Ürün Ekle</span>
@@ -508,14 +496,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 {/* Toggle Live Phone Preview */}
                 <button
                   onClick={() => setShowLivePreview(!showLivePreview)}
-                  className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 border ${
+                  className={`px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition active:scale-95 ${
                     showLivePreview
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-white/20 text-white border border-white/25 shadow-sm'
+                      : 'bg-[#1C2433] text-slate-400 hover:text-slate-200 hover:bg-[#253043] border border-white/[0.06]'
                   }`}
                   title="Canlı Menü Önizlemesi"
                 >
-                  <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
+                  <Smartphone className="w-3.5 h-3.5 text-slate-300" />
                   <span className="hidden sm:inline">Önizleme</span>
                 </button>
               </div>
@@ -523,10 +511,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
           </div>
 
           {/* Selected Category Header & Product Cards */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="bg-[#111622] p-5 rounded-3xl shadow-lg space-y-4">
+            <div className="flex items-center justify-between pb-1">
               <div className="flex items-center gap-2">
-                <h2 className="font-black text-sm text-slate-900">
+                <h2 className="font-black text-sm text-slate-100">
                   {selectedCategory?.name || 'Kategori Seçiniz'}
                 </h2>
                 <span className="text-[11px] font-bold text-slate-400">
@@ -541,14 +529,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 Bu kategoride henüz ürün bulunmuyor. Sağ üstteki &quot;+ Ürün Ekle&quot; butonuna basarak ekleyebilirsiniz.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 {currentProducts.map((prod) => (
                   <div
                     key={prod.id}
-                    className={`p-3.5 rounded-2xl border transition flex flex-col justify-between gap-3 ${
+                    className={`p-4 rounded-2xl transition flex flex-col justify-between gap-3 shadow-sm spotlight-card spotlight-glow ${
                       prod.is_frozen
-                        ? 'bg-slate-50/90 border-slate-200 opacity-80'
-                        : 'bg-white border-slate-200 hover:border-slate-300 shadow-xs'
+                        ? 'bg-[#0C1017]/60 opacity-60'
+                        : 'bg-[#0C1017] hover:bg-[#141A26]'
                     }`}
                   >
                     {/* Top Row: Thumbnail + Name, Price & Action Buttons */}
@@ -561,7 +549,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                             setImagePickerTarget('edit');
                             setShowImagePickerModal(true);
                           }}
-                          className="w-14 h-14 min-w-[56px] min-h-[56px] rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 relative group/img cursor-pointer shadow-xs"
+                          className="w-14 h-14 min-w-[56px] min-h-[56px] rounded-xl overflow-hidden bg-[#1C2433] shrink-0 relative group/img cursor-pointer shadow-sm"
                           title="Fotoğrafı Değiştir"
                         >
                           <img
@@ -573,22 +561,22 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                             alt={prod.name}
                             className="w-full h-full object-cover group-hover/img:scale-105 transition-transform"
                           />
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold">
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-bold">
                             Değiştir
                           </div>
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 truncate">
+                          <h3 className="font-extrabold text-xs sm:text-sm text-slate-100 truncate">
                             {prod.name}
                           </h3>
                           <span className={`font-black text-xs ${
-                            prod.is_frozen ? 'text-slate-400 line-through' : 'text-orange-600'
+                            prod.is_frozen ? 'text-slate-500 line-through' : 'text-white'
                           }`}>
                             {prod.price.toFixed(2)} ₺
                           </span>
                           {prod.description && (
-                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                            <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
                               {prod.description}
                             </p>
                           )}
@@ -598,14 +586,14 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={() => openEditProduct(prod)}
-                            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
+                            className="p-1.5 text-slate-400 hover:text-slate-100 rounded-lg hover:bg-[#1C2433] transition"
                             title="Düzenle"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(prod)}
-                            className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                            className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
                             title="Sil"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -615,21 +603,21 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                     </div>
 
                     {/* Bottom Row: Pure Text "Tükendi Olarak İşaretle" / "Satışa Aç" Button */}
-                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div className="pt-2 border-t border-[#1F293D]/60 flex items-center justify-between">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                         prod.is_frozen
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-emerald-100 text-emerald-800'
+                          ? 'bg-[#1C2433] text-slate-400'
+                          : 'bg-[#1C2433] text-slate-200'
                       }`}>
                         {prod.is_frozen ? 'Tükendi (Menüde En Altta)' : 'Satışta (Aktif)'}
                       </span>
 
                       <button
                         onClick={() => handleToggleSoldOut(prod)}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-xl border transition active:scale-95 ${
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition active:scale-95 ${
                           prod.is_frozen
-                            ? 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
-                            : 'bg-slate-50 hover:bg-amber-50 border-slate-200 hover:border-amber-300 text-slate-700 hover:text-amber-800'
+                            ? 'bg-[#1C2433] hover:bg-[#253043] text-slate-200 border border-white/[0.08]'
+                            : 'bg-[#161E2E] hover:bg-[#1C2433] text-slate-300 hover:text-white border border-white/[0.06]'
                         }`}
                       >
                         {prod.is_frozen ? 'Satışa Aç' : 'Tükendi Olarak İşaretle'}
@@ -644,8 +632,8 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
         {/* Live Phone Mockup Preview on Right */}
         {showLivePreview && (
-          <div className="lg:col-span-5 xl:col-span-4 sticky top-4 max-h-[85vh] overflow-hidden rounded-3xl border-4 border-slate-900 shadow-2xl bg-black">
-            <div className="bg-slate-900 text-white text-[10px] font-bold px-4 py-2 flex items-center justify-between">
+          <div className="lg:col-span-5 xl:col-span-4 sticky top-4 max-h-[85vh] overflow-hidden rounded-3xl shadow-2xl bg-black">
+            <div className="bg-[#111622] text-slate-200 text-[10px] font-bold px-4 py-2 flex items-center justify-between">
               <span>Canlı Müşteri QR Menü Önizlemesi</span>
               <button
                 onClick={() => setShowLivePreview(false)}
@@ -663,34 +651,34 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
       {/* MASTER CATEGORY SELECTOR / MANAGER MODAL */}
       {showCategoryManagerModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-lg p-5 sm:p-6 shadow-2xl max-h-[85vh] flex flex-col text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F293D] mb-3">
               <div>
-                <h3 className="font-black text-base text-slate-900">Kategori Yönetimi</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="font-black text-base text-white">Kategori Yönetimi</h3>
+                <p className="text-xs text-slate-400">
                   Toplam {categories.length} kategori mevcut.
                 </p>
               </div>
               <button
                 onClick={() => setShowCategoryManagerModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#1C2433]"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Clean & Reset Button for 16 Categories */}
-            <div className="mb-3 bg-amber-50 border border-amber-200/80 rounded-2xl p-3 flex items-center justify-between gap-3">
-              <div className="text-xs text-amber-900">
-                <strong className="font-black block">Mükerrer veya Karışmış Kategoriler?</strong>
-                <span>Tek tıkla menünüzü temiz 16 standart kategoriye eşitleyin.</span>
+            <div className="mb-3 bg-[#161E2E] border border-[#1F293D] rounded-2xl p-3 flex items-center justify-between gap-3">
+              <div className="text-xs text-slate-300">
+                <strong className="font-black text-white block">Mükerrer veya Karışmış Kategoriler?</strong>
+                <span className="text-slate-400">Tek tıkla menünüzü temiz 16 standart kategoriye eşitleyin.</span>
               </div>
               <button
                 type="button"
                 onClick={handleResetAndCleanTo16}
                 disabled={loading}
-                className="px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95"
+                className="px-3 py-2 bg-[#1C2433] hover:bg-[#253043] border border-[#2B384E] text-white text-xs font-black rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-sm active:scale-95"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>16 Kategoriye Sıfırla</span>
@@ -708,19 +696,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 return (
                   <div
                     key={catTemplate.name}
-                    className="p-3 rounded-2xl border border-slate-200/80 bg-slate-50/50 flex items-center justify-between gap-3 hover:bg-white transition"
+                    className="p-3 rounded-2xl border border-[#1F293D] bg-[#0C1017] flex items-center justify-between gap-3 hover:border-slate-600 transition"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <img
                         src={catTemplate.image_url}
                         alt={catTemplate.name}
-                        className="w-11 h-11 rounded-xl object-cover shrink-0 border border-slate-200"
+                        className="w-11 h-11 rounded-xl object-cover shrink-0 border border-[#1F293D]"
                       />
                       <div className="min-w-0">
-                        <h4 className="font-bold text-xs text-slate-900 truncate">
+                        <h4 className="font-bold text-xs text-slate-100 truncate">
                           {index + 1}. {catTemplate.name}
                         </h4>
-                        <p className="text-[10px] text-slate-500 font-medium">
+                        <p className="text-[10px] text-slate-400 font-medium">
                           {catTemplate.products.length} Hazır Lezzet İçeriği
                         </p>
                       </div>
@@ -732,10 +720,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                         onClick={() => handleToggleCategory(catTemplate)}
                         className={`px-3 py-1.5 rounded-xl font-black text-xs transition active:scale-95 ${
                           !isInstalled
-                            ? 'bg-slate-900 hover:bg-slate-800 text-white'
+                            ? 'bg-white/20 hover:bg-white/30 text-white border border-white/25 shadow-sm'
                             : isActive
-                            ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-xs'
-                            : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                            ? 'bg-[#1C2433] hover:bg-[#253043] border border-[#2B384E] text-white'
+                            : 'bg-[#161E2E] hover:bg-[#1C2433] text-slate-400 border border-[#1F293D]'
                         }`}
                       >
                         {!isInstalled ? '+ Menüye Ekle' : isActive ? 'Menüde Aktif' : 'Gizlendi (Aç)'}
@@ -745,7 +733,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                       {existing && (
                         <button
                           onClick={() => handleDeleteCategory(existing.id, existing.name)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition"
+                          className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition"
                           title="Kategoriyi ve Ürünlerini Sil"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -757,10 +745,10 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               })}
             </div>
 
-            <div className="pt-4 border-t border-slate-100 mt-3 flex justify-end">
+            <div className="pt-4 border-t border-[#1F293D] mt-3 flex justify-end">
               <button
                 onClick={() => setShowCategoryManagerModal(false)}
-                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition"
+                className="px-5 py-2.5 bg-[#1C2433] hover:bg-[#253043] border border-[#2B384E] text-white text-xs font-bold rounded-xl transition"
               >
                 Kapat
               </button>
@@ -771,13 +759,13 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
       {/* EDIT PRODUCT MODAL */}
       {showEditProductModal && editingProduct && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="font-black text-sm text-slate-900">Ürünü Düzenle</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F293D] mb-4">
+              <h3 className="font-black text-sm text-white">Ürünü Düzenle</h3>
               <button
                 onClick={() => setShowEditProductModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#1C2433]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -785,18 +773,18 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
             <form onSubmit={handleSaveProductEdit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Adı</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Ürün Adı</label>
                 <input
                   type="text"
                   value={editingProduct.name}
                   onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs font-medium text-slate-100 focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fiyat (₺)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Fiyat (₺)</label>
                 <input
                   type="number"
                   step="0.5"
@@ -804,19 +792,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                   onChange={(e) =>
                     setEditingProduct({ ...editingProduct, price: Number(e.target.value) })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-orange-600 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs font-bold text-white focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Kategori</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Kategori</label>
                 <select
                   value={editingProduct.category_id}
                   onChange={(e) =>
                     setEditingProduct({ ...editingProduct, category_id: e.target.value })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs font-medium text-slate-100 focus:outline-none"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -828,9 +816,9 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
               {/* Product Photo Picker */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Görseli</label>
-                <div className="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300 relative">
+                <label className="block text-xs font-bold text-slate-300 mb-1">Ürün Görseli</label>
+                <div className="flex items-center gap-3 p-2.5 bg-[#0C1017] border border-[#1F293D] rounded-2xl">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#1C2433] shrink-0 border border-[#2B384E] relative">
                     <img
                       src={
                         editingProduct.image_url ||
@@ -849,16 +837,16 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                         setImagePickerTarget('edit');
                         setShowImagePickerModal(true);
                       }}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+                      className="px-3 py-1.5 bg-[#1C2433] hover:bg-[#253043] border border-[#2B384E] text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm"
                     >
-                      <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Hazır Lezzet Galerisinden Seç / Yükle</span>
+                      <ImageIcon className="w-3.5 h-3.5 text-slate-300" />
+                      <span>Hazır Galeriden Seç / Yükle</span>
                     </button>
                     {editingProduct.image_url && (
                       <button
                         type="button"
                         onClick={() => setEditingProduct({ ...editingProduct, image_url: undefined })}
-                        className="text-[10px] text-red-600 hover:underline block font-semibold"
+                        className="text-[10px] text-rose-400 hover:underline block font-semibold"
                       >
                         Özel Fotoğrafı Kaldır
                       </button>
@@ -868,7 +856,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Malzeme & Servis Açıklaması
                 </label>
                 <textarea
@@ -877,7 +865,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                     setEditingProduct({ ...editingProduct, description: e.target.value })
                   }
                   rows={3}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500 leading-relaxed"
+                  className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl p-3 text-xs font-medium text-slate-100 focus:outline-none leading-relaxed"
                 />
               </div>
 
@@ -885,13 +873,13 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 <button
                   type="button"
                   onClick={() => setShowEditProductModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-xs font-bold text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
                 >
                   İptal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition shadow-sm"
+                  className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white text-xs font-extrabold rounded-xl transition shadow-md border border-white/25 active:scale-95"
                 >
                   Değişiklikleri Kaydet
                 </button>
@@ -903,15 +891,15 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
       {/* ADD PRODUCT MODAL */}
       {showAddProdModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="font-black text-sm text-slate-900">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#111622] rounded-3xl w-full max-w-md p-5 sm:p-6 shadow-2xl text-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-[#1F293D]/60 mb-4">
+              <h3 className="font-black text-sm text-white">
                 {selectedCategory?.name} Kategorisine Yeni Ürün Ekle
               </h3>
               <button
                 onClick={() => setShowAddProdModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#1C2433]"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -919,19 +907,19 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
 
             <form onSubmit={handleAddProduct} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Adı</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Ürün Adı</label>
                 <input
                   type="text"
                   placeholder="Örn: Özel Soslu Tavuk Wrap"
                   value={newProdName}
                   onChange={(e) => setNewProdName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs font-medium text-slate-100 focus:outline-none"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fiyat (₺)</label>
+                <label className="block text-xs font-bold text-slate-300 mb-1">Fiyat (₺)</label>
                 <input
                   type="number"
                   step="0.5"
@@ -940,16 +928,16 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                   onChange={(e) =>
                     setNewProdPrice(e.target.value === '' ? '' : Number(e.target.value))
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-orange-600 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none"
                   required
                 />
               </div>
 
               {/* Product Photo Picker */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Ürün Görseli</label>
-                <div className="flex items-center gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded-2xl">
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-200 shrink-0 border border-slate-300 relative">
+                <label className="block text-xs font-bold text-slate-300 mb-1">Ürün Görseli</label>
+                <div className="flex items-center gap-3 p-3 bg-[#0C1017] rounded-2xl">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-[#1C2433] shrink-0 border border-white/[0.08] relative">
                     <img
                       src={
                         newProdImageUrl ||
@@ -968,16 +956,16 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                         setImagePickerTarget('new');
                         setShowImagePickerModal(true);
                       }}
-                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+                      className="px-3 py-1.5 bg-[#1C2433] hover:bg-[#253043] border border-white/[0.08] text-white font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-sm"
                     >
-                      <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Hazır Lezzet Galerisinden Seç / Yükle</span>
+                      <ImageIcon className="w-3.5 h-3.5 text-slate-300" />
+                      <span>Hazır Galeriden Seç / Yükle</span>
                     </button>
                     {newProdImageUrl && (
                       <button
                         type="button"
                         onClick={() => setNewProdImageUrl('')}
-                        className="text-[10px] text-red-600 hover:underline block font-semibold"
+                        className="text-[10px] text-rose-400 hover:underline block font-semibold"
                       >
                         Görseli Temizle
                       </button>
@@ -987,7 +975,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1">
                   Malzeme & Servis Açıklaması
                 </label>
                 <textarea
@@ -995,7 +983,7 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                   value={newProdDesc}
                   onChange={(e) => setNewProdDesc(e.target.value)}
                   rows={3}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-medium text-slate-900 focus:outline-none focus:border-orange-500 leading-relaxed"
+                  className="w-full bg-[#0C1017] rounded-xl p-3 text-xs font-medium text-slate-100 focus:outline-none leading-relaxed resize-none"
                 />
               </div>
 
@@ -1003,13 +991,13 @@ export const MenuManager: React.FC<MenuManagerProps> = ({ business }) => {
                 <button
                   type="button"
                   onClick={() => setShowAddProdModal(false)}
-                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="px-4 py-2.5 rounded-xl border border-white/[0.08] text-xs font-bold text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
                 >
                   İptal
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition shadow-sm"
+                  className="px-5 py-2.5 bg-white/20 hover:bg-white/30 text-white text-xs font-extrabold rounded-xl transition shadow-md border border-white/25 active:scale-95"
                 >
                   Ürünü Ekle
                 </button>

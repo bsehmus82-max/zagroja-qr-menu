@@ -1,335 +1,77 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Send, MessageSquare, ShieldCheck, RefreshCw, CheckCheck, 
-  HelpCircle, AlertTriangle, Image as ImageIcon, QrCode, 
-  DollarSign, Sparkles, ExternalLink, ChevronRight, BookOpen,
-  Headphones, Lightbulb, ArrowRight, User, XCircle, Trash2, CheckCircle2,
-  Printer, Smartphone, Settings, Utensils, FileText, Download, Clock,
-  ChevronDown, ChevronUp, PlusCircle
+  Send, ShieldCheck, RefreshCw, CheckCheck, 
+  AlertTriangle, Image as ImageIcon,
+  ExternalLink, ChevronRight, Headphones, CheckCircle2,
+  FileText, Download, Globe
 } from 'lucide-react';
-import { Business, SupportMessage, Order } from '../../types';
+import { Business, SupportMessage, Order, PlatformType } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
 import { sendNativeNotification } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
+import { PLATFORM_INFO } from '../../lib/foodPlatforms';
 
 interface BusinessSupportChatProps {
   business: Business;
 }
 
-interface GuideSection {
-  id: string;
-  category: 'bilgilendirme' | 'nasil_kullanirim' | 'degerlendirme';
-  categoryTitle: string;
-  title: string;
-  summary: string;
-  content: string;
-  actionLabel?: string;
-  actionUrl?: string;
-  onActionClick?: () => void;
-}
-
-const SYSTEM_GUIDES: GuideSection[] = [
-  // 1. BİLGİLENDİRME KATEGORİSİ
-  {
-    id: 'bilgi-sistem-nedir',
-    category: 'bilgilendirme',
-    categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Sistem Mimarisi ve Sıfır Ek Donanım Gereksinimi',
-    summary: 'Restiva Adisyon ve QR Menü sisteminin temel işleyişi ve donanım gereksinimleri.',
-    content: `Restiva, restoran, kafe ve işletmeler için sıfır ek donanım maliyetiyle çalışan bulut tabanlı bir adisyon ve dijital QR menü platformudur.
-
-Temel Mimarisi:
-* Ekstra pahalı el terminali veya özel POS cihazı satın alma zorunluluğu yoktur.
-* Tüm garsonlar kendi akıllı telefonlarını kasadaki QR kodu okutarak anında mobil sipariş terminaline dönüştürebilir.
-* Müşteriler masadaki QR kodu okutarak canlı menüye ulaşır, sipariş verebilir veya garson/hesap çağırabilir.
-* Kasa paneli üzerinden tüm masalar, siparişler, termal yazıcılar ve ciro raporları anlık olarak yönetilir.`,
-  },
-  {
-    id: 'bilgi-abonelik-deneme',
-    category: 'bilgilendirme',
-    categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: '7 Günlük Ücretsiz Deneme ve Süre Takibi',
-    summary: 'Deneme süresi bitişi, bildirimler ve işletme askıya alma kuralları.',
-    content: `Yeni açılan tüm işletmelere 7 günlük ücretsiz tam erişim deneme paketi tanımlanır.
-
-İşleyiş Kuralları:
-* Deneme süresinin bitimine 3 gün ve daha az kaldığında sol menüdeki Yardım & Bildirimler alanında kırmızı yuvarlak uyarı rozeti ve üst bilgilendirme kutusu belirir.
-* Süre dolduğunda sistem işletmeyi otomatik olarak askıya alır ve QR menü erişimi geçici olarak kapatılır.
-* Aboneliğinizi yenilediğinizde tüm menü, masa ve geçmiş ciro verileriniz korunarak hesabınız anında tekrar aktifleşir.`,
-  },
-  {
-    id: 'bilgi-sifir-komisyon',
-    category: 'bilgilendirme',
-    categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Sıfır Komisyon ve %100 Kazanç Modeli',
-    summary: 'Sipariş başına komisyon kesintisi olmadan şeffaf çalışma modeli.',
-    content: `Restiva'da verilen hiçbir sipariş üzerinden yüzde veya komisyon kesintisi yapılmaz.
-
-Avantajlar:
-* Sabit paket ücreti dışında gizli maliyet veya ek ödeme bulunmaz.
-* Masalardan veya garsonlardan ne kadar sipariş alınırsa alınsın cironuzun tamamı işletmenize kalır.`,
-  },
-  {
-    id: 'bilgi-guvenlik-altyapi',
-    category: 'bilgilendirme',
-    categoryTitle: 'Bilgilendirme & Genel Bakış',
-    title: 'Bulut Altyapı, Cihaz Yetkilendirme ve Veri Güvenliği',
-    summary: 'Personel yetki sınırları ve bulut veritabanı şifreleme standartları.',
-    content: `Güvenlik Standartları:
-* Garsonlar kasa yönetim paneline ve ciro verilerine erişemez; sadece masa ve sipariş alma ekranını görür.
-* Her garson cihazı kasadaki yetkili tarafından onaylanmadan sisteme bağlanamaz.
-* İşten ayrılan personelin yetkisi kasadaki listeden tek tıkla anında iptal edilebilir.
-* Tüm sipariş ve müşteri hareketleri SSL/TLS şifreli bulut altyapısında güvenle korunur.`,
-  },
-
-  // 2. NASIL KULLANIRIM KATEGORİSİ
-  {
-    id: 'nasil-menu-urun',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '1. Menü & Ürün Yönetimi (Sıfır Fiyatla Başlama, Fiyat Belirleme, Stok Kapatma)',
-    summary: 'Ürün ekleme, düzenleme, fiyat güncelleme ve tükenen ürünleri satışa kapatma adımları.',
-    content: `Menü ve Ürünlerinizi Yönetmek İçin:
-
-1. Sıfır Fiyatla Başlama ve Fiyat Güncelleme:
-   * Yeni açılan işletme hesaplarında hazır katalog ürünleri 0 TL olarak listelenir.
-   * "Menü & Ürünler" sekmesine giderek ürünün yanındaki "Düzenle" butonuna basın. Kendi işletmenizin satış fiyatını yazıp kaydedin.
-   * Güncellenen fiyat müşterilerin QR menüsünde anında canlı olarak değişir.
-
-2. Tükenen Ürünü Kapatma:
-   * Biten veya gün içinde kalmayan ürünün altındaki "Tükendi Olarak İşaretle" butonuna basınız.
-   * Ürün menünün en altına kayar, pasifleşir ve sepete eklenmesi engellenir. Ürün tekrar hazır olduğunda aynı butondan tek tıkla "Satışa Aç" yapabilirsiniz.`,
-  },
-  {
-    id: 'nasil-urun-fotografi',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '2. Ürün Fotoğrafları & Stok Görsel Seçimi (Unsplash / Pexels veya Cihaz)',
-    summary: 'Ürünlere fotoğraf ekleme, ücretsiz stok görsel linki alma veya cihazdan yükleme.',
-    content: `Ürün Fotoğrafı Eklemek İçin:
-
-1. Ücretsiz Stok Fotoğraf Sitelerinden Bağlantı Alma:
-   * [Unsplash Yemek Koleksiyonu](https://unsplash.com/s/photos/food) veya [Pexels](https://www.pexels.com/search/food/) sitelerine gidin.
-   * Beğendiğiniz yemeğin fotoğrafına basılı tutup (veya sağ tıklayıp) "Resim Adresini Kopyala" seçeneğini seçin.
-   * Restiva panelinde ürün düzenleme alanındaki Görsel URL kutusuna yapıştırıp kaydedin.
-
-2. Cihazdan Fotoğraf Seçme:
-   * Ürün düzenleme kutusundan "Cihazdan Fotoğraf Seç" butonuna basarak telefonunuzdaki veya bilgisayarınızdaki fotoğrafı yükleyebilirsiniz.`,
-    actionLabel: 'Unsplash Yemek Koleksiyonu',
-    actionUrl: 'https://unsplash.com/s/photos/food',
-  },
-  {
-    id: 'nasil-masa-qr',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '3. Masa & QR Kod Yönetimi ve Toplu PDF Baskı Alma',
-    summary: 'Masa ekleme, QR kodları PDF olarak indirme ve masa aparatlarına baskı alma.',
-    content: `Masa QR Kodlarını Hazırlamak İçin:
-
-1. Masa Ekleme:
-   * "Masa & QR Kodlar" sekmesine giderek işletmenizdeki masa adlarını (Örn: Masa 1, Masa 2, Bahçe 1, Teras 3) girin.
-
-2. PDF İndirme ve Çıktı Alma:
-   * "Tüm QR Kodları Yazdır / PDF İndir" butonuna basınız.
-   * Sistem masalara özel QR kodları şık bir baskı şablonu halinde hazırlar.
-   * Çıktıyı doğrudan masa aparatlarınıza veya pleksi stantlarınıza yerleştirebilirsiniz.`,
-  },
-  {
-    id: 'nasil-garson-esleme',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '4. Garson El Terminali & Cihaz Eşleme (Kamerayla Okutma, Kasadan Onay, PIN\'siz Sipariş)',
-    summary: 'Garsonun telefonunu kasadaki QR ile eşleme ve şifresiz doğrudan sipariş alma.',
-    content: `Garson Telefonunu Eşlemek ve Sipariş Almak İçin:
-
-1. Kasadaki QR Kodu Okutma:
-   * Garson kendi telefonunun kamerasıyla kasadaki "Garson Eşleme QR Kodu"nu okutur.
-   * Açılan sayfada adını ve soyadını yazıp "Yetki Talebi Gönder" butonuna basar.
-
-2. Kasadan Tek Tıkla Onay:
-   * Kasa panelindeki "Garsonlar & Terminaller" sekmesine talep canlı olarak düşer.
-   * "Yetkiyi Onayla" butonuna basıldığında garsonun telefonu anında Masa ve Sipariş El Terminaline dönüşür.
-
-3. PIN'siz Doğrudan Sipariş:
-   * Onaylanan cihazda her girişte PIN sorulmaz. Garson masayı seçer, ürünleri ekler ve siparişi mutfağa iletir.
-   * Mutfak fişinde ve kasada "[Garson: Personel Adı]" bilgisi otomatik yer alır.
-   * Ayrılan personelin yetkisi kasadaki listeden çöp kutusu ikonuna basılarak anında iptal edilebilir.`,
-  },
-  {
-    id: 'nasil-canli-siparis',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '5. Canlı Siparişler ve POS / Nakit Hesap Kapatma',
-    summary: 'Gelen siparişleri yönetme ve ödeme türüne göre tek tıkla hesabı kapatma.',
-    content: `Sipariş Takibi ve Hesap Kapatma Adımları:
-
-1. Sipariş Karşılama:
-   * Masadan veya garsondan gelen sipariş "Bekliyor" sütununda belirir ve sesli bildirim çalar.
-   * "Hazırla" butonuna basıldığında sipariş mutfakta hazırlanma aşamasına geçer.
-
-2. Hesabı Kapatma ve Ödeme Türü Seçimi:
-   * Masanın hesabı alınırken "Hesabı Kapat" butonuna basılır.
-   * Açılan pencerede sipariş detayları ve toplam tutar görüntülenir.
-   * Alttaki "POS / Kredi Kartı" veya "Nakit Ödeme" seçeneklerinden birine tıklanarak hesap kapatılır.
-   * Tutar otomatik olarak ilgili ciro kalemine (Kredi Kartı veya Nakit) anında kaydedilir.`,
-  },
-  {
-    id: 'nasil-termal-yazici',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '6. Termal Fiş Yazıcıları & Masaüstü Yazıcı Programı (.EXE)',
-    summary: 'Mutfak yazıcısı genişlik ayarları, otomatik yazdırma ve masaüstü programı.',
-    content: `Yazıcı Ayarlarını Yapılandırmak İçin:
-
-1. Fiş Genişliği Seçimi:
-   * "İşletme Ayarları" sekmesinden kullandığınız termal yazıcıya göre 80mm (Geniş Fiş) veya 58mm (Dar Fiş) seçiniz.
-
-2. Otomatik Yazdırma:
-   * "Yeni Siparişte Otomatik Yazdır" ayarını aktif ettiğinizde masadan veya garsondan gelen her sipariş doğrudan mutfak yazıcısına iletilir.
-   * Dilediğiniz zaman sipariş kartlarındaki "Yazdır" butonundan tekrar fiş dökümü alabilirsiniz.
-
-3. 7/24 Masaüstü Yazıcı Programı:
-   * Bilgisayarda tarayıcı kapalıyken bile termal fiş dökümü almak için İşletme Ayarları bölümünden "RestivaAdisyonYazici.exe" masaüstü programını kullanabilirsiniz.`,
-  },
-  {
-    id: 'nasil-ciro-rapor',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '7. Gün Sonu, Z Raporu ve Aylık Muhasebe Satış PDF Dökümü',
-    summary: 'Ciro takibi, Z raporu fişi ve her ayın ilk 5 günü indirilebilen muhasebe PDF raporu.',
-    content: `Finansal Raporları İncelemek ve İndirmek İçin:
-
-1. Günlük / Haftalık / Aylık Ciro:
-   * "Gün Sonu & Ciro" sekmesinden toplam satış tutarınızı, Nakit ve Kredi Kartı dağılımını görebilirsiniz.
-
-2. Z Raporu Fişi:
-   * "Z Raporu Yazdır" butonuna basarak gün sonu kasa kapanış fişini termal yazıcınızdan çıkartabilirsiniz.
-
-3. Aylık Muhasebe PDF Raporu:
-   * Her ayın 1'i ile 5'i arasında geçen ayın tüm sipariş ve ciro dökümünü içeren resmi muhasebe PDF raporunu Yardım & Bildirimler alanından indirebilirsiniz.`,
-  },
-  {
-    id: 'nasil-isletme-wifi',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '8. İşletme Bilgileri, Çalışma Saatleri ve Müşteri Wi-Fi Yayını',
-    summary: 'İşletme adı, iletişim bilgileri ve QR menüde gösterilen Wi-Fi adı ve şifresi.',
-    content: `İşletme Ayarlarını Güncellemek İçin:
-
-* "İşletme Ayarları" sekmesine giderek işletme adı, telefon, adres, çalışma saatleri ve müşteri Wi-Fi adı/şifresini girebilirsiniz.
-* Girilen Wi-Fi bilgileri müşterilerinizin QR menü ekranında pratik bir şekilde görüntülenir.`,
-  },
-  {
-    id: 'nasil-musteri-oturum-kapatma',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '9. Hesap Kapatıldığında Müşteri Ekranı ve Oturum Sıfırlama',
-    summary: 'Kasa hesabı kapattığında müşterinin telefonundaki QR menünün anında algılayıp sıfırlanması.',
-    content: `Müşteri Cihazının Otomatik Sıfırlanma Mantığı:
-
-1. Canlı Algılama:
-   * Kasa panelinden veya garson terminalinden masanın hesabı kapatıldığı anda (Örn: POS veya Nakit ile), masada açık olan müşterinin telefonundaki QR menü canlı olarak kapanışı algılar.
-
-2. Oturum ve Sepet Temizliği:
-   * Müşterinin cihazındaki eski sipariş geçmişi ve sepet anında temizlenir.
-   * Ekranda "Hesabınız Başarıyla Kapatıldı - Afiyet Olsun / Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz" bilgilendirme kartı belirir.
-
-3. Sekmeyi Kapatma:
-   * Müşteriye "Sekmeyi Kapat / Çıkış" butonu sunulur ve masa yeni gelen müşteriler için tamamen temizlenmiş olur.`,
-  },
-  {
-    id: 'nasil-kapak-fotografi',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '10. İşletme Logosu ve QR Menü Geniş Kapak Fotoğrafı',
-    summary: 'İşletme logosu ve müşterilerin gördüğü en üst geniş arka plan görselini belirleme.',
-    content: `Görsel Kimliğinizi Özelleştirmek İçin:
-
-1. Logo Ekleme:
-   * "İşletme Ayarları" sekmesinden işletme logonuzu cihazınızdan yükleyebilir veya link olarak girebilirsiniz.
-
-2. Geniş Kapak & Arka Plan Fotoğrafı:
-   * Müşterilerin QR menüyü açtığında en üstte gördüğü geniş kapak fotoğrafını cihazınızdan seçebilir, hazır restoran şablonlarından birini tek tıkla uygulayabilir veya görsel URL'si yapıştırabilirsiniz.`,
-  },
-  {
-    id: 'nasil-yeni-sifre',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '11. Yeni Şifre Belirleme ve Güvenli Giriş Yönetimi',
-    summary: 'İşletme giriş şifresini değiştirme ve eski şifreyi geçersiz kılma.',
-    content: `Şifrenizi Güncellemek İçin:
-
-* "İşletme Ayarları" sekmesinde yer alan "Yeni Şifre Belirleme" kutusuna yeni şifrenizi iki kez giriniz.
-* Şifre güncellendiği anda eski şifre sistemden tamamen silinir ve yeni şifreniz tek geçerli giriş şifresi olur.`,
-  },
-  {
-    id: 'nasil-coklu-dil',
-    category: 'nasil_kullanirim',
-    categoryTitle: 'Nasıl Kullanırım? (Adım Adım Rehberler)',
-    title: '12. Çoklu Dil Desteği (Türkçe, İngilizce, Rusça QR Menü)',
-    summary: 'Yabancı turist ve müşterilerin QR menüyü kendi dillerinde görüntülemesi.',
-    content: `Çoklu Dil Kullanımı:
-
-* Müşteriler masadaki QR menüyü açtığında sağ üst köşede yer alan TR, EN ve RU dil butonlarından birini seçebilir.
-* Menü kategorileri, sepet butonları, servis çağrıları ve çalışma saatleri anında seçilen dile çevrilir.`,
-  },
-
-  // 3. BİZİ DEĞERLENDİRİN & GELİŞTİRMEMİZE YARDIMCI OLUN KATEGORİSİ
-  {
-    id: 'degerlendirme-oneri-bildir',
-    category: 'degerlendirme',
-    categoryTitle: 'Bizi Değerlendirin & Geliştirmemize Yardımcı Olun',
-    title: 'Görüşleriniz Bizim İçin Çok Değerlidir',
-    summary: 'Restiva sistemini geliştirmemize yardımcı olun, yeni özellik ve modül önerin.',
-    content: `Görüşleriniz bizim için çok değerlidir!
-
-Restiva Adisyon ve QR Menü sistemini her geçen gün işletmelerimiz için daha hızlı, daha pratik ve daha verimli hale getirmek amacıyla sürekli geliştiriyoruz.
-
-* Sistemde olmasını istediğiniz yeni bir özellik veya modül mü var?
-* Mevcut kullanımda iyileştirilmesini istediğiniz bir detay mı bulunuyor?
-* Yaşadığınız genel deneyim hakkındaki olumlu veya olumsuz düşüncelerinizi paylaşmak mı istiyorsunuz?
-
-Aşağıdaki "Öneri & Görüş Bildir" butonuna tıklayarak doğrudan Restiva Müşteri Hizmetleri ekibimize önerinizi iletebilirsiniz. Tüm geri bildirimler titizlikle incelenir.`,
-    actionLabel: 'Öneri & Görüş Bildir',
-  },
-];
-
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
   const toast = useToast();
-  const [activeView, setActiveView] = useState<'guides' | 'ticket'>('guides');
-  const [expandedGuideId, setExpandedGuideId] = useState<string | null>('bilgi-sistem-nedir');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'bilgilendirme' | 'nasil_kullanirim' | 'degerlendirme'>('all');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Issue reporting form state
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  };
+
+  const [activeView, setActiveView] = useState<'ticket' | 'platform_request'>('ticket');
+
+  // Platform Request Form States
+  const [reqPlatform, setReqPlatform] = useState<PlatformType>('trendyol');
+  const [reqMerchantId, setReqMerchantId] = useState('');
+  const [reqNotes, setReqNotes] = useState('');
+  const [isSubmittingPlatformReq, setIsSubmittingPlatformReq] = useState(false);
+
+  // Ticket Form States
   const [subject, setSubject] = useState('');
   const [issueDescription, setIssueDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
-  // Chat State
+  // Active Chat State
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isEndingChat, setIsEndingChat] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Notifications calculation
+  // Monthly Report Check (Days 1 to 5)
   const now = new Date();
-  const expiresAt = business.subscription_expires_at ? new Date(business.subscription_expires_at) : null;
-  const diffDays = expiresAt ? Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : 999;
-  const isTrialExpiring = diffDays >= 0 && diffDays <= 3;
-  const isMonthlyPdfReady = now.getDate() <= 5;
-
+  const dayOfMonth = now.getDate();
+  const isMonthlyPdfReady = dayOfMonth <= 5;
   const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const prevMonthName = prevMonthDate.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
 
-  // Fetch active messages from Supabase
-  const loadMessages = async () => {
-    try {
-      await supabase.rpc('cleanup_old_support_messages');
-    } catch {}
+  // Expiry check (3 days or less)
+  const isTrialExpiring = (() => {
+    if (business.plan_type === 'trial' && business.subscription_expires_at) {
+      const diffMs = new Date(business.subscription_expires_at).getTime() - Date.now();
+      const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+      return diffDays <= 3 && diffDays >= 0;
+    }
+    return false;
+  })();
 
+  const diffDays = (() => {
+    if (business.subscription_expires_at) {
+      const diffMs = new Date(business.subscription_expires_at).getTime() - Date.now();
+      return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    }
+    return 0;
+  })();
+
+  const loadMessages = async () => {
     const { data } = await supabase
       .from('support_messages')
       .select('*')
@@ -337,24 +79,14 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       .eq('status', 'open')
       .order('created_at', { ascending: true });
 
-    if (data) {
-      setMessages(data as SupportMessage[]);
-      // Mark admin messages as read
-      const unreadIds = data.filter((m) => m.sender === 'superadmin' && !m.is_read).map((m) => m.id);
-      if (unreadIds.length > 0) {
-        await supabase
-          .from('support_messages')
-          .update({ is_read: true })
-          .in('id', unreadIds);
-      }
-    }
+    if (data) setMessages(data as SupportMessage[]);
   };
 
   useEffect(() => {
     loadMessages();
 
     const channel = supabase
-      .channel(`support-live-hub-${business.id}`)
+      .channel(`support-chat-${business.id}`)
       .on(
         'postgres_changes',
         {
@@ -366,12 +98,15 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newMsg = payload.new as SupportMessage;
-            if (!newMsg.status || newMsg.status === 'open') {
-              setMessages((prev) => [...prev, newMsg]);
-              if (newMsg.sender === 'superadmin') {
-                sound.playMessageTone();
-                toast.info('Restiva Müşteri Hizmetleri yeni mesaj gönderdi.');
-              }
+            setMessages((prev) => [...prev, newMsg]);
+            if (newMsg.sender === 'superadmin') {
+              sound.playMessageTone();
+              toast.info('Restiva Müşteri Hizmetleri mesaj gönderdi.');
+              sendNativeNotification({
+                title: 'Destek Yanıtı',
+                body: newMsg.message,
+                url: '/admin',
+              });
             }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as SupportMessage;
@@ -392,12 +127,11 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Handle Monthly PDF Download
   const handleDownloadMonthlyPdf = async () => {
     const startOfPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-    const { data } = await supabase
+    const { data: rawOrders } = await supabase
       .from('orders')
       .select('*')
       .eq('business_id', business.id)
@@ -405,14 +139,15 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       .gte('created_at', startOfPrevMonth.toISOString())
       .lte('created_at', endOfPrevMonth.toISOString());
 
-    const prevMonthOrders: Order[] = data ? (data as Order[]) : [];
-    const mTotal = prevMonthOrders.reduce((acc, o) => acc + o.total_amount, 0);
-    const mCash = prevMonthOrders.filter((o) => o.payment_method === 'cash').reduce((acc, o) => acc + o.total_amount, 0);
-    const mCard = prevMonthOrders.filter((o) => o.payment_method === 'credit_card').reduce((acc, o) => acc + o.total_amount, 0);
+    const prevOrders = (rawOrders as Order[]) || [];
+    const mTotal = prevOrders.reduce((acc, o) => acc + o.total_amount, 0);
+    const mCash = prevOrders.filter((o) => o.payment_method === 'cash').reduce((acc, o) => acc + o.total_amount, 0);
+    const mCard = prevOrders.filter((o) => o.payment_method === 'credit_card').reduce((acc, o) => acc + o.total_amount, 0);
+    const mOther = prevOrders.filter((o) => o.payment_method === 'other' || o.payment_method === 'online' || o.payment_method === 'bank_transfer').reduce((acc, o) => acc + o.total_amount, 0);
 
-    const printWin = window.open('', '_blank', 'width=800,height=900');
+    const printWin = window.open('', '_blank');
     if (!printWin) {
-      toast.error('Açılır pencere engellendi. Lütfen tarayıcı izinlerini kontrol ediniz.');
+      toast.error('Lütfen açılır pencere (pop-up) engelini kaldırınız.');
       return;
     }
 
@@ -420,73 +155,88 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       <!DOCTYPE html>
       <html>
       <head>
-        <title>${business.name} - ${prevMonthName} Aylık Ciro Raporu</title>
+        <meta charset="utf-8">
+        <title>${business.name} - ${prevMonthName} Ciro Raporu</title>
         <style>
-          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1e293b; line-height: 1.5; }
-          .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: flex-end; }
-          .title { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0; }
-          .subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
-          .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-          .stat-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 15px; }
-          .stat-label { font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
-          .stat-value { font-size: 20px; font-weight: 900; color: #0f172a; }
+          body { font-family: sans-serif; padding: 40px; color: #1e293b; line-height: 1.6; }
+          .header { border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+          .biz-name { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; }
+          .report-title { font-size: 16px; color: #64748b; margin-top: 4px; }
+          .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 30px; }
+          .kpi-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+          .kpi-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
+          .kpi-val { font-size: 20px; font-weight: 800; color: #0f172a; margin-top: 6px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-          th { background: #f1f5f9; text-align: left; padding: 10px 12px; font-size: 12px; font-weight: 750; color: #334155; border-bottom: 2px solid #cbd5e1; }
-          td { padding: 9px 12px; font-size: 12px; border-bottom: 1px solid #e2e8f0; color: #334155; }
-          .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+          th { background: #f1f5f9; text-align: left; padding: 12px; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 1px solid #cbd5e1; }
+          td { padding: 12px; font-size: 13px; border-bottom: 1px solid #f1f5f9; }
+          .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; text-align: center; }
         </style>
       </head>
       <body>
         <div class="header">
           <div>
-            <h1 class="title">${business.name}</h1>
-            <p class="subtitle">Aylık Mali Ciro ve Satış Raporu (${prevMonthName})</p>
+            <h1 class="biz-name">${business.name}</h1>
+            <div class="report-title">Resmi Aylık Finansal Döküm Raporu — ${prevMonthName}</div>
           </div>
-          <div style="text-align: right; font-size: 11px; color: #64748b;">
-            Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}
-          </div>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">Toplam Satış</div>
-            <div class="stat-value" style="color: #ea580c;">${mTotal.toFixed(2)} ₺</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">Nakit Gelir</div>
-            <div class="stat-value" style="color: #16a34a;">${mCash.toFixed(2)} ₺</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">POS / Kredi Kartı</div>
-            <div class="stat-value" style="color: #4f46e5;">${mCard.toFixed(2)} ₺</div>
+          <div style="text-align: right; font-size: 12px; color: #64748b;">
+            Tarih: ${new Date().toLocaleDateString('tr-TR')}<br>
+            Durum: Onaylandı
           </div>
         </div>
 
+        <div class="kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Toplam Net Gelir</div>
+            <div class="kpi-val">${mTotal.toFixed(2)} ₺</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">${prevOrders.length} Sipariş</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Nakit Tahsilat</div>
+            <div class="kpi-val" style="color: #059669;">${mCash.toFixed(2)} ₺</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">POS / Kredi Kartı</div>
+            <div class="kpi-val" style="color: #4f46e5;">${mCard.toFixed(2)} ₺</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Diğer (IBAN / Havale)</div>
+            <div class="kpi-val" style="color: #0284c7;">${mOther.toFixed(2)} ₺</div>
+          </div>
+        </div>
+
+        <h3 style="font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px;">İşlem Hareketleri</h3>
         <table>
           <thead>
             <tr>
-              <th>Tarih</th>
+              <th>Tarih & Saat</th>
               <th>Masa</th>
               <th>Ödeme Türü</th>
+              <th>Kalem Sayısı</th>
               <th style="text-align: right;">Tutar</th>
             </tr>
           </thead>
           <tbody>
-            ${prevMonthOrders.map((o) => `
+            ${prevOrders.slice(0, 50).map(o => `
               <tr>
-                <td>${new Date(o.created_at).toLocaleDateString('tr-TR')} ${new Date(o.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${new Date(o.created_at).toLocaleString('tr-TR')}</td>
                 <td><strong>${o.table_no}</strong></td>
-                <td>${o.payment_method === 'credit_card' ? 'POS / Kredi Kartı' : 'Nakit'}</td>
-                <td style="text-align: right; font-weight: bold;">${o.total_amount.toFixed(2)} ₺</td>
+                <td>${o.payment_method === 'cash' ? 'Nakit' : o.payment_method === 'credit_card' ? 'Kredi Kartı' : 'Diğer / Havale'}</td>
+                <td>${o.items.length} Kalem</td>
+                <td style="text-align: right; font-weight: 700;">${o.total_amount.toFixed(2)} ₺</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
 
         <div class="footer">
-          Restiva Bulut Adisyon ve QR Menü Yönetim Sistemi tarafından üretilmiştir.
+          Bu belge Restiva Adisyon Bulut Platformu tarafından üretilmiş resmi aylık ciro özetidir.
         </div>
-        <script>window.onload = function() { window.print(); };</script>
+
+        <script>
+          window.onload = function() {
+            window.print();
+          }
+        </script>
       </body>
       </html>
     `;
@@ -496,7 +246,6 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     printWin.document.close();
   };
 
-  // Submit Issue Ticket
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subject.trim() || !issueDescription.trim()) {
@@ -535,7 +284,50 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     }
   };
 
-  // Send message in existing chat
+  const handleSubmitPlatformRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reqMerchantId.trim()) {
+      toast.error('Lütfen Satıcı / Restoran / Şube ID numaranızı giriniz.');
+      return;
+    }
+
+    setIsSubmittingPlatformReq(true);
+    try {
+      const platformName = PLATFORM_INFO[reqPlatform]?.name || reqPlatform;
+      const fullSubject = `[Platform Entegrasyon Talebi] ${platformName} (ID: ${reqMerchantId.trim()})`;
+      const fullMessage = `İşletmemize "${platformName}" yemek platformunun bağlanmasını talep ediyoruz.\n\nSatıcı / Restoran ID: ${reqMerchantId.trim()}\nİşletme Notu: ${reqNotes.trim() || 'Hemen bağlanmasını rica ederiz.'}`;
+
+      const { data, error } = await supabase
+        .from('support_messages')
+        .insert([{
+          business_id: business.id,
+          sender: 'business',
+          subject: fullSubject,
+          message: fullMessage,
+          is_read: false,
+          status: 'open',
+          is_resolved: false,
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setMessages((prev) => [...prev, data as SupportMessage]);
+        sound.playMessageTone();
+        toast.success(`${platformName} entegrasyon talebiniz sistem yöneticisine başarıyla iletildi!`);
+        setReqMerchantId('');
+        setReqNotes('');
+        setActiveView('ticket');
+      }
+    } catch (err: any) {
+      toast.error('Talep iletilemedi: ' + err.message);
+    } finally {
+      setIsSubmittingPlatformReq(false);
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
@@ -571,7 +363,6 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     }
   };
 
-  // End / Resolve Chat
   const handleEndChat = async () => {
     try {
       setIsEndingChat(true);
@@ -588,7 +379,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       }
 
       setMessages([]);
-      toast.success('Sohbet sonlandırıldı. Geçmiş kayıtlar 2 saat içinde otomatik temizlenecektir.');
+      toast.success('Sohbet sonlandırıldı.');
     } catch (err: any) {
       toast.error('Sohbet sonlandırılırken hata oluştu.');
     } finally {
@@ -596,59 +387,54 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     }
   };
 
-  const filteredGuides = SYSTEM_GUIDES.filter((g) => {
-    if (selectedCategory === 'all') return true;
-    return g.category === selectedCategory;
-  });
-
   const hasActiveConversation = messages.length > 0;
   const hasAgentReplied = messages.some((m) => m.sender === 'superadmin');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5">
-      {/* 1. SİSTEM BİLDİRİMLERİ KUTUSU (Trial Expiry, Monthly Report, Support) */}
+    <div className="max-w-5xl mx-auto space-y-5 font-medium text-slate-200">
+      {/* 1. SİSTEM BİLDİRİMLERİ KUTUSU */}
       <div className="space-y-2.5">
         {/* Trial Warning Alert */}
         {isTrialExpiring && (
-          <div className="bg-amber-50 border-2 border-amber-300/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="bg-[#161E2E] border border-[#2B384E] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-amber-950">Deneme Süresi Uyarısı</h4>
-                <p className="text-xs text-amber-800 mt-0.5">
+                <h4 className="text-xs font-black text-white">Deneme Süresi Uyarısı</h4>
+                <p className="text-xs text-slate-300 mt-0.5">
                   {diffDays === 0
                     ? 'Deneme süreniz bugün sona ermektedir. Kesintisiz erişim için lütfen aboneliğinizi yenileyiniz.'
                     : `Deneme sürenizin bitmesine ${diffDays} gün kaldı. Sisteminizin kapanmaması için aboneliğinizi yenileyiniz.`}
                 </p>
               </div>
             </div>
-            <span className="text-xs font-black bg-amber-200/80 text-amber-900 px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0">
+            <span className="text-xs font-black bg-white/15 text-white px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0 border border-white/20">
               Kalan: {diffDays} Gün
             </span>
           </div>
         )}
 
-        {/* Monthly Accounting PDF Report Notice (Days 1-5) */}
+        {/* Monthly Accounting PDF Report Notice */}
         {isMonthlyPdfReady && (
-          <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="bg-[#161E2E] border border-[#2B384E] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="text-xs font-black text-indigo-950">
+                <h4 className="text-xs font-black text-white">
                   {prevMonthName} Aylık Ciro Raporu Hazır
                 </h4>
-                <p className="text-xs text-indigo-800 mt-0.5">
+                <p className="text-xs text-slate-300 mt-0.5">
                   Ayın 1-5'i arasında geçen ayın tüm satış, nakit ve kredi kartı dökümünü resmi muhasebe PDF formatında indirebilirsiniz.
                 </p>
               </div>
             </div>
             <button
               onClick={handleDownloadMonthlyPdf}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-indigo-600/20 transition shrink-0 self-start sm:self-auto"
+              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-900 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition shrink-0 self-start sm:self-auto active:scale-95"
             >
               <Download className="w-4 h-4" />
               <span>Aylık PDF İndir</span>
@@ -657,182 +443,49 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         )}
       </div>
 
-      {/* 2. ANA SEKMELER: REHBER & BİLGİLENDİRME / SORUN BİLDİR */}
-      <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <button
-          onClick={() => setActiveView('guides')}
-          className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 ${
-            activeView === 'guides'
-              ? 'bg-slate-900 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
-        >
-          <BookOpen className="w-4 h-4 text-orange-500" />
-          <span>Kullanım Kılavuzu & Bilgilendirme</span>
-        </button>
-
+      {/* 2. ANA SEKMELER: SORUN BİLDİR & DESTEK / YEMEK PLATFORMU BAĞLAMA */}
+      <div className="flex items-center gap-2 bg-[#111622] p-1.5 rounded-2xl border border-[#1F293D] shadow-sm">
         <button
           onClick={() => setActiveView('ticket')}
           className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 relative ${
             activeView === 'ticket'
-              ? 'bg-orange-500 text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
           }`}
         >
-          <Headphones className="w-4 h-4" />
+          <Headphones className="w-4 h-4 text-slate-300" />
           <span>Sorun Bildir & Destek</span>
           {hasActiveConversation && (
-            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse absolute right-4 top-3" />
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse absolute right-4 top-3" />
           )}
+        </button>
+
+        <button
+          onClick={() => setActiveView('platform_request')}
+          className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 ${
+            activeView === 'platform_request'
+              ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
+          }`}
+        >
+          <Globe className="w-4 h-4 text-amber-400" />
+          <span className="hidden sm:inline">Yemek Platformu Bağlama</span>
+          <span className="sm:hidden">Platform Bağla</span>
         </button>
       </div>
 
-      {/* 3. VIEW: KULLANIM KILAVUZU & BİLGİLENDİRME */}
-      {activeView === 'guides' && (
-        <div className="space-y-4">
-          {/* Category Filter Badges */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-            <button
-              onClick={() => setSelectedCategory('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                selectedCategory === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Tüm Başlıklar ({SYSTEM_GUIDES.length})
-            </button>
-            <button
-              onClick={() => setSelectedCategory('bilgilendirme')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                selectedCategory === 'bilgilendirme'
-                  ? 'bg-orange-500 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Bilgilendirme & Genel Bakış
-            </button>
-            <button
-              onClick={() => setSelectedCategory('nasil_kullanirim')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                selectedCategory === 'nasil_kullanirim'
-                  ? 'bg-indigo-600 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Nasıl Kullanırım? (Adım Adım)
-            </button>
-            <button
-              onClick={() => setSelectedCategory('degerlendirme')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                selectedCategory === 'degerlendirme'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Bizi Değerlendirin & Geliştirin
-            </button>
-          </div>
-
-          {/* Guides Accordion List */}
-          <div className="space-y-3">
-            {filteredGuides.map((guide) => {
-              const isExpanded = expandedGuideId === guide.id;
-              return (
-                <div
-                  key={guide.id}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-xs transition hover:border-slate-300"
-                >
-                  <div
-                    onClick={() => setExpandedGuideId(isExpanded ? null : guide.id)}
-                    className="flex items-center justify-between cursor-pointer select-none"
-                  >
-                    <div>
-                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                        guide.category === 'degerlendirme' ? 'text-emerald-600' : 'text-orange-600'
-                      }`}>
-                        {guide.categoryTitle}
-                      </span>
-                      <h3 className="text-xs font-extrabold text-slate-900 mt-0.5">{guide.title}</h3>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{guide.summary}</p>
-                    </div>
-
-                    <button className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 shrink-0 ml-3">
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {isExpanded && (
-                    <div className="mt-4 pt-3.5 border-t border-slate-100 text-xs text-slate-700 whitespace-pre-wrap leading-relaxed space-y-3">
-                      <p>{guide.content}</p>
-
-                      {guide.actionUrl && (
-                        <div className="pt-2">
-                          <a
-                            href={guide.actionUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 text-white font-bold text-xs rounded-xl shadow-xs hover:bg-slate-800 transition"
-                          >
-                            <span>{guide.actionLabel}</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-orange-400" />
-                          </a>
-                        </div>
-                      )}
-
-                      {guide.actionLabel && !guide.actionUrl && (
-                        <div className="pt-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSubject('Öneri & Geliştirme Talebi');
-                              setActiveView('ticket');
-                            }}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-emerald-600/20 transition"
-                          >
-                            <span>{guide.actionLabel}</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Direct Ticket CTA */}
-          <div className="p-4 bg-orange-50 border border-orange-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-6">
-            <div>
-              <h4 className="text-xs font-extrabold text-orange-950">Aradığınız cevabı bulamadınız mı?</h4>
-              <p className="text-[11px] text-orange-800 mt-0.5">
-                Sorun Bildir formundan bize yazın; Restiva Müşteri Hizmetleri talebinizi anında yanıtlasın.
-              </p>
-            </div>
-            <button
-              onClick={() => setActiveView('ticket')}
-              className="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-md shadow-orange-500/20 transition shrink-0 self-start sm:self-auto flex items-center gap-1.5"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>Sorun Bildir</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 4. VIEW: SORUN BİLDİR & CANLI DESTEK */}
+      {/* 3. VIEW: SORUN BİLDİR & CANLI DESTEK */}
       {activeView === 'ticket' && (
-        <div className="bg-white border border-slate-200/90 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
+        <div className="bg-[#111622] border border-[#1F293D] rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
           {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/80 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-[#1F293D] bg-[#0C1017] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-orange-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Restiva Müşteri Hizmetleri</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="font-extrabold text-sm text-white">Restiva Müşteri Hizmetleri</h3>
+                <p className="text-xs text-slate-400">
                   {hasAgentReplied
                     ? 'Aktif Destek Oturumu'
                     : 'Doğrudan teknik destek ve sorun bildirimi'}
@@ -844,7 +497,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
               <button
                 onClick={handleEndChat}
                 disabled={isEndingChat}
-                className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-[#1C2433] hover:bg-rose-500/20 border border-[#2B384E] text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
                 title="Mevcut sohbeti sonlandırır"
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -858,15 +511,15 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             /* Ticket Creation Form */
             <div className="p-6 max-w-xl mx-auto w-full space-y-4 my-auto">
               <div className="text-center space-y-1">
-                <h3 className="text-base font-black text-slate-900">Yeni Sorun Bildirimi</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className="text-base font-black text-white">Yeni Sorun Bildirimi</h3>
+                <p className="text-xs text-slate-400">
                   Yaşadığınız teknik sorunu veya sorunuzu özetleyiniz. Temsilcimiz yanıtladığında sohbet başlayacaktır.
                 </p>
               </div>
 
               <form onSubmit={handleSubmitTicket} className="space-y-3.5 pt-2">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
                     Konu Başlığı
                   </label>
                   <input
@@ -875,12 +528,12 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:outline-none"
+                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
                     Detaylı Açıklama
                   </label>
                   <textarea
@@ -889,12 +542,12 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     value={issueDescription}
                     onChange={(e) => setIssueDescription(e.target.value)}
                     placeholder="Lütfen karşılaştığınız durumu detaylı olarak açıklayınız..."
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl p-3 text-xs text-slate-900 font-medium focus:outline-none"
+                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl p-3 text-xs text-slate-100 font-medium focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
                     Ekran Görüntüsü / Resim URL (İsteğe Bağlı)
                   </label>
                   <input
@@ -902,14 +555,14 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
                     placeholder="https://... (Görsel linki varsa yapıştırabilirsiniz)"
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:outline-none"
+                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmittingTicket}
-                  className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-orange-500/20 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 bg-white hover:bg-slate-200 text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                 >
                   <Send className="w-4 h-4" />
                   <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : 'Sorun Bildirimini Gönder'}</span>
@@ -921,13 +574,13 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             <div className="flex-1 flex flex-col justify-between">
               {/* Waiting Agent Notice if no reply yet */}
               {!hasAgentReplied && (
-                <div className="p-3.5 bg-amber-50 border-b border-amber-200/80 text-center text-xs text-amber-900 font-medium">
+                <div className="p-3.5 bg-[#161E2E] border-b border-[#2B384E] text-center text-xs text-slate-300 font-medium">
                   Sorun bildiriminiz Restiva Müşteri Hizmetleri'ne iletildi. Müşteri temsilcimiz yanıt yazdığı anda sohbet burada devam edecektir.
                 </div>
               )}
 
               {/* Messages Body */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-slate-50/40 max-h-[500px]">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-[#0C1017] max-h-[500px]">
                 {messages.map((m) => {
                   const isUser = m.sender === 'business';
                   return (
@@ -938,13 +591,13 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                       <div
                         className={`max-w-[90%] sm:max-w-xl p-4 rounded-2xl text-xs leading-relaxed space-y-2 ${
                           isUser
-                            ? 'bg-orange-500 text-white rounded-br-none shadow-md shadow-orange-500/20'
-                            : 'bg-white border border-slate-200/90 text-slate-800 rounded-bl-none shadow-sm'
+                            ? 'bg-[#1C2433] text-slate-100 border border-[#2B384E] rounded-br-none shadow-sm'
+                            : 'bg-[#111622] border border-[#1F293D] text-slate-200 rounded-bl-none shadow-sm'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2 border-b border-black/10 pb-1 text-[10px] font-black">
+                        <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1 text-[10px] font-black">
                           <span>{isUser ? 'Siz' : 'Restiva Müşteri Hizmetleri'}</span>
-                          <span className={isUser ? 'text-orange-100' : 'text-slate-400'}>
+                          <span className="text-slate-400">
                             {new Date(m.created_at).toLocaleTimeString('tr-TR', {
                               hour: '2-digit',
                               minute: '2-digit',
@@ -953,7 +606,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                         </div>
 
                         {m.subject && (
-                          <div className={`text-[11px] font-extrabold ${isUser ? 'text-white' : 'text-slate-900'}`}>
+                          <div className="text-[11px] font-extrabold text-white">
                             Konu: {m.subject}
                           </div>
                         )}
@@ -965,7 +618,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                             <img
                               src={m.image_url}
                               alt="Ekran Görüntüsü"
-                              className="max-h-48 rounded-xl object-cover border border-black/10"
+                              className="max-h-48 rounded-xl object-cover border border-[#1F293D]"
                             />
                           </div>
                         )}
@@ -977,18 +630,18 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
               </div>
 
               {/* Chat Input */}
-              <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-slate-100 bg-white flex gap-2">
+              <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-[#1F293D] bg-[#111622] flex gap-2">
                 <input
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Mesajınızı yazınız..."
-                  className="flex-1 bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-900 focus:outline-none font-medium placeholder:text-slate-400"
+                  className="flex-1 bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none font-medium placeholder:text-slate-500"
                 />
                 <button
                   type="submit"
                   disabled={!chatInput.trim() || isSendingMessage}
-                  className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 disabled:opacity-40"
+                  className="px-5 py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-40 active:scale-95"
                 >
                   <Send className="w-4 h-4" />
                   <span className="hidden sm:inline">Gönder</span>
@@ -996,6 +649,97 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
               </form>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 5. VIEW: YEMEK PLATFORMU ENTEGRASYON TALEBİ */}
+      {activeView === 'platform_request' && (
+        <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 max-w-2xl mx-auto">
+          <div className="flex items-center gap-3 pb-4 border-b border-white/[0.06]">
+            <div className="w-12 h-12 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/20 shrink-0">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white">Yemek Platformu Entegrasyon Talebi</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Yemeksepeti, Trendyol, Getir, Tıkla Gelsin vb. hesaplarınızı adisyona bağlatmak için restoran bilgilerinizi iletin. Sistem yöneticiniz kurulumu yaptığında anında bildirim alacaksınız.
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmitPlatformRequest} className="space-y-4">
+            {/* Platform Selector Pills */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-2">
+                Bağlanmasını İstediğiniz Platformu Seçin:
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {(Object.keys(PLATFORM_INFO) as PlatformType[]).map((plt) => {
+                  const info = PLATFORM_INFO[plt];
+                  const isSelected = reqPlatform === plt;
+                  return (
+                    <button
+                      type="button"
+                      key={plt}
+                      onClick={() => setReqPlatform(plt)}
+                      className={`p-3 rounded-2xl text-xs font-bold transition flex items-center gap-2 border text-left ${
+                        isSelected
+                          ? 'bg-white/20 text-white border-white/30 shadow-md'
+                          : 'bg-[#0C1017] text-slate-400 hover:text-white hover:bg-[#182030] border-white/[0.04]'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : 'bg-slate-600'}`} />
+                      <span className="truncate">{info.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Merchant ID Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                {PLATFORM_INFO[reqPlatform].name} Satıcı / Restoran / Şube ID Numaranız:
+              </label>
+              <input
+                type="text"
+                value={reqMerchantId}
+                onChange={(e) => setReqMerchantId(e.target.value)}
+                placeholder="Örn: 10425 veya TG_IST_082"
+                className="w-full bg-[#0C1017] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold focus:outline-none placeholder:text-slate-600 border border-white/[0.06]"
+                required
+              />
+              <span className="text-[10px] text-slate-400 mt-1 block">
+                {PLATFORM_INFO[reqPlatform].portalName} üzerindeki satıcı veya mağaza numaranızdır.
+              </span>
+            </div>
+
+            {/* Notes Input */}
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Ek Not veya Talep Detayı (İsteğe Bağlı):
+              </label>
+              <textarea
+                value={reqNotes}
+                onChange={(e) => setReqNotes(e.target.value)}
+                rows={3}
+                placeholder="Örn: Kadıköy şubemizi bağlamak istiyoruz, kurye modelimiz platform kuryesidir."
+                className="w-full bg-[#0C1017] rounded-xl p-3 text-xs text-slate-200 focus:outline-none resize-none placeholder:text-slate-600 border border-white/[0.06]"
+              />
+            </div>
+
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isSubmittingPlatformReq}
+                className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs rounded-2xl transition flex items-center justify-center gap-2 shadow-md border border-white/25 active:scale-95 disabled:opacity-50"
+              >
+                {isSubmittingPlatformReq ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 text-amber-400" />}
+                <span>{isSubmittingPlatformReq ? 'Talep İletiliyor...' : 'Entegrasyon Talebini İlet'}</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

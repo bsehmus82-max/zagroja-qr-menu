@@ -1,7 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calculator, Plus, Minus, Trash2, Printer, 
-  Check, CreditCard, Banknote, RefreshCw, ShoppingBag
+  Check, CreditCard, Banknote, Landmark, RefreshCw, ShoppingBag
 } from 'lucide-react';
 import { Business, Category, Product, OrderItem, Table } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -23,6 +23,12 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
   const [posItems, setPosItems] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  };
 
   useEffect(() => {
     const fetchPosData = async () => {
@@ -103,7 +109,7 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
 
   const totalAmount = posItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  const handleCheckout = async (paymentMethod: 'cash' | 'credit_card', sendToKitchen: boolean) => {
+  const handleCheckout = async (paymentMethod: 'cash' | 'credit_card' | 'other', sendToKitchen: boolean) => {
     if (posItems.length === 0) {
       toast.warning('Lütfen sepete en az 1 ürün ekleyiniz.');
       return;
@@ -146,19 +152,19 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
   const currentCategoryProducts = products.filter((p) => p.category_id === selectedCatId);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 font-medium text-slate-200">
       {/* Product Selection Area (2 Columns) */}
       <div className="lg:col-span-2 space-y-4">
         {/* Category Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCatId(cat.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+              className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition shrink-0 ${
                 selectedCatId === cat.id
-                  ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+                  ? 'bg-white/20 text-white border border-white/25 shadow-sm'
+                  : 'bg-[#111622] text-slate-400 hover:text-slate-100 hover:bg-[#182030] border border-white/[0.06] hover:border-white/[0.12]'
               }`}
             >
               {cat.name}
@@ -168,33 +174,34 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
 
         {/* Product Cards Grid */}
         {loading ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs">
+          <div className="bg-[#111622] rounded-3xl p-12 text-center text-slate-400 text-xs font-bold shadow-md">
             Ürünler yükleniyor...
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
             {currentCategoryProducts.map((prod) => (
               <button
                 key={prod.id}
                 onClick={() => addItemToCart(prod)}
                 disabled={prod.is_frozen}
-                className={`p-3.5 rounded-2xl border text-left transition flex flex-col justify-between h-28 shadow-sm ${
+                onMouseMove={handleSpotlightMove}
+                className={`p-4 rounded-3xl text-left transition flex flex-col justify-between h-32 shadow-lg spotlight-card spotlight-glow ${
                   prod.is_frozen
-                    ? 'bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed'
-                    : 'bg-white border-slate-200/90 hover:border-orange-500 hover:shadow-md active:scale-95'
+                    ? 'bg-[#111622]/40 opacity-40 cursor-not-allowed'
+                    : 'bg-[#111622] hover:bg-[#161E2E] active:scale-95'
                 }`}
               >
                 <div>
-                  <h4 className="font-extrabold text-xs text-slate-900 line-clamp-2">
+                  <h4 className="font-extrabold text-xs text-slate-100 line-clamp-2">
                     {prod.name}
                   </h4>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                  <span className="font-extrabold text-xs text-orange-600">
+                <div className="flex items-center justify-between pt-2 border-t border-[#1F293D]/60">
+                  <span className="font-black text-xs text-white">
                     {prod.price.toFixed(2)} ₺
                   </span>
-                  <span className="w-5 h-5 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-extrabold text-xs">
+                  <span className="w-6 h-6 rounded-xl bg-[#1C2433] text-white flex items-center justify-center font-extrabold text-xs">
                     +
                   </span>
                 </div>
@@ -205,13 +212,13 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
       </div>
 
       {/* Cart & Checkout Panel (1 Column) */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between">
+      <div className="bg-[#111622] rounded-3xl p-5 shadow-lg space-y-4 flex flex-col justify-between">
         <div className="space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h3 className="font-extrabold text-sm text-slate-900">Adisyon / POS Masası</h3>
+          <div className="flex items-center justify-between pb-2">
+            <h3 className="font-extrabold text-sm text-slate-100">Adisyon / POS Masası</h3>
             <button
               onClick={() => setPosItems([])}
-              className="text-xs text-rose-500 hover:text-rose-600 font-semibold"
+              className="text-xs text-rose-400 hover:text-rose-300 font-semibold"
             >
               Temizle
             </button>
@@ -219,11 +226,11 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
 
           {/* Table Selector */}
           <div>
-            <label className="block text-xs font-semibold text-slate-600 mb-1">Masa Seçimi</label>
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Masa Seçimi</label>
             <select
               value={selectedTable}
               onChange={(e) => setSelectedTable(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-900 font-bold focus:outline-none"
+              className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-bold focus:outline-none cursor-pointer"
             >
               <option value="Kasa Satışı">Kasa Satışı (Ayakta / Paket)</option>
               {tables.map((t) => (
@@ -235,20 +242,20 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
           </div>
 
           {/* Items List */}
-          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
             {posItems.length === 0 ? (
-              <div className="py-12 text-center text-slate-400 text-xs">
+              <div className="py-12 text-center text-slate-500 text-xs font-medium">
                 Sepet boş. Ürünlere tıklayarak ekleyin.
               </div>
             ) : (
               posItems.map((item) => (
                 <div
                   key={item.product_id}
-                  className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-100"
+                  className="flex items-center justify-between p-3 bg-[#0C1017] rounded-2xl"
                 >
                   <div>
-                    <h5 className="font-extrabold text-xs text-slate-900">{item.name}</h5>
-                    <span className="text-[11px] text-slate-500 font-semibold">
+                    <h5 className="font-extrabold text-xs text-slate-200">{item.name}</h5>
+                    <span className="text-[11px] text-slate-400 font-semibold">
                       {item.price.toFixed(2)} ₺ x {item.quantity} = {(item.price * item.quantity).toFixed(2)} ₺
                     </span>
                   </div>
@@ -256,14 +263,14 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => updateQty(item.product_id, -1)}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs"
+                      className="w-6 h-6 rounded-lg bg-[#1C2433] hover:bg-[#253043] text-slate-200 flex items-center justify-center font-bold text-xs"
                     >
                       -
                     </button>
-                    <span className="font-extrabold text-xs w-4 text-center">{item.quantity}</span>
+                    <span className="font-extrabold text-xs w-4 text-center text-white">{item.quantity}</span>
                     <button
                       onClick={() => updateQty(item.product_id, 1)}
-                      className="w-6 h-6 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs"
+                      className="w-6 h-6 rounded-lg bg-[#1C2433] hover:bg-[#253043] text-slate-200 flex items-center justify-center font-bold text-xs"
                     >
                       +
                     </button>
@@ -275,38 +282,51 @@ export const ManualPos: React.FC<ManualPosProps> = ({ business }) => {
         </div>
 
         {/* Total & Checkout Buttons */}
-        <div className="pt-4 border-t border-slate-100 space-y-3">
+        <div className="pt-3 border-t border-[#1F293D]/60 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="font-semibold text-slate-600 text-xs">Toplam Tutar:</span>
-            <span className="font-extrabold text-lg text-orange-600">
+            <span className="font-semibold text-slate-400 text-xs">Toplam Tutar:</span>
+            <span className="font-black text-lg text-white">
               {totalAmount.toFixed(2)} ₺
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => handleCheckout('cash', false)}
               disabled={saving || posItems.length === 0}
-              className="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+              onMouseMove={handleSpotlightMove}
+              className="py-3 bg-[#1C2433] hover:bg-[#253043] text-white font-bold text-xs rounded-2xl shadow-sm transition flex flex-col items-center justify-center gap-1 disabled:opacity-40 spotlight-card spotlight-glow"
             >
-              <Banknote className="w-4 h-4" />
-              <span>Nakit Tahsilat</span>
+              <Banknote className="w-4 h-4 text-slate-300" />
+              <span>Nakit</span>
             </button>
 
             <button
               onClick={() => handleCheckout('credit_card', false)}
               disabled={saving || posItems.length === 0}
-              className="py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+              onMouseMove={handleSpotlightMove}
+              className="py-3 bg-[#1C2433] hover:bg-[#253043] text-white font-bold text-xs rounded-2xl shadow-sm transition flex flex-col items-center justify-center gap-1 disabled:opacity-40 spotlight-card spotlight-glow"
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-4 h-4 text-slate-300" />
               <span>POS / Kart</span>
+            </button>
+
+            <button
+              onClick={() => handleCheckout('other', false)}
+              disabled={saving || posItems.length === 0}
+              onMouseMove={handleSpotlightMove}
+              className="py-3 bg-[#1C2433] hover:bg-[#253043] text-white font-bold text-xs rounded-2xl shadow-sm transition flex flex-col items-center justify-center gap-1 disabled:opacity-40 spotlight-card spotlight-glow"
+            >
+              <Landmark className="w-4 h-4 text-slate-300" />
+              <span>Diğer (IBAN)</span>
             </button>
           </div>
 
           <button
             onClick={() => handleCheckout('cash', true)}
             disabled={saving || posItems.length === 0}
-            className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+            onMouseMove={handleSpotlightMove}
+            className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs rounded-2xl transition flex items-center justify-center gap-1.5 disabled:opacity-40 active:scale-98 shadow-md spotlight-card spotlight-glow"
           >
             <span>Mutfağa Gönder (Adisyon Aç)</span>
           </button>

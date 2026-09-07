@@ -249,21 +249,21 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col">
+      <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-2xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col font-medium text-slate-200">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4 shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-[#1F293D] mb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-white flex items-center justify-center border border-[#2B384E] shadow-sm">
               <Building2 className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">Yeni İşletme Kaydı & Paket Tanımla</h2>
+              <h2 className="text-sm font-bold text-white">Yeni İşletme Kaydı & Paket Tanımla</h2>
               <p className="text-[11px] text-slate-400">Restoran bilgilerini girin ve abonelik paketini seçin</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -289,7 +289,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Örn: Boğaziçi Steakhouse & Bistro"
-                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition font-medium"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
               />
             </div>
 
@@ -302,7 +302,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0532 000 00 00"
-                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
               />
             </div>
 
@@ -315,16 +315,16 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Kadıköy, İstanbul"
-                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
               />
             </div>
           </div>
 
           {/* Subscription Plans & Pricing Selection */}
-          <div className="border-t border-slate-800 pt-4 space-y-3">
+          <div className="border-t border-[#1F293D] pt-4 space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                <CreditCard className="w-3.5 h-3.5 text-orange-400" />
+                <CreditCard className="w-3.5 h-3.5 text-slate-300" />
                 <span>Abonelik Paketi & Tahsilat Tipi</span>
               </label>
 
@@ -333,8 +333,8 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                 onClick={() => setIsCustomMode(!isCustomMode)}
                 className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border transition ${
                   isCustomMode 
-                    ? 'bg-orange-500 text-white border-orange-500' 
-                    : 'bg-[#0F172A] text-slate-400 border-slate-700 hover:text-slate-200'
+                    ? 'bg-white text-slate-900 border-white' 
+                    : 'bg-[#0C1017] text-slate-400 border-[#1F293D] hover:text-slate-200'
                 }`}
               >
                 {isCustomMode ? 'Hazır Paketlere Dön' : 'Özel Manuel Ayarla'}
@@ -353,15 +353,15 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                       onClick={() => handleSelectPreset(idx)}
                       className={`p-3 rounded-2xl border text-left transition flex flex-col justify-between relative ${
                         isSelected
-                          ? 'bg-orange-500/15 border-orange-500 shadow-xs ring-1 ring-orange-500'
-                          : 'bg-[#0F172A] border-slate-800 hover:border-slate-700'
+                          ? 'bg-white/10 border-white shadow-sm ring-1 ring-white'
+                          : 'bg-[#0C1017] border-[#1F293D] hover:border-slate-600'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span className="font-bold text-xs text-slate-100">{preset.name}</span>
                         <span
                           className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ${
-                            isSelected ? 'bg-orange-500 text-white' : 'bg-[#1E293B] text-orange-300'
+                            isSelected ? 'bg-white text-slate-900' : 'bg-[#1C2433] text-slate-300'
                           }`}
                         >
                           {preset.badge}
@@ -377,13 +377,13 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
             ) : null}
 
             {/* Manual Customization Row (Price, Days, Tables) */}
-            <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-3.5 space-y-3">
+            <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3.5 space-y-3">
               <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
                 <span className="flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-orange-400" />
+                  <Sliders className="w-3.5 h-3.5 text-slate-300" />
                   Paket Detayları (Gün, Fiyat, Masa Sınırı)
                 </span>
-                <span className="text-orange-400 font-mono">
+                <span className="text-white font-mono">
                   {isCustomMode ? 'Manuel Mod' : 'Seçili Paket Parametreleri'}
                 </span>
               </div>
@@ -399,13 +399,13 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                     step="10"
                     value={price}
                     onChange={(e) => setPrice(Number(e.target.value))}
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3 text-orange-400" />
+                    <Calendar className="w-3 h-3 text-slate-300" />
                     Kullanım Süresi (Gün)
                   </label>
                   <input
@@ -414,13 +414,13 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                     required
                     value={days}
                     onChange={(e) => setDays(Number(e.target.value))}
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-orange-400" />
+                    <Layers className="w-3 h-3 text-slate-300" />
                     Masa Sınırı (Boş = Sınırsız)
                   </label>
                   <input
@@ -429,7 +429,7 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
                     placeholder="Sınırsız"
                     value={tableLimit}
                     onChange={(e) => setTableLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
                   />
                 </div>
               </div>
@@ -437,18 +437,18 @@ export const CreateBusinessModal: React.FC<CreateBusinessModalProps> = ({
           </div>
 
           {/* Action Footer */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
+          <div className="pt-2 border-t border-[#1F293D] flex items-center justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition"
+              className="px-4 py-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-xs font-medium text-slate-300 transition border border-[#2B384E]"
             >
               İptal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
+              className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-900 text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{loading ? 'İşletme Açılıyor...' : 'İşletmeyi & Paketi Başlat'}</span>

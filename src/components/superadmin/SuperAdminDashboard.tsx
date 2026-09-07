@@ -4,7 +4,7 @@ import {
   AlertCircle, Clock, Trash2, Edit, ExternalLink, 
   RefreshCw, LogOut, Shield, MessageSquare, Database,
   Calendar, Layers, Check, Copy, Phone, MapPin, 
-  TrendingUp, Users, DollarSign, ArrowUpRight, Sparkles,
+  TrendingUp, Users, DollarSign, ArrowUpRight,
   Radio, Gift, CreditCard, ChevronRight, AlertTriangle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -145,10 +145,6 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     return acc;
   }, 0);
 
-  const totalRegisteredTables = businesses.reduce((acc, b) => {
-    return acc + (b.table_limit && b.table_limit < 9999 ? Number(b.table_limit) : 25);
-  }, 0);
-
   // Filter Logic
   const filteredBusinesses = businesses.filter((b) => {
     const matchesSearch = 
@@ -187,25 +183,25 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   });
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-slate-100 flex flex-col selection:bg-orange-500/30 selection:text-orange-200">
+    <div className="min-h-screen bg-[#0C1017] text-slate-200 flex flex-col selection:bg-white/20 selection:text-white font-medium">
       {/* Top Header */}
-      <header className="border-b border-slate-800 bg-[#1E293B]/90 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <header className="border-b border-[#1F293D] bg-[#111622]/90 backdrop-blur-md sticky top-0 z-30 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-orange-400 shadow-xs">
+          <div className="w-9 h-9 rounded-xl bg-[#1C2433] border border-[#2B384E] flex items-center justify-center text-slate-200 shadow-sm">
             <Shield className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-tight text-slate-100">Yönetim Merkezi & Finans</h1>
+            <h1 className="font-extrabold text-sm tracking-tight text-white">Yönetim Merkezi & Finans</h1>
             <p className="text-[11px] text-slate-400">Abonelik, Tahsilat & Platform Kontrol Paneli</p>
           </div>
         </div>
 
         {/* Center Tabs */}
-        <div className="flex items-center gap-1 bg-[#0F172A] p-1 rounded-2xl border border-slate-800 order-3 sm:order-2 w-full sm:w-auto overflow-x-auto">
+        <div className="flex items-center gap-1 bg-[#0C1017] p-1 rounded-xl border border-[#1F293D] order-3 sm:order-2 w-full sm:w-auto overflow-x-auto">
           <button
             onClick={() => handleTabChange('businesses')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
-              activeTab === 'businesses' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'businesses' ? 'bg-white/15 text-white border border-white/20 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Building2 className="w-3.5 h-3.5" />
@@ -214,7 +210,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           <button
             onClick={() => handleTabChange('chat')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
-              activeTab === 'chat' ? 'bg-orange-500 text-white shadow-md shadow-orange-500/25' : 'text-slate-400 hover:text-slate-200'
+              activeTab === 'chat' ? 'bg-white/15 text-white border border-white/20 shadow-sm' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
@@ -229,14 +225,15 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
           <button
             onClick={() => setShowBroadcastModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-300 hover:bg-orange-500/20 text-xs font-bold transition"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1C2433] border border-[#2B384E] text-slate-200 hover:bg-[#253043] text-xs font-bold transition"
           >
-            <Radio className="w-3.5 h-3.5 text-orange-400" />
+            <Radio className="w-3.5 h-3.5 text-slate-300" />
             <span className="hidden md:inline">Toplu Duyuru & Bayram</span>
           </button>
+
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/25 transition active:scale-95"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-200 text-slate-900 text-xs font-extrabold shadow-sm transition active:scale-95"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Yeni İşletme & Paket Aç</span>
@@ -244,7 +241,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
           <button
             onClick={onLogout}
             title="Çıkış Yap"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 transition"
+            className="p-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white transition border border-[#2B384E]"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -258,84 +255,84 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             {/* Financial & Subscription KPI Metrics */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {/* Monthly Run-Rate Revenue */}
-              <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+              <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-4 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aylık Tahsilat Geliri</span>
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-slate-300 flex items-center justify-center border border-[#2B384E]">
                     <DollarSign className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                  <span className="text-xl sm:text-2xl font-black text-white font-mono">
                     {totalMonthlyRevenue.toLocaleString('tr-TR')} TL
                   </span>
                   <span className="text-[10px] text-slate-400">/ ay</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">Aktif ücretli aboneliklerden</p>
+                <p className="text-[10px] text-slate-400 mt-1">Aktif ücretli aboneliklerden</p>
               </div>
 
               {/* Active Businesses */}
-              <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+              <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-4 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aktif İşletmeler</span>
-                  <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-slate-300 flex items-center justify-center border border-[#2B384E]">
                     <Building2 className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black text-slate-100 font-mono">
+                  <span className="text-xl sm:text-2xl font-black text-white font-mono">
                     {activeCount}
                   </span>
                   <span className="text-[10px] text-slate-400">/ {businesses.length} toplam</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">Süresi devam eden mekanlar</p>
+                <p className="text-[10px] text-slate-400 mt-1">Süresi devam eden mekanlar</p>
               </div>
 
               {/* Expiring Soon */}
-              <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+              <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-4 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ödeme Yaklaşanlar</span>
-                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-slate-300 flex items-center justify-center border border-[#2B384E]">
                     <Clock className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black text-amber-400 font-mono">
+                  <span className="text-xl sm:text-2xl font-black text-white font-mono">
                     {expiringSoonCount}
                   </span>
                   <span className="text-[10px] text-slate-400">işletme</span>
                 </div>
-                <p className="text-[10px] text-amber-400/80 mt-1 font-semibold">Son 3 gün içinde bitecekler</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Son 3 gün içinde bitecekler</p>
               </div>
 
               {/* Expired / Overdue */}
-              <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-4 shadow-sm relative overflow-hidden">
+              <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-4 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Süresi Bitenler</span>
-                  <div className="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center border border-rose-500/20">
+                  <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-slate-300 flex items-center justify-center border border-[#2B384E]">
                     <AlertTriangle className="w-4 h-4" />
                   </div>
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
-                  <span className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
+                  <span className="text-xl sm:text-2xl font-black text-white font-mono">
                     {expiredCount}
                   </span>
                   <span className="text-[10px] text-slate-400">işletme</span>
                 </div>
-                <p className="text-[10px] text-rose-400/80 mt-1 font-semibold">Yenileme bekleniyor</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Yenileme bekleniyor</p>
               </div>
             </div>
 
             {/* Controls Bar: Search & Status / Plan Filters */}
-            <div className="bg-[#1E293B] border border-slate-800 rounded-3xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
+            <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
               {/* Status Filter Pills */}
               <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0">
                 <button
                   onClick={() => setStatusFilter('all')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
                     statusFilter === 'all'
-                      ? 'bg-orange-500 text-white shadow-xs'
-                      : 'bg-[#0F172A] text-slate-400 hover:text-slate-200 border border-slate-800'
+                      ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                      : 'bg-[#0C1017] text-slate-400 hover:text-slate-200 border border-[#1F293D]'
                   }`}
                 >
                   Tümü ({businesses.length})
@@ -344,8 +341,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   onClick={() => setStatusFilter('active')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
                     statusFilter === 'active'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-[#0F172A] text-emerald-400 hover:bg-emerald-500/10 border border-slate-800'
+                      ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                      : 'bg-[#0C1017] text-slate-400 hover:text-slate-200 border border-[#1F293D]'
                   }`}
                 >
                   Aktif ({activeCount})
@@ -354,8 +351,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   onClick={() => setStatusFilter('expiring')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
                     statusFilter === 'expiring'
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-[#0F172A] text-amber-400 hover:bg-amber-500/10 border border-slate-800'
+                      ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                      : 'bg-[#0C1017] text-slate-400 hover:text-slate-200 border border-[#1F293D]'
                   }`}
                 >
                   Ödeme Yaklaşan ({expiringSoonCount})
@@ -364,8 +361,8 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   onClick={() => setStatusFilter('expired')}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition shrink-0 ${
                     statusFilter === 'expired'
-                      ? 'bg-rose-600 text-white'
-                      : 'bg-[#0F172A] text-rose-400 hover:bg-rose-500/10 border border-slate-800'
+                      ? 'bg-white/15 text-white border border-white/20 shadow-sm'
+                      : 'bg-[#0C1017] text-slate-400 hover:text-slate-200 border border-[#1F293D]'
                   }`}
                 >
                   Süresi Biten ({expiredCount})
@@ -374,13 +371,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
               {/* Search Box */}
               <div className="relative w-full md:w-72">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="İşletme, kullanıcı adı, tel ara..."
-                  className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
+                  className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
                 />
               </div>
             </div>
@@ -388,11 +385,11 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             {/* Businesses List */}
             {loading ? (
               <div className="py-20 text-center">
-                <RefreshCw className="w-6 h-6 animate-spin text-orange-500 mx-auto" />
+                <RefreshCw className="w-6 h-6 animate-spin text-slate-300 mx-auto" />
                 <p className="text-xs text-slate-400 mt-2">İşletmeler ve finansal veriler yükleniyor...</p>
               </div>
             ) : filteredBusinesses.length === 0 ? (
-              <div className="py-16 text-center bg-[#1E293B] border border-slate-800 rounded-3xl p-6">
+              <div className="py-16 text-center bg-[#111622] border border-[#1F293D] rounded-2xl p-6">
                 <Building2 className="w-12 h-12 text-slate-600 mx-auto mb-3" />
                 <h3 className="text-sm font-bold text-slate-200">Eşleşen İşletme Bulunamadı</h3>
                 <p className="text-xs text-slate-400 mt-1">Arama kriterlerinizi değiştirebilir veya yeni bir işletme ekleyebilirsiniz.</p>
@@ -420,26 +417,18 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                   return (
                     <div
                       key={biz.id}
-                      className={`bg-[#1E293B] border rounded-3xl p-5 relative flex flex-col justify-between hover:border-slate-700 transition shadow-xs ${
-                        biz.subscription_status === 'suspended'
-                          ? 'border-amber-500/30 bg-amber-950/5'
-                          : isExpired
-                          ? 'border-rose-500/30 bg-rose-950/5'
-                          : isExpiringSoon
-                          ? 'border-amber-500/40'
-                          : 'border-slate-800'
-                      }`}
+                      className="bg-[#111622] border border-[#1F293D] rounded-2xl p-5 relative flex flex-col justify-between hover:border-slate-600 transition shadow-sm"
                     >
                       <div>
                         {/* Header of Business Card */}
                         <div className="flex items-start justify-between gap-3 mb-3.5">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-sm text-slate-100 truncate">{biz.name}</h3>
+                              <h3 className="font-extrabold text-sm text-slate-100 truncate">{biz.name}</h3>
                               
                               {/* Subscription Status Badge */}
                               {biz.subscription_status === 'suspended' ? (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1C2433] text-slate-400 border border-[#2B384E]">
                                   Askıda
                                 </span>
                               ) : isExpired ? (
@@ -451,13 +440,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                                   Ödeme Yaklaştı
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/10 text-slate-200 border border-white/20">
                                   Aktif
                                 </span>
                               )}
 
                               {/* Plan Badge */}
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-orange-500/15 text-orange-300 border border-orange-500/20">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#1C2433] text-slate-300 border border-[#2B384E]">
                                 {planLabel} ({billingLabel})
                               </span>
                             </div>
@@ -469,7 +458,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
                           <button
                             onClick={() => setRenewTargetBiz(biz)}
-                            className="p-2 rounded-xl bg-slate-800 hover:bg-orange-500 text-slate-300 hover:text-white transition shrink-0 shadow-xs"
+                            className="p-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white transition shrink-0 shadow-sm border border-[#2B384E]"
                             title="Abonelik Süresi / Paket Yenile"
                           >
                             <Calendar className="w-4 h-4" />
@@ -477,20 +466,20 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                         </div>
 
                         {/* Financial & Time Metrics Inside Card */}
-                        <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-3.5 space-y-2 mb-4 text-xs">
+                        <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3.5 space-y-2 mb-4 text-xs">
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400 flex items-center gap-1.5">
-                              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                              <DollarSign className="w-3.5 h-3.5 text-slate-300" />
                               Kayıtlı Fiyat:
                             </span>
-                            <span className="font-mono font-bold text-emerald-400">
+                            <span className="font-mono font-bold text-white">
                               {biz.plan_price ? `${Number(biz.plan_price).toLocaleString('tr-TR')} TL` : 'Ücretsiz'}
                             </span>
                           </div>
 
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400 flex items-center gap-1.5">
-                              <Layers className="w-3.5 h-3.5 text-orange-400" />
+                              <Layers className="w-3.5 h-3.5 text-slate-300" />
                               Masa Limiti:
                             </span>
                             <span className="font-mono font-bold text-slate-200">
@@ -498,9 +487,9 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between border-t border-slate-800/80 pt-2">
+                          <div className="flex items-center justify-between border-t border-[#1F293D] pt-2">
                             <span className="text-slate-400 flex items-center gap-1.5">
-                              <Calendar className="w-3.5 h-3.5 text-orange-400" />
+                              <Calendar className="w-3.5 h-3.5 text-slate-300" />
                               Kalan Süre:
                             </span>
                             <span
@@ -516,7 +505,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                             </span>
                           </div>
 
-                          <div className="text-[10px] text-slate-500 font-mono flex items-center justify-between">
+                          <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between">
                             <span>Bitiş: {expiryDate.toLocaleDateString('tr-TR')}</span>
                             {biz.phone && <span>Tel: {biz.phone}</span>}
                           </div>
@@ -524,32 +513,30 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
                       </div>
 
                       {/* Card Action Buttons */}
-                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800 text-xs">
-                        <a
-                          href={`/m/${biz.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1 font-semibold"
-                        >
-                          <ExternalLink className="w-3 h-3 text-orange-400" />
-                          <span>QR Menü</span>
-                        </a>
+                      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#1F293D] text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={`/m/${biz.slug}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-2.5 py-1.5 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white transition flex items-center gap-1 font-semibold border border-[#2B384E]"
+                          >
+                            <ExternalLink className="w-3 h-3 text-slate-300" />
+                            <span>QR Menü</span>
+                          </a>
+                        </div>
 
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handleToggleSuspend(biz)}
-                            className={`px-2.5 py-1.5 rounded-xl font-bold transition text-[11px] ${
-                              biz.subscription_status === 'suspended'
-                                ? 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30'
-                                : 'bg-amber-600/10 text-amber-400 hover:bg-amber-600/20'
-                            }`}
+                            className="px-2.5 py-1.5 rounded-xl font-bold transition text-[11px] bg-[#1C2433] hover:bg-[#253043] text-slate-300 border border-[#2B384E]"
                           >
                             {biz.subscription_status === 'suspended' ? 'Aktifleştir' : 'Askıya Al'}
                           </button>
 
                           <button
                             onClick={() => handleDeleteBusiness(biz)}
-                            className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition"
+                            className="p-1.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition"
                             title="İşletmeyi Sil"
                           >
                             <Trash2 className="w-3.5 h-3.5" />

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
-  Hand, Banknote, RefreshCw, Volume2, CreditCard,
+  Hand, Banknote, RefreshCw, Volume2, CreditCard, Landmark,
   Plus, ShoppingBag, Check, X, BellRing
 } from 'lucide-react';
 import { Business, Order, ServiceRequest } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
-import { printKitchenTicket } from '../../lib/thermalPrinter';
+import { printKitchenTicket, isWebAutoPrintEnabled, setWebAutoPrintEnabled } from '../../lib/thermalPrinter';
 import { sendNativeNotification } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
 
@@ -23,9 +23,22 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<'all' | 'pending' | 'preparing' | 'requests'>('all');
   const [isSoundActive, setIsSoundActive] = useState(true);
+  const [isAutoPrintActive, setIsAutoPrintActive] = useState(() => isWebAutoPrintEnabled());
 
-  const loadData = async () => {
-    setLoading(true);
+  // Close Order / Payment Modal State
+  const [closingOrder, setClosingOrder] = useState<Order | null>(null);
+  const [isClosingPayment, setIsClosingPayment] = useState(false);
+
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  };
+
+  const loadData = async (isSilent = false) => {
+    if (!isSilent && orders.length === 0) {
+      setLoading(true);
+    }
     try {
       const [ordersRes, requestsRes] = await Promise.all([
         supabase
@@ -69,7 +82,10 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
             if (isSoundActive) {
               sound.playOrderBell(business.sound_preference);
             }
+            
+            // Automatic Web & POS Receipt Print
             printKitchenTicket(business, newOrder);
+            
             toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
             
             // Background Push Notification
@@ -149,54 +165,61 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
     const { error } = await supabase
       .from('orders')
       .update({ status, updated_at: new Date().toISOString() })
-      .eq('id', orderId)
-      .eq('business_id', business.id);
+      .eq('id', orderId);
 
-    if (!error) {
-      if (status === 'paid' || status === 'cancelled') {
-        setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      } else {
-        setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-        );
-      }
-      toast.success('Sipariş güncellendi.');
+    if (error) {
+      toast.error('Sipariş güncellenirken hata oluştu.');
+    } else {
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+      );
+      toast.success(status === 'preparing' ? 'Sipariş hazırlanıyor olarak işaretlendi.' : 'Sipariş güncellendi.');
     }
   };
 
-  const resolveServiceRequest = async (reqId: string) => {
+  const resolveServiceRequest = async (requestId: string) => {
     const { error } = await supabase
       .from('service_requests')
       .update({ status: 'resolved', updated_at: new Date().toISOString() })
-      .eq('id', reqId)
-      .eq('business_id', business.id);
+      .eq('id', requestId);
 
-    if (!error) {
-      setServiceRequests((prev) => prev.filter((r) => r.id !== reqId));
+    if (error) {
+      toast.error('Çağrı yanıtlanırken hata oluştu.');
+    } else {
+      setServiceRequests((prev) => prev.filter((r) => r.id !== requestId));
       toast.success('Çağrı tamamlandı.');
     }
   };
 
-  const [closingOrder, setClosingOrder] = useState<Order | null>(null);
-  const [isClosingPayment, setIsClosingPayment] = useState(false);
-
-  const handleCloseOrderWithPayment = async (orderId: string, paymentMethod: 'cash' | 'credit_card') => {
+  const handleCloseOrderWithPayment = async (orderId: string, paymentMethod: 'cash' | 'credit_card' | 'other') => {
+    setIsClosingPayment(true);
     try {
-      setIsClosingPayment(true);
-      const { error } = await supabase
-        .from('orders')
-        .update({ 
-          status: 'paid', 
-          payment_method: paymentMethod, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', orderId)
-        .eq('business_id', business.id);
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (!targetOrder) return;
 
-      if (error) throw error;
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .update({
+          status: 'paid',
+          payment_method: paymentMethod,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      if (orderErr) throw orderErr;
+
+      // Free the table if table_no is present
+      if (targetOrder.table_no && targetOrder.table_no !== 'Kasa Satışı') {
+        await supabase
+          .from('tables')
+          .update({ is_occupied: false })
+          .eq('business_id', business.id)
+          .eq('table_no', targetOrder.table_no);
+      }
 
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      toast.success(`Hesap ${paymentMethod === 'credit_card' ? 'POS / Kredi Kartı' : 'Nakit'} ile başarıyla kapatıldı.`);
+      const methodLabel = paymentMethod === 'credit_card' ? 'Kredi Kartı' : paymentMethod === 'cash' ? 'Nakit' : 'Diğer / Havale';
+      toast.success(`${targetOrder.table_no} hesabı başarıyla kapatıldı (${methodLabel}).`);
       setClosingOrder(null);
     } catch (err: any) {
       toast.error('Hesap kapatılırken hata oluştu: ' + err.message);
@@ -215,22 +238,22 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   });
 
   return (
-    <div className="space-y-4">
-      {/* 1. MASA ÇAĞRILARI & GARSON İSTEKLERİ (ÖNE ÇIKAN CANLI BİLDİRİM ALANI) */}
+    <div className="space-y-5">
+      {/* 1. MASA ÇAĞRILARI & GARSON İSTEKLERİ (Tonal depth without hard lines) */}
       {serviceRequests.length > 0 && (
-        <div className="bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-orange-500/10 border-2 border-rose-400/80 rounded-2xl p-4 shadow-md animate-in fade-in space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="bg-[#141A26] rounded-2xl p-4 shadow-xl space-y-3">
+          <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2.5">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-600"></span>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white"></span>
               </span>
-              <h3 className="font-extrabold text-xs uppercase tracking-wider text-rose-950 flex items-center gap-1.5">
-                <BellRing className="w-4 h-4 text-rose-600" />
+              <h3 className="font-extrabold text-xs uppercase tracking-wider text-slate-100 flex items-center gap-1.5">
+                <BellRing className="w-4 h-4 text-slate-200" />
                 <span>Bekleyen Masa & Garson Çağrıları ({serviceRequests.length})</span>
               </h3>
             </div>
-            <span className="text-[11px] font-bold text-rose-700 bg-rose-100 px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold text-slate-300 bg-[#222E42] px-2.5 py-0.5 rounded-full">
               Canlı Çağrı
             </span>
           </div>
@@ -239,30 +262,22 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
             {serviceRequests.map((req) => {
               const isWaiter = req.request_type === 'waiter';
               const isCard = req.request_type === 'bill_card';
-              const isCash = req.request_type === 'bill_cash';
 
               return (
                 <div
                   key={req.id}
-                  className="bg-white border border-rose-200 rounded-xl p-3 shadow-xs flex flex-col justify-between space-y-2 hover:border-rose-400 transition"
+                  onMouseMove={handleSpotlightMove}
+                  className="bg-[#111622] rounded-2xl p-4 shadow-lg flex flex-col justify-between space-y-2.5 transition spotlight-card spotlight-glow"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-xs text-slate-900 bg-slate-900 text-white px-2.5 py-1 rounded-lg">
+                    <span className="font-black text-xs text-slate-100 bg-[#1C2433] px-2.5 py-1 rounded-lg">
                       {req.table_no}
                     </span>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border ${
-                        isWaiter
-                          ? 'bg-orange-50 text-orange-800 border-orange-200'
-                          : isCard
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          : 'bg-amber-50 text-amber-800 border-amber-200'
-                      }`}
-                    >
-                      {isWaiter && <BellRing className="w-3 h-3 text-orange-600" />}
-                      {isCard && <CreditCard className="w-3 h-3 text-emerald-600" />}
-                      {isCash && <Banknote className="w-3 h-3 text-amber-600" />}
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-[#1C2433] text-slate-300">
+                      {isWaiter && <BellRing className="w-3 h-3 text-slate-300" />}
+                      {isCard && <CreditCard className="w-3 h-3 text-slate-300" />}
+                      {!isWaiter && !isCard && <Banknote className="w-3 h-3 text-slate-300" />}
                       <span>
                         {isWaiter ? 'Garson Çağrısı' : isCard ? 'Hesap (POS / Kart)' : 'Hesap (Nakit)'}
                       </span>
@@ -270,11 +285,11 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                   </div>
 
                   {/* Customer Reason / Note */}
-                  <div className="bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs text-slate-700 font-medium">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase mb-0.5">
+                  <div className="bg-[#0C1017] rounded-xl p-2.5 text-xs text-slate-300 font-medium">
+                    <span className="text-[10px] font-bold text-slate-500 block uppercase mb-0.5">
                       Talep Nedeni:
                     </span>
-                    <p className="font-semibold text-slate-800">
+                    <p className="font-semibold text-slate-200">
                       {req.notes || (isWaiter ? 'Personel masaya çağrılıyor' : 'Hesap kapatma talebi')}
                     </p>
                   </div>
@@ -283,16 +298,16 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                   <div className="flex items-center gap-1.5 pt-1">
                     <button
                       onClick={() => resolveServiceRequest(req.id)}
-                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1 active:scale-95"
+                      className="flex-1 py-2 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white font-bold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95"
                     >
-                      <Check className="w-3.5 h-3.5" />
+                      <Check className="w-3.5 h-3.5 text-slate-300" />
                       <span>Tamamlandı / Yanıtla</span>
                     </button>
 
                     {!isWaiter && onNavigatePos && (
                       <button
                         onClick={onNavigatePos}
-                        className="py-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg transition"
+                        className="py-2 px-3 bg-[#1C2433] hover:bg-[#253043] text-slate-200 hover:text-white font-bold text-xs rounded-xl transition active:scale-95"
                         title="POS Kasa Ekranında Aç"
                       >
                         POS
@@ -306,16 +321,17 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
         </div>
       )}
 
-      {/* Top Action Bar & Filter Row */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+      {/* Top Action Bar & Filter Row (Tonal background without hard box outlines) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#111622] p-3 rounded-2xl shadow-md">
         {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setActiveFilter('all')}
+            onMouseMove={handleSpotlightMove}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
               activeFilter === 'all'
-                ? 'bg-[#0B0F17] text-white shadow-sm'
-                : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                ? 'bg-white/20 text-white shadow-sm'
+                : 'bg-[#182030] text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
             }`}
           >
             Aktif Siparişler ({orders.length})
@@ -323,10 +339,11 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
 
           <button
             onClick={() => setActiveFilter('pending')}
+            onMouseMove={handleSpotlightMove}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
               activeFilter === 'pending'
-                ? 'bg-amber-500 text-white shadow-sm'
-                : 'bg-amber-50 border border-amber-200 text-amber-800 hover:bg-amber-100'
+                ? 'bg-white/20 text-white shadow-sm'
+                : 'bg-[#182030] text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
             }`}
           >
             Bekleyenler ({pendingOrders.length})
@@ -334,10 +351,11 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
 
           <button
             onClick={() => setActiveFilter('preparing')}
+            onMouseMove={handleSpotlightMove}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
               activeFilter === 'preparing'
-                ? 'bg-sky-500 text-white shadow-sm'
-                : 'bg-sky-50 border border-sky-200 text-sky-800 hover:bg-sky-100'
+                ? 'bg-white/20 text-white shadow-sm'
+                : 'bg-[#182030] text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
             }`}
           >
             Hazırlananlar ({preparingOrders.length})
@@ -345,18 +363,19 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
 
           <button
             onClick={() => setActiveFilter('requests')}
+            onMouseMove={handleSpotlightMove}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition shrink-0 relative flex items-center gap-1.5 ${
               activeFilter === 'requests'
-                ? 'bg-rose-600 text-white shadow-sm'
+                ? 'bg-white/20 text-white shadow-sm'
                 : serviceRequests.length > 0
-                ? 'bg-rose-50 border border-rose-300 text-rose-900 hover:bg-rose-100 font-extrabold'
-                : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                ? 'bg-[#222E42] text-slate-200 font-extrabold'
+                : 'bg-[#182030] text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
             }`}
           >
             <BellRing className="w-3.5 h-3.5" />
-            <span>Garson & Hesap Çağrıları ({serviceRequests.length})</span>
+            <span>Çağrılar ({serviceRequests.length})</span>
             {serviceRequests.length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping absolute -top-0.5 -right-0.5" />
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping absolute -top-0.5 -right-0.5" />
             )}
           </button>
         </div>
@@ -366,42 +385,29 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
           {onNavigatePos && (
             <button
               onClick={onNavigatePos}
-              className="px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 transition active:scale-95"
+              className="px-3.5 py-2 bg-white hover:bg-slate-200 text-slate-900 font-black rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition active:scale-95"
             >
               <Plus className="w-4 h-4" />
               <span>+ Sipariş Ekle</span>
             </button>
           )}
-
-          <button
-            onClick={() => setIsSoundActive(!isSoundActive)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 ${
-              isSoundActive
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
-                : 'bg-slate-100 text-slate-500 border-slate-200'
-            }`}
-            title="Sesli Bildirim"
-          >
-            <Volume2 className="w-3.5 h-3.5" />
-            <span>{isSoundActive ? 'Ses Açık' : 'Sessiz'}</span>
-          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       {loading ? (
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-12 text-center text-slate-400 text-xs font-bold">
+        <div className="bg-[#111622] rounded-2xl p-12 text-center text-slate-400 text-xs font-bold shadow-md">
           Siparişler yükleniyor...
         </div>
       ) : activeFilter === 'requests' ? (
         /* Service Requests Detailed View */
         serviceRequests.length === 0 ? (
-          <div className="bg-white border border-slate-200/80 rounded-2xl p-14 text-center shadow-xs">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+          <div className="bg-[#111622] rounded-2xl p-14 text-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-[#1C2433] flex items-center justify-center mx-auto mb-2 text-slate-400 shadow-sm">
               <Hand className="w-5 h-5" />
             </div>
-            <h3 className="font-extrabold text-sm text-slate-800">Bekleyen Çağrı Bulunmuyor</h3>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <h3 className="font-black text-sm text-slate-200">Bekleyen Çağrı Bulunmuyor</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
               Müşteriler masadaki QR menüden Garson Çağır veya Hesap İste butonuna bastığında çağrılar canlı olarak buraya düşer.
             </p>
           </div>
@@ -410,40 +416,32 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
             {serviceRequests.map((req) => {
               const isWaiter = req.request_type === 'waiter';
               const isCard = req.request_type === 'bill_card';
-              const isCash = req.request_type === 'bill_cash';
 
               return (
                 <div
                   key={req.id}
-                  className="bg-white border-2 border-rose-300 rounded-2xl p-4 shadow-sm space-y-3 hover:border-rose-400 transition"
+                  onMouseMove={handleSpotlightMove}
+                  className="bg-[#111622] rounded-2xl p-4 shadow-lg space-y-3 transition spotlight-card spotlight-glow"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-slate-900 bg-slate-900 text-white px-3 py-1 rounded-xl">
+                    <span className="font-black text-sm text-slate-100 bg-[#1C2433] px-3 py-1 rounded-xl">
                       {req.table_no}
                     </span>
-                    <span
-                      className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full flex items-center gap-1 border ${
-                        isWaiter
-                          ? 'bg-orange-50 text-orange-800 border-orange-200'
-                          : isCard
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          : 'bg-amber-50 text-amber-800 border-amber-200'
-                      }`}
-                    >
-                      {isWaiter && <BellRing className="w-3 h-3 text-orange-600" />}
-                      {isCard && <CreditCard className="w-3 h-3 text-emerald-600" />}
-                      {isCash && <Banknote className="w-3 h-3 text-amber-600" />}
+                    <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 bg-[#1C2433] text-slate-300">
+                      {isWaiter && <BellRing className="w-3 h-3 text-slate-300" />}
+                      {isCard && <CreditCard className="w-3 h-3 text-slate-300" />}
+                      {!isWaiter && !isCard && <Banknote className="w-3 h-3 text-slate-300" />}
                       <span>
                         {isWaiter ? 'Garson Çağrısı' : isCard ? 'Hesap (POS / Kart)' : 'Hesap (Nakit)'}
                       </span>
                     </span>
                   </div>
 
-                  <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-400 block uppercase">
+                  <div className="bg-[#0C1017] rounded-2xl p-3 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 block uppercase">
                       Talep / Not:
                     </span>
-                    <p className="text-xs font-bold text-slate-800">
+                    <p className="text-xs font-bold text-slate-200">
                       {req.notes || (isWaiter ? 'Personel masaya çağrılıyor' : 'Hesap kapatma talebi')}
                     </p>
                   </div>
@@ -451,7 +449,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => resolveServiceRequest(req.id)}
-                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 active:scale-95"
+                      className="flex-1 py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-1.5 active:scale-95"
                     >
                       <Check className="w-4 h-4" />
                       <span>Çağrıyı Tamamla</span>
@@ -460,7 +458,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                     {!isWaiter && onNavigatePos && (
                       <button
                         onClick={onNavigatePos}
-                        className="py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
+                        className="py-2.5 px-3.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition"
                       >
                         POS
                       </button>
@@ -473,12 +471,12 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
         )
       ) : filteredOrders.length === 0 ? (
         /* Empty Orders */
-        <div className="bg-white border border-slate-200/80 rounded-2xl p-14 text-center shadow-xs">
-          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-2 text-slate-400">
+        <div className="bg-[#111622] rounded-2xl p-14 text-center shadow-lg">
+          <div className="w-12 h-12 rounded-xl bg-[#1C2433] flex items-center justify-center mx-auto mb-2 text-slate-400 shadow-sm">
             <ShoppingBag className="w-5 h-5" />
           </div>
-          <h3 className="font-extrabold text-sm text-slate-800">Aktif Sipariş Bulunmuyor</h3>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h3 className="font-black text-sm text-slate-200">Aktif Sipariş Bulunmuyor</h3>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
             QR menüden veya Garson terminalinden verilen siparişler anında burada belirecektir.
           </p>
         </div>
@@ -487,69 +485,114 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredOrders.map((order) => {
             const isPending = order.status === 'pending';
-            const isPreparing = order.status === 'preparing';
 
             return (
               <div
                 key={order.id}
-                className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3"
+                onMouseMove={handleSpotlightMove}
+                className="bg-[#111622] rounded-2xl p-4 shadow-lg transition flex flex-col justify-between space-y-3 spotlight-card spotlight-glow"
               >
                 <div>
-                  <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-                    <div className="flex items-center gap-2">
-                      <span className="font-black text-sm text-slate-900 bg-slate-100 px-2.5 py-1 rounded-xl">
+                  <div className="flex items-center justify-between pb-2.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-black text-sm text-slate-100 bg-[#1C2433] px-2.5 py-1 rounded-xl">
                         {order.table_no}
                       </span>
                       {order.order_source === 'waiter' && (
-                        <span className="text-[9px] font-bold bg-indigo-600 text-white px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-bold bg-white/10 text-slate-200 px-1.5 py-0.5 rounded">
                           Garson
                         </span>
                       )}
                       {order.order_source === 'pos' && (
-                        <span className="text-[9px] font-bold bg-slate-800 text-white px-1.5 py-0.5 rounded">
+                        <span className="text-[9px] font-bold bg-[#1C2433] text-slate-300 px-1.5 py-0.5 rounded">
                           Kasa POS
+                        </span>
+                      )}
+                      {order.order_source === 'trendyol' && (
+                        <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-md border border-amber-500/30">
+                          Trendyol Yemek {order.external_order_id || ''}
+                        </span>
+                      )}
+                      {order.order_source === 'yemeksepeti' && (
+                        <span className="text-[9px] font-black bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-md border border-rose-500/30">
+                          Yemeksepeti {order.external_order_id || ''}
+                        </span>
+                      )}
+                      {order.order_source === 'getir' && (
+                        <span className="text-[9px] font-black bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md border border-indigo-500/30">
+                          GetirYemek {order.external_order_id || ''}
+                        </span>
+                      )}
+                      {order.order_source === 'migros' && (
+                        <span className="text-[9px] font-black bg-orange-500/20 text-orange-300 px-2 py-0.5 rounded-md border border-orange-500/30">
+                          Migros Yemek {order.external_order_id || ''}
                         </span>
                       )}
                     </div>
 
-                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
-                      isPending
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-sky-100 text-sky-800'
-                    }`}>
-                      {isPending ? 'Bekliyor' : 'Hazırlanıyor'}
+                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-lg bg-[#1C2433] text-slate-200 shrink-0">
+                      {isPending ? 'Bekliyor' : order.status === 'served' ? 'Kuryede / Hazır' : 'Hazırlanıyor'}
                     </span>
                   </div>
 
+                  {/* Translucent Separator */}
+                  <div className="h-[1px] bg-white/[0.06] my-1" />
+
+                  {/* Platform Delivery Address & Courier Meta if Available */}
+                  {order.platform_metadata && (
+                    <div className="bg-[#0C1017] p-2.5 rounded-xl space-y-1 text-xs border border-white/[0.04]">
+                      {order.platform_metadata.customer_name && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 font-bold">Müşteri:</span>
+                          <span className="font-extrabold text-white">{order.platform_metadata.customer_name}</span>
+                        </div>
+                      )}
+                      {order.platform_metadata.delivery_address && (
+                        <div className="text-[11px] text-slate-300 leading-snug">
+                          <span className="text-slate-400 font-bold block">Teslimat Adresi:</span>
+                          <p className="text-slate-200 mt-0.5 line-clamp-2">{order.platform_metadata.delivery_address}</p>
+                        </div>
+                      )}
+                      {order.platform_metadata.courier_name && (
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                          <span>Kurye Durumu:</span>
+                          <span className="text-emerald-400 font-bold">{order.platform_metadata.courier_name}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Order Items */}
-                  <div className="space-y-1.5 py-2.5">
+                  <div className="space-y-1.5 py-2">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-black text-orange-600 bg-orange-50 w-5 h-5 rounded-md flex items-center justify-center text-[10px] shrink-0">
+                          <span className="font-black text-white bg-white/10 w-5 h-5 rounded-md flex items-center justify-center text-[10px] shrink-0">
                             {item.quantity}x
                           </span>
-                          <span className="font-bold text-slate-800 truncate">{item.name}</span>
+                          <span className="font-bold text-slate-200 truncate">{item.name}</span>
                         </div>
-                        <span className="font-extrabold text-slate-700 shrink-0">
+                        <span className="font-extrabold text-slate-300 shrink-0">
                           {(item.price * item.quantity).toFixed(2)} ₺
                         </span>
                       </div>
                     ))}
 
                     {order.customer_notes && (
-                      <div className="p-2 bg-amber-50/70 rounded-xl border border-amber-200/70 text-[11px] text-amber-900 mt-2 font-medium">
-                        <strong>Not:</strong> {order.customer_notes}
+                      <div className="p-2 bg-[#0C1017] rounded-xl text-[11px] text-slate-300 mt-2 font-medium">
+                        <strong className="text-slate-200">Not:</strong> {order.customer_notes}
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Footer Total & Actions */}
-                <div className="space-y-2.5 pt-2.5 border-t border-slate-100">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-2.5 pt-2">
+                  <div className="h-[1px] bg-white/[0.06] my-1" />
+
+                  <div className="flex items-center justify-between px-1">
                     <span className="text-xs text-slate-400 font-bold">Toplam:</span>
-                    <span className="font-black text-base text-orange-600">
+                    <span className="font-black text-base text-white">
                       {order.total_amount.toFixed(2)} ₺
                     </span>
                   </div>
@@ -558,29 +601,41 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                     {isPending ? (
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
-                        className="py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-xs transition"
+                        onMouseMove={handleSpotlightMove}
+                        className="py-2.5 bg-[#222E42] hover:bg-[#2C3B54] text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 spotlight-card spotlight-glow"
                       >
-                        Hazırla
+                        Siparişi Onayla
+                      </button>
+                    ) : order.status === 'preparing' ? (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'served')}
+                        onMouseMove={handleSpotlightMove}
+                        className="py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white font-bold text-xs rounded-xl transition active:scale-95"
+                      >
+                        Hazırlandı
                       </button>
                     ) : null}
 
                     <button
                       onClick={() => setClosingOrder(order)}
-                      className={`py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition ${
-                        !isPending ? 'col-span-1' : ''
+                      onMouseMove={handleSpotlightMove}
+                      className={`py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 spotlight-card spotlight-glow ${
+                        !isPending && order.status !== 'preparing' ? 'col-span-1' : ''
                       }`}
                     >
-                      Hesabı Kapat
+                      {['trendyol', 'yemeksepeti', 'getir', 'migros'].includes(order.order_source)
+                        ? 'Teslim Edildi'
+                        : 'Hesabı Kapat'}
                     </button>
 
                     <button
-                      onClick={() => printKitchenTicket(business, order)}
-                      className={`py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1 ${
-                        !isPending ? 'col-span-1' : 'col-span-2'
-                      }`}
+                      onClick={() => printKitchenTicket(business, order, true)}
+                      onMouseMove={handleSpotlightMove}
+                      className="py-2.5 bg-[#141A26] hover:bg-[#1C2433] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 col-span-2 active:scale-95 spotlight-card spotlight-glow"
+                      title="Termal Fiş Yazdır (Web & POS)"
                     >
                       <Printer className="w-3.5 h-3.5" />
-                      <span>Yazdır</span>
+                      <span>Termal Fiş Yazdır</span>
                     </button>
                   </div>
                 </div>
@@ -592,82 +647,81 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
 
       {/* HESABI KAPAT POP-UP / MODAL */}
       {closingOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#111622] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 text-slate-200">
             {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
               <div>
-                <h3 className="text-base font-black text-slate-900">
+                <h3 className="text-base font-black text-white">
                   Hesabı Kapat — {closingOrder.table_no}
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Ödeme türünü seçerek masanın hesabını kapatınız.
                 </p>
               </div>
               <button
                 onClick={() => setClosingOrder(null)}
-                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+                className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Order Items Breakdown */}
-            <div className="bg-slate-50 rounded-2xl p-3.5 max-h-48 overflow-y-auto space-y-2 border border-slate-100">
+            <div className="bg-[#0C1017] rounded-xl p-3.5 max-h-48 overflow-y-auto space-y-2">
               {closingOrder.items.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-slate-700 font-bold truncate">
+                  <span className="text-slate-300 font-bold truncate">
                     {item.quantity}x {item.name}
                   </span>
-                  <span className="text-slate-900 font-black shrink-0">
+                  <span className="text-white font-black shrink-0">
                     {(item.price * item.quantity).toFixed(2)} ₺
                   </span>
                 </div>
               ))}
 
               {closingOrder.customer_notes && (
-                <div className="pt-2 border-t border-slate-200 text-[11px] text-amber-900">
-                  <strong>Not:</strong> {closingOrder.customer_notes}
+                <div className="pt-2 text-[11px] text-slate-300">
+                  <strong className="text-white">Not:</strong> {closingOrder.customer_notes}
                 </div>
               )}
             </div>
 
-            {/* Total Amount Banner */}
-            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-200/80 flex items-center justify-between">
-              <span className="text-xs font-bold text-orange-950">Ödenecek Tutar:</span>
-              <span className="text-xl font-black text-orange-600">
+            {/* Total */}
+            <div className="flex items-center justify-between p-3.5 bg-[#0C1017] rounded-xl">
+              <span className="font-extrabold text-xs text-slate-400 uppercase">Ödenecek Tutar:</span>
+              <span className="font-black text-lg text-white">
                 {closingOrder.total_amount.toFixed(2)} ₺
               </span>
             </div>
 
-            {/* Payment Method Action Buttons */}
-            <div className="space-y-2 pt-1">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  disabled={isClosingPayment}
-                  onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'credit_card')}
-                  className="p-3.5 bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-indigo-600/20 transition flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <CreditCard className="w-5 h-5" />
-                  <span>POS / Kredi Kartı</span>
-                </button>
-
-                <button
-                  disabled={isClosingPayment}
-                  onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'cash')}
-                  className="p-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-emerald-600/20 transition flex flex-col items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <Banknote className="w-5 h-5" />
-                  <span>Nakit Ödeme</span>
-                </button>
-              </div>
+            {/* Payment Method Action Buttons (Harmonious #1C2433 / #253043 palette) */}
+            <div className="grid grid-cols-3 gap-2.5 pt-1">
+              <button
+                onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'cash')}
+                disabled={isClosingPayment}
+                className="p-3.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white rounded-xl font-bold text-xs transition flex flex-col items-center justify-center gap-2 shadow-sm disabled:opacity-50 active:scale-95 group"
+              >
+                <Banknote className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+                <span>Nakit</span>
+              </button>
 
               <button
-                type="button"
-                onClick={() => setClosingOrder(null)}
-                className="w-full py-2.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition"
+                onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'credit_card')}
+                disabled={isClosingPayment}
+                className="p-3.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white rounded-xl font-bold text-xs transition flex flex-col items-center justify-center gap-2 shadow-sm disabled:opacity-50 active:scale-95 group"
               >
-                Vazgeç
+                <CreditCard className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+                <span>POS / Kart</span>
+              </button>
+
+              <button
+                onClick={() => handleCloseOrderWithPayment(closingOrder.id, 'other')}
+                disabled={isClosingPayment}
+                className="p-3.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white rounded-xl font-bold text-xs transition flex flex-col items-center justify-center gap-2 shadow-sm disabled:opacity-50 active:scale-95 group"
+              >
+                <Landmark className="w-5 h-5 text-slate-300 group-hover:text-white transition-colors" />
+                <span>Diğer (IBAN)</span>
               </button>
             </div>
           </div>

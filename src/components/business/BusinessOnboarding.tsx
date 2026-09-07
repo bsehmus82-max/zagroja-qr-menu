@@ -219,33 +219,33 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4 sm:p-6 selection:bg-orange-500/30 selection:text-orange-200">
-      <div className="w-full max-w-xl bg-[#1E293B] border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
+    <div className="min-h-screen bg-[#0C1017] flex items-center justify-center p-4 sm:p-6 selection:bg-white/20 selection:text-white font-medium text-slate-200">
+      <div className="w-full max-w-xl bg-[#111622] border border-[#1F293D] rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 space-y-6">
         {/* Top Decorative Line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-500 rounded-t-3xl" />
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/20 rounded-t-3xl" />
 
         {/* Clean Header */}
-        <div className="text-center space-y-1.5 pb-2 border-b border-slate-800 pt-2">
-          <h1 className="text-xl font-black tracking-tight text-white">İşletmeniz İçin Gerekli Bilgiler</h1>
+        <div className="text-center space-y-1.5 pb-2 border-b border-[#1F293D] pt-2">
+          <h1 className="text-xl font-extrabold tracking-tight text-white">İşletmeniz İçin Gerekli Bilgiler</h1>
           <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-            <strong className="text-orange-400 font-semibold">{business.name}</strong> misafirlerine kusursuz bir dijital menü deneyimi sunmak için temel bilgileri tamamlayın.
+            <strong className="text-white font-semibold">{business.name}</strong> misafirlerine kusursuz bir dijital menü deneyimi sunmak için temel bilgileri tamamlayın.
           </p>
         </div>
 
         <form onSubmit={handleFinishOnboarding} className="space-y-4">
           {/* Logo Section */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-200">İşletme Logosu</span>
 
               {/* Mode Toggle */}
-              <div className="flex items-center gap-1 bg-[#1E293B] p-1 rounded-xl border border-slate-700/80">
+              <div className="flex items-center gap-1 bg-[#111622] p-1 rounded-xl border border-[#1F293D]">
                 <button
                   type="button"
                   onClick={() => setLogoMode('upload')}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
                     logoMode === 'upload'
-                      ? 'bg-orange-500 text-white shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -257,7 +257,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   onClick={() => setLogoMode('url')}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 ${
                     logoMode === 'url'
-                      ? 'bg-orange-500 text-white shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
@@ -269,7 +269,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
 
             <div className="flex items-center gap-4">
               {/* Seamless Round Badge Preview */}
-              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+              <div className="w-16 h-16 rounded-2xl bg-[#0C1017] border border-[#1F293D] flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
                 {logoUrl ? (
                   <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
                 ) : (
@@ -290,9 +290,9 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="border border-dashed border-slate-700 hover:border-orange-500 bg-[#1E293B] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white w-full"
+                      className="border border-dashed border-[#1F293D] hover:border-slate-500 bg-[#111622] rounded-xl p-3 text-center cursor-pointer transition flex items-center justify-center gap-2 text-xs text-slate-300 hover:text-white w-full"
                     >
-                      <Upload className="w-3.5 h-3.5 text-orange-400" />
+                      <Upload className="w-3.5 h-3.5 text-slate-300" />
                       <span className="font-semibold">Logo Görseli Seç (PNG, JPG)</span>
                     </button>
                   </div>
@@ -303,7 +303,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                       value={logoUrl}
                       onChange={(e) => setLogoUrl(e.target.value)}
                       placeholder="https://site.com/logo.png"
-                      className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                      className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
                     />
                   </div>
                 )}
@@ -332,7 +332,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0212 000 00 00"
-                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
               />
             </div>
 
@@ -345,16 +345,16 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="Kadıköy, İstanbul"
-                className="w-full bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
               />
             </div>
           </div>
 
           {/* Working Schedule Section */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-200">Çalışma Saatleri & Günleri</span>
-              <span className="text-[10px] font-bold text-orange-400 font-mono">{workingHoursDisplay}</span>
+              <span className="text-[10px] font-bold text-white font-mono">{workingHoursDisplay}</span>
             </div>
 
             {/* Quick Presets */}
@@ -365,8 +365,8 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 onClick={() => applyPresetHours('24')}
                 className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition ${
                   is24Hours
-                    ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
-                    : 'bg-[#1E293B] border-slate-700 text-slate-400 hover:text-white'
+                    ? 'bg-white text-slate-900 border-white shadow-sm'
+                    : 'bg-[#111622] border-[#1F293D] text-slate-400 hover:text-white'
                 }`}
               >
                 7/24 Açık
@@ -374,21 +374,21 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
               <button
                 type="button"
                 onClick={() => applyPresetHours('09:00-00:00')}
-                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#111622] border border-[#1F293D] text-slate-400 hover:text-white transition"
               >
                 09:00 - 00:00
               </button>
               <button
                 type="button"
                 onClick={() => applyPresetHours('08:00-22:00')}
-                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#111622] border border-[#1F293D] text-slate-400 hover:text-white transition"
               >
                 08:00 - 22:00
               </button>
               <button
                 type="button"
                 onClick={() => applyDaysPreset('weekdays')}
-                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#1E293B] border border-slate-700 text-slate-400 hover:text-white transition"
+                className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#111622] border border-[#1F293D] text-slate-400 hover:text-white transition"
               >
                 Hafta İçi
               </button>
@@ -405,8 +405,8 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     onClick={() => toggleDay(d)}
                     className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition border ${
                       isSelected
-                        ? 'bg-orange-500 border-orange-500 text-white shadow-xs'
-                        : 'bg-[#1E293B] border-slate-700/80 text-slate-400 hover:text-white'
+                        ? 'bg-white text-slate-900 border-white shadow-sm'
+                        : 'bg-[#111622] border-[#1F293D] text-slate-400 hover:text-white'
                     }`}
                   >
                     {d}
@@ -424,7 +424,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     type="time"
                     value={openTime}
                     onChange={(e) => setOpenTime(e.target.value)}
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
                   />
                 </div>
                 <div>
@@ -433,7 +433,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     type="time"
                     value={closeTime}
                     onChange={(e) => setCloseTime(e.target.value)}
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none"
                   />
                 </div>
               </div>
@@ -441,10 +441,10 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
           </div>
 
           {/* Wi-Fi Section */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Wifi className="w-4 h-4 text-orange-400" />
+                <Wifi className="w-4 h-4 text-slate-300" />
                 <span className="text-xs font-bold text-slate-200">Mekan Wi-Fi Paylaşımı</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -454,7 +454,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                   onChange={(e) => setShowWifi(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500 border border-slate-700" />
+                <div className="w-10 h-5 bg-[#111622] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 peer-checked:after:bg-slate-900 after:border-slate-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white border border-[#1F293D]" />
               </label>
             </div>
 
@@ -467,7 +467,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     value={wifiSsid}
                     onChange={(e) => setWifiSsid(e.target.value)}
                     placeholder="Restoran Wi-Fi"
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
                   />
                 </div>
                 <div>
@@ -477,7 +477,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                     value={wifiPassword}
                     onChange={(e) => setWifiPassword(e.target.value)}
                     placeholder="Şifre"
-                    className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                    className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
                   />
                 </div>
               </div>
@@ -485,9 +485,9 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
           </div>
 
           {/* Sample Catalog Checkbox */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Utensils className="w-5 h-5 text-orange-400 shrink-0" />
+              <Utensils className="w-5 h-5 text-slate-300 shrink-0" />
               <div>
                 <span className="text-xs font-bold text-slate-200 block">Örnek Menü & Kategorileri Yükle</span>
                 <span className="text-[10px] text-slate-400">
@@ -502,7 +502,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
                 onChange={(e) => setLoadDefaultMenu(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-10 h-5 bg-[#1E293B] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 peer-checked:after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500 border border-slate-700" />
+              <div className="w-10 h-5 bg-[#111622] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 peer-checked:after:bg-slate-900 after:border-slate-400 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-white border border-[#1F293D]" />
             </label>
           </div>
 
@@ -510,7 +510,7 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-orange-500/25 disabled:opacity-50 active:scale-98"
+            className="w-full mt-2 bg-white hover:bg-slate-200 text-slate-900 font-extrabold py-3.5 rounded-2xl transition flex items-center justify-center gap-2 text-xs shadow-sm disabled:opacity-50 active:scale-98"
           >
             <span>{loading ? 'Kurulum Kaydediliyor...' : 'Kurulumu Tamamla & Yönetim Paneline Başla'}</span>
             <ArrowRight className="w-4 h-4" />

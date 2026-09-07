@@ -138,7 +138,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
     if (!ctx) return;
 
     // Fill background (neutral dark or white for logo)
-    ctx.fillStyle = isLogo ? '#ffffff' : '#0B0F17';
+    ctx.fillStyle = isLogo ? '#ffffff' : '#0C1017';
     ctx.fillRect(0, 0, outputWidth, outputHeight);
 
     // Save and transform canvas
@@ -177,19 +177,19 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
   if (!isOpen || !imageUrl) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200 font-medium text-slate-200">
       <div 
-        className="w-full max-w-3xl bg-[#0F172A] border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
+        className="w-full max-w-3xl bg-[#111622] border border-[#1F293D] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-4 bg-[#1E293B] border-b border-slate-800 flex items-center justify-between">
+        <div className="px-6 py-4 bg-[#111622] border-b border-[#1F293D] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 border border-orange-500/20 text-orange-400 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-[#1C2433] border border-[#2B384E] text-white flex items-center justify-center">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-100">
+              <h3 className="text-sm font-bold text-white">
                 {title || (isLogo ? 'İşletme Logosunu Ayarla' : 'Kapak / Arka Plan Görselini Ayarla')}
               </h3>
               <p className="text-[11px] text-slate-400">
@@ -201,27 +201,27 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Viewport Area */}
-        <div className="p-6 flex-1 flex flex-col items-center justify-center overflow-y-auto space-y-4">
+        <div className="p-6 flex-1 flex flex-col items-center justify-center overflow-y-auto space-y-4 bg-[#0C1017]">
           {/* Main Cropping Window */}
           <div className="relative w-full flex justify-center">
             <div
               ref={containerRef}
               onMouseDown={handleMouseDown}
               onTouchStart={handleTouchStart}
-              className={`relative overflow-hidden bg-[#070A10] border-2 border-orange-500 shadow-2xl cursor-move select-none touch-none ${
+              className={`relative overflow-hidden bg-[#0C1017] border-2 border-white/40 shadow-2xl cursor-move select-none touch-none ${
                 isLogo ? 'w-64 h-64 rounded-2xl' : 'w-full max-w-2xl h-72 sm:h-80 rounded-2xl'
               }`}
             >
               {/* Circular guide indicator for Logo */}
               {isLogo && (
-                <div className="absolute inset-0 rounded-full border border-dashed border-orange-400/60 pointer-events-none z-10" />
+                <div className="absolute inset-0 rounded-full border border-dashed border-white/60 pointer-events-none z-10" />
               )}
 
               {/* Rule of Thirds Grid Overlay */}
@@ -238,8 +238,8 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
               </div>
 
               {/* Move Indicator Badge */}
-              <div className="absolute top-2 left-2 z-20 bg-black/70 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-orange-300 flex items-center gap-1.5 pointer-events-none border border-orange-500/20">
-                <Move className="w-3 h-3 text-orange-400" />
+              <div className="absolute top-2 left-2 z-20 bg-black/70 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-200 flex items-center gap-1.5 pointer-events-none border border-[#1F293D]">
+                <Move className="w-3 h-3 text-slate-300" />
                 <span>Sürükleyerek Konumlandır</span>
               </div>
 
@@ -260,13 +260,13 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
           </div>
 
           {/* Controls Bar */}
-          <div className="w-full max-w-2xl bg-[#1E293B] border border-slate-800 rounded-2xl p-4 space-y-3">
+          <div className="w-full max-w-2xl bg-[#111622] border border-[#1F293D] rounded-2xl p-4 space-y-3">
             {/* Zoom Slider & Action Buttons */}
             <div className="flex items-center gap-3 flex-wrap">
               <button
                 type="button"
                 onClick={() => setScale((prev) => Math.max(0.1, Number((prev - 0.1).toFixed(2))))}
-                className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition"
+                className="p-2 rounded-xl bg-[#0C1017] border border-[#1F293D] text-slate-300 hover:text-white transition"
                 title="Küçült"
               >
                 <ZoomOut className="w-4 h-4" />
@@ -280,9 +280,9 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
                   step="0.05"
                   value={scale}
                   onChange={(e) => setScale(parseFloat(e.target.value))}
-                  className="w-full accent-orange-500 cursor-pointer h-2 bg-slate-800 rounded-lg"
+                  className="w-full accent-white cursor-pointer h-2 bg-[#0C1017] rounded-lg"
                 />
-                <span className="text-xs font-mono font-bold text-orange-400 w-14 text-right">
+                <span className="text-xs font-mono font-bold text-white w-14 text-right">
                   %{Math.round(scale * 100)}
                 </span>
               </div>
@@ -290,7 +290,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
               <button
                 type="button"
                 onClick={() => setScale((prev) => Math.min(4.0, Number((prev + 0.1).toFixed(2))))}
-                className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition"
+                className="p-2 rounded-xl bg-[#0C1017] border border-[#1F293D] text-slate-300 hover:text-white transition"
                 title="Büyüt"
               >
                 <ZoomIn className="w-4 h-4" />
@@ -299,26 +299,26 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
               <button
                 type="button"
                 onClick={() => setRotation((prev) => (prev + 90) % 360)}
-                className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-bold"
+                className="p-2 rounded-xl bg-[#0C1017] border border-[#1F293D] text-slate-300 hover:text-white transition flex items-center gap-1 text-xs font-bold"
                 title="90° Döndür"
               >
-                <RotateCw className="w-4 h-4 text-orange-400" />
+                <RotateCw className="w-4 h-4 text-slate-300" />
                 <span className="hidden sm:inline">Döndür</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleFitFull}
-                className="p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-bold"
+                className="p-2 rounded-xl bg-[#0C1017] border border-[#1F293D] text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-bold"
                 title="Tüm Fotoğrafı Ekrana Sığdır"
               >
-                <Maximize2 className="w-4 h-4 text-orange-400" />
+                <Maximize2 className="w-4 h-4 text-slate-300" />
                 <span>Tamamını Sığdır</span>
               </button>
             </div>
 
             {/* Quick Helper Tools */}
-            <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800 text-slate-400">
+            <div className="flex items-center justify-between text-xs pt-2 border-t border-[#1F293D] text-slate-400">
               <span className="font-mono text-[11px]">
                 {naturalSize.w > 0 ? `Orijinal: ${naturalSize.w} x ${naturalSize.h} px` : ''}
               </span>
@@ -342,11 +342,11 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 bg-[#1E293B] border-t border-slate-800 flex items-center justify-between gap-3">
+        <div className="px-6 py-4 bg-[#111622] border-t border-[#1F293D] flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleUseOriginal}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700 transition"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-[#1C2433] border border-[#2B384E] transition"
             title="Fotoğrafı kırpmadan orijinal haliyle kaydeder"
           >
             Kırpmadan Orijinal Olarak Kullan
@@ -364,7 +364,7 @@ export const ImageCropperModal: React.FC<ImageCropperModalProps> = ({
             <button
               type="button"
               onClick={handleApplyCrop}
-              className="px-6 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold transition flex items-center gap-2 shadow-lg shadow-orange-500/25 active:scale-95"
+              className="px-6 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-900 text-xs font-extrabold transition flex items-center gap-2 shadow-sm active:scale-95"
             >
               <Check className="w-4 h-4" />
               <span>Görseli Kaydet & Uygula</span>

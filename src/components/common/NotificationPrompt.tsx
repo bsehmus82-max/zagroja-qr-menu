@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, BellRing, Check } from 'lucide-react';
 import { 
   requestNotificationPermission, 
@@ -27,7 +27,7 @@ export const NotificationPrompt: React.FC = () => {
     if (granted) {
       toast.success('Bildirim izni başarıyla açıldı! Tarayıcı arka plandayken bile anlık uyarı alacaksınız.');
       sendNativeNotification({
-        title: 'Restiva Bildirimleri Aktif',
+        title: 'RestivAdisyon Bildirimleri Aktif',
         body: 'Yeni sipariş ve çağrılarda cihazınıza anlık bildirim iletilecektir.',
       });
     } else {
@@ -38,10 +38,10 @@ export const NotificationPrompt: React.FC = () => {
   return (
     <button
       onClick={handleEnableNotifications}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-semibold transition animate-pulse"
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-200 border border-[#2B384E] text-xs font-semibold transition"
       title="Arka Plan Bildirimlerini Aç"
     >
-      <BellRing className="w-3.5 h-3.5 text-amber-400" />
+      <BellRing className="w-3.5 h-3.5 text-slate-300" />
       <span className="hidden sm:inline">Bildirimleri Aç</span>
       <span className="sm:hidden">Bildirim</span>
     </button>

@@ -43,46 +43,46 @@ Lütfen ilk girişte şifrenizi Ayarlar bölümünden güncelleyiniz.`;
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl relative">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+      <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-lg p-6 shadow-2xl relative font-medium text-slate-200">
+        <div className="flex items-center justify-between pb-4 border-b border-[#1F293D] mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-white flex items-center justify-center border border-[#2B384E] shadow-sm">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">İşletme Giriş Bilgileri</h2>
+              <h2 className="text-sm font-bold text-white">İşletme Giriş Bilgileri</h2>
               <p className="text-[11px] text-slate-400">Bu bilgileri işletme sahibine WhatsApp / SMS ile iletiniz</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-4 space-y-3 mb-5 text-xs">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+        <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-4 space-y-3 mb-5 text-xs">
+          <div className="flex items-center justify-between border-b border-[#1F293D] pb-2">
             <span className="text-slate-400">İşletme Adı:</span>
-            <span className="font-bold text-slate-200">{business.name}</span>
+            <span className="font-bold text-slate-100">{business.name}</span>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center justify-between border-b border-[#1F293D] pb-2">
             <span className="text-slate-400">Kullanıcı Adı:</span>
-            <span className="font-mono font-bold text-orange-400">{business.username}</span>
+            <span className="font-mono font-bold text-white">{business.username}</span>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center justify-between border-b border-[#1F293D] pb-2">
             <span className="text-slate-400">İlk Giriş Şifresi:</span>
-            <span className="font-mono font-black text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+            <span className="font-mono font-black text-white bg-[#1C2433] px-2 py-0.5 rounded border border-[#2B384E]">
               {tempPass}
             </span>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center justify-between border-b border-[#1F293D] pb-2">
             <span className="text-slate-400">Tanımlı Süre:</span>
-            <span className="font-bold text-emerald-400 font-mono">+{days} Gün</span>
+            <span className="font-bold text-white font-mono">+{days} Gün</span>
           </div>
 
           <div className="flex items-center justify-between pt-1">
@@ -91,7 +91,7 @@ Lütfen ilk girişte şifrenizi Ayarlar bölümünden güncelleyiniz.`;
               href={menuUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-orange-400 hover:underline flex items-center gap-1 font-mono truncate max-w-[200px]"
+              className="text-slate-200 hover:underline flex items-center gap-1 font-mono truncate max-w-[200px]"
             >
               <span>{business.slug}</span>
               <ExternalLink className="w-3 h-3 shrink-0" />
@@ -103,10 +103,10 @@ Lütfen ilk girişte şifrenizi Ayarlar bölümünden güncelleyiniz.`;
           <button
             type="button"
             onClick={handleCopy}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-extrabold transition flex items-center gap-2 ${
               copied
                 ? 'bg-emerald-600 text-white'
-                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/25 active:scale-95'
+                : 'bg-white hover:bg-slate-200 text-slate-900 shadow-sm active:scale-95'
             }`}
           >
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}

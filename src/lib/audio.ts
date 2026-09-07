@@ -132,6 +132,19 @@ class SoundEngine {
   }
 
   /**
+   * Play AI / System Success Chime
+   */
+  public playSuccessTone() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    this.createTone(ctx, 587.33, now, 0.15, 0.25, 'sine');
+    this.createTone(ctx, 880.00, now + 0.1, 0.2, 0.3, 'sine');
+    this.createTone(ctx, 1174.66, now + 0.2, 0.4, 0.35, 'sine');
+  }
+
+  /**
    * Directly test/play any sound preset
    */
   public playSoundPreset(key: SoundPresetKey) {

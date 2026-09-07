@@ -84,15 +84,15 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0D111A] border border-[#1E293B] rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative text-slate-200">
-        {/* Header Gradient */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500" />
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200 font-medium text-slate-200">
+      <div className="bg-[#111622] border border-[#1F293D] rounded-3xl max-w-md w-full overflow-hidden shadow-2xl relative">
+        {/* Header Border */}
+        <div className="h-1 w-full bg-white/20" />
 
         {/* Close Button */}
         <button
           onClick={handleDismiss}
-          className="absolute top-4 right-4 p-2 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white transition"
+          className="absolute top-4 right-4 p-2 rounded-full bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white transition border border-[#2B384E]"
           title="Kapat"
         >
           <X className="w-4 h-4" />
@@ -101,7 +101,7 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
         <div className="p-6 sm:p-7 space-y-5">
           {/* Title & Icon */}
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 border border-orange-500/30 text-orange-400 flex items-center justify-center shrink-0 shadow-inner">
+            <div className="w-12 h-12 rounded-2xl bg-[#1C2433] border border-[#2B384E] text-white flex items-center justify-center shrink-0 shadow-sm">
               <Volume2 className="w-6 h-6" />
             </div>
             <div>
@@ -116,8 +116,8 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
 
           {/* Clean Step Cards */}
           <div className="space-y-2.5">
-            <div className="bg-[#131926] border border-[#1E293B] rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center shrink-0 font-bold text-xs border border-orange-500/20">
+            <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white flex items-center justify-center shrink-0 font-bold text-xs border border-[#2B384E]">
                 1
               </div>
               <div className="text-xs">
@@ -126,8 +126,8 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
               </div>
             </div>
 
-            <div className="bg-[#131926] border border-[#1E293B] rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 font-bold text-xs border border-emerald-500/20">
+            <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3.5 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white flex items-center justify-center shrink-0 font-bold text-xs border border-[#2B384E]">
                 2
               </div>
               <div className="text-xs">
@@ -142,10 +142,10 @@ export const AudioNotificationPermissionModal: React.FC<AudioNotificationPermiss
             <button
               onClick={handleEnableAndTest}
               disabled={isActivating || isSuccess}
-              className={`w-full py-3.5 px-5 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-2 shadow-xl ${
+              className={`w-full py-3.5 px-5 rounded-2xl font-extrabold text-xs transition flex items-center justify-center gap-2 shadow-sm ${
                 isSuccess
-                  ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                  : 'bg-orange-500 hover:bg-orange-600 text-white shadow-orange-500/25 active:scale-[0.99]'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white hover:bg-slate-200 text-slate-900 active:scale-[0.99]'
               }`}
             >
               {isSuccess ? (

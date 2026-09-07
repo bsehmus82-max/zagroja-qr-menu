@@ -106,10 +106,10 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
   const activeBusiness = businesses.find((b) => b.id === selectedBizId);
 
   return (
-    <div className="bg-[#1E293B] border border-slate-800 rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[680px] shadow-2xl">
+    <div className="bg-[#111622] border border-[#1F293D] rounded-3xl overflow-hidden grid grid-cols-1 md:grid-cols-3 h-[680px] shadow-2xl font-medium text-slate-200">
       {/* Left Sidebar: Business List */}
-      <div className="border-r border-slate-800 flex flex-col h-full bg-[#0F172A]">
-        <div className="p-3.5 border-b border-slate-800">
+      <div className="border-r border-[#1F293D] flex flex-col h-full bg-[#0C1017]">
+        <div className="p-3.5 border-b border-[#1F293D]">
           <div className="relative">
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -117,12 +117,12 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="İşletme veya kullanıcı ara..."
-              className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
+              className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-800">
+        <div className="flex-1 overflow-y-auto divide-y divide-[#1F293D]">
           {filteredBusinesses.map((biz) => {
             const isSelected = biz.id === selectedBizId;
             return (
@@ -130,10 +130,10 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
                 key={biz.id}
                 onClick={() => setSelectedBizId(biz.id)}
                 className={`w-full text-left p-3 transition flex items-center gap-3 ${
-                  isSelected ? 'bg-orange-500/10 border-l-2 border-orange-500' : 'hover:bg-slate-800/40'
+                  isSelected ? 'bg-white/10 border-l-2 border-white' : 'hover:bg-white/5'
                 }`}
               >
-                <div className="w-8 h-8 rounded-xl bg-slate-800 text-orange-400 font-bold text-xs flex items-center justify-center shrink-0 border border-slate-700">
+                <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white font-bold text-xs flex items-center justify-center shrink-0 border border-[#2B384E]">
                   {biz.name.charAt(0)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -147,22 +147,22 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
       </div>
 
       {/* Right Chat Area */}
-      <div className="md:col-span-2 flex flex-col h-full bg-[#1E293B]">
+      <div className="md:col-span-2 flex flex-col h-full bg-[#111622]">
         {/* Chat Header */}
-        <div className="p-3.5 border-b border-slate-800 flex items-center justify-between bg-[#1E293B]/80">
+        <div className="p-3.5 border-b border-[#1F293D] flex items-center justify-between bg-[#111622]/80">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-orange-500/10 text-orange-400 flex items-center justify-center font-bold text-xs border border-orange-500/20 shadow-xs">
+            <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white flex items-center justify-center font-bold text-xs border border-[#2B384E] shadow-sm">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-xs font-bold text-slate-100">{activeBusiness?.name || 'İşletme Seçin'}</h3>
+              <h3 className="text-xs font-bold text-white">{activeBusiness?.name || 'İşletme Seçin'}</h3>
               <p className="text-[10px] text-slate-400">Canlı Destek & Destek Talepleri</p>
             </div>
           </div>
 
           <button
             onClick={() => selectedBizId && fetchMessages(selectedBizId)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
             title="Yenile"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -170,10 +170,10 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
         </div>
 
         {/* Messages Body */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0F172A]/40">
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#0C1017]">
           {loading && messages.length === 0 ? (
             <div className="h-full flex items-center justify-center text-xs text-slate-500">
-              <RefreshCw className="w-4 h-4 animate-spin text-orange-500" />
+              <RefreshCw className="w-4 h-4 animate-spin text-slate-300" />
             </div>
           ) : messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-xs text-slate-500 space-y-2">
@@ -191,8 +191,8 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
                       isMe
-                        ? 'bg-orange-500 text-white rounded-br-none shadow-md shadow-orange-500/15'
-                        : 'bg-[#0F172A] border border-slate-800 text-slate-200 rounded-bl-none'
+                        ? 'bg-[#1C2433] border border-[#2B384E] text-white rounded-br-none shadow-sm'
+                        : 'bg-[#111622] border border-[#1F293D] text-slate-200 rounded-bl-none'
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{m.message}</p>
@@ -215,18 +215,18 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-800 flex items-center gap-2 bg-[#1E293B]">
+        <form onSubmit={handleSendMessage} className="p-3 border-t border-[#1F293D] flex items-center gap-2 bg-[#111622]">
           <input
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="İşletmeye yanıt yazın..."
-            className="flex-1 bg-[#0F172A] border border-slate-700/80 focus:border-orange-500 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
+            className="flex-1 bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
           />
           <button
             type="submit"
             disabled={!newMessage.trim() || !selectedBizId}
-            className="p-2.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white rounded-xl shadow-md shadow-orange-500/25 transition shrink-0 active:scale-95"
+            className="p-2.5 bg-white hover:bg-slate-200 disabled:opacity-40 text-slate-900 rounded-xl shadow-sm transition shrink-0 active:scale-95"
           >
             <Send className="w-4 h-4" />
           </button>

@@ -97,24 +97,24 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom text-slate-800 border-t sm:border border-slate-100">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in">
+      <div className="bg-[#111622] rounded-t-3xl sm:rounded-3xl w-full max-w-sm p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom text-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+        <div className="flex items-center justify-between pb-3 mb-4">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
               type === 'waiter'
-                ? 'bg-orange-50 text-orange-600'
+                ? 'bg-[#141A26] text-amber-400'
                 : type === 'bill'
-                ? 'bg-emerald-50 text-emerald-600'
-                : 'bg-sky-50 text-sky-600'
+                ? 'bg-[#141A26] text-emerald-400'
+                : 'bg-[#141A26] text-sky-400'
             }`}>
               {type === 'waiter' && <BellRing className="w-4 h-4" />}
               {type === 'bill' && <Receipt className="w-4 h-4" />}
               {type === 'wifi' && <Wifi className="w-4 h-4" />}
             </div>
             <div>
-              <h3 className="font-extrabold text-sm text-slate-900 leading-tight">
+              <h3 className="font-bold text-sm text-white leading-tight">
                 {type === 'waiter' && t.waiterModalTitle}
                 {type === 'bill' && t.billModalTitle}
                 {type === 'wifi' && t.wifiModalTitle}
@@ -127,7 +127,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-100 transition"
+            className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-[#141A26] transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -135,24 +135,24 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
 
         {submitted ? (
           <div className="py-8 text-center space-y-2 animate-in zoom-in-95">
-            <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 border border-emerald-200 shadow-sm animate-bounce">
+            <div className="w-14 h-14 rounded-full bg-[#141A26] text-emerald-400 flex items-center justify-center mx-auto mb-3 shadow-sm animate-bounce">
               <Check className="w-7 h-7" />
             </div>
-            <h4 className="font-black text-sm text-slate-900">{t.requestSubmittedTitle}</h4>
-            <p className="text-xs text-slate-500 max-w-xs mx-auto">
+            <h4 className="font-bold text-sm text-white">{t.requestSubmittedTitle}</h4>
+            <p className="text-xs text-slate-400 max-w-xs mx-auto font-normal">
               {t.requestSubmittedDesc}
             </p>
           </div>
         ) : type === 'wifi' ? (
           <div className="space-y-4">
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/90 space-y-3 text-xs">
+            <div className="bg-[#141A26] p-4 rounded-2xl space-y-3 text-xs">
               <div className="flex justify-between items-center">
-                <span className="text-slate-500 font-semibold">{t.wifiNetwork}</span>
-                <span className="font-black text-slate-900">{business.wifi_ssid || 'Wi-Fi'}</span>
+                <span className="text-slate-400 font-medium">{t.wifiNetwork}</span>
+                <span className="font-bold text-white">{business.wifi_ssid || 'Wi-Fi'}</span>
               </div>
-              <div className="flex justify-between items-center pt-2.5 border-t border-slate-200">
-                <span className="text-slate-500 font-semibold">{t.wifiPassword}</span>
-                <span className="font-mono font-black text-slate-900 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs">
+              <div className="flex justify-between items-center pt-2.5">
+                <span className="text-slate-400 font-medium">{t.wifiPassword}</span>
+                <span className="font-mono font-bold text-white bg-[#1C2433] px-2.5 py-1 rounded-lg shadow-xs">
                   {business.wifi_password || t.noWifiPassword}
                 </span>
               </div>
@@ -161,9 +161,9 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             {business.wifi_password && (
               <button
                 onClick={copyWifiPassword}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-2 shadow-sm active:scale-98"
+                className="w-full py-3 bg-white hover:bg-slate-200 text-[#0F172A] rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm active:scale-98"
               >
-                {wifiCopied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                {wifiCopied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                 <span>{wifiCopied ? t.wifiCopied : t.copyWifiPassword}</span>
               </button>
             )}
@@ -171,31 +171,31 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         ) : type === 'bill' ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">{t.paymentChoice}</label>
+              <label className="block text-xs font-bold text-slate-300 mb-2">{t.paymentChoice}</label>
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setBillMethod('pos')}
-                  className={`p-3.5 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                  className={`p-3.5 rounded-2xl text-center transition flex flex-col items-center gap-2 ${
                     billMethod === 'pos'
-                      ? 'border-orange-500 bg-orange-50/70 text-orange-900 font-black shadow-xs'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 font-bold hover:bg-slate-100'
+                      ? 'bg-[#1C2433] text-white font-bold shadow-sm'
+                      : 'bg-[#141A26] text-slate-400 font-medium hover:bg-[#1C2433]/60'
                   }`}
                 >
-                  <CreditCard className="w-5 h-5 text-orange-600" />
+                  <CreditCard className="w-5 h-5 text-slate-200" />
                   <span className="text-xs">{t.posPayment}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setBillMethod('nakit')}
-                  className={`p-3.5 rounded-2xl border text-center transition flex flex-col items-center gap-2 ${
+                  className={`p-3.5 rounded-2xl text-center transition flex flex-col items-center gap-2 ${
                     billMethod === 'nakit'
-                      ? 'border-orange-500 bg-orange-50/70 text-orange-900 font-black shadow-xs'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 font-bold hover:bg-slate-100'
+                      ? 'bg-[#1C2433] text-white font-bold shadow-sm'
+                      : 'bg-[#141A26] text-slate-400 font-medium hover:bg-[#1C2433]/60'
                   }`}
                 >
-                  <Banknote className="w-5 h-5 text-orange-600" />
+                  <Banknote className="w-5 h-5 text-slate-200" />
                   <span className="text-xs">{t.cashPayment}</span>
                 </button>
               </div>
@@ -204,7 +204,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-xs rounded-xl shadow-md shadow-orange-500/20 transition active:scale-98 disabled:opacity-50"
+              className="w-full py-3.5 bg-white hover:bg-slate-200 text-[#0F172A] font-bold text-xs rounded-xl shadow-md transition active:scale-98 disabled:opacity-50"
             >
               {loading ? t.sending : t.sendBillRequest}
             </button>
@@ -212,16 +212,16 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         ) : (
           /* WAITER CALL MODAL (Ultra Modern) */
           <div className="space-y-4">
-            <div className="bg-orange-50/70 border border-orange-200/80 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-orange-900">
-              <BellRing className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-              <p className="leading-relaxed font-medium">
-                <strong className="font-black text-slate-900">{tableNo || t.table}</strong> {t.waiterPrompt}
+            <div className="bg-[#141A26] rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-slate-300">
+              <BellRing className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <p className="leading-relaxed font-normal">
+                <strong className="font-bold text-white">{tableNo || t.table}</strong> {t.waiterPrompt}
               </p>
             </div>
 
             {/* Quick Reason Selector Tags */}
             <div>
-              <span className="block text-[11px] font-bold text-slate-600 mb-2">
+              <span className="block text-[11px] font-bold text-slate-400 mb-2">
                 {t.waiterReasonTitle}
               </span>
               <div className="grid grid-cols-2 gap-1.5">
@@ -230,10 +230,10 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
                     key={reason}
                     type="button"
                     onClick={() => setSelectedReason(selectedReason === reason ? '' : reason)}
-                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition text-center border ${
+                    className={`py-2 px-2.5 rounded-xl text-xs font-bold transition text-center ${
                       selectedReason === reason
-                        ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        ? 'bg-white text-[#0F172A] shadow-sm'
+                        : 'bg-[#141A26] text-slate-300 hover:bg-[#1C2433]'
                     }`}
                   >
                     {reason}
@@ -245,7 +245,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             <button
               onClick={handleSendRequest}
               disabled={loading}
-              className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-black text-xs rounded-2xl shadow-lg shadow-orange-500/25 transition active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3.5 bg-white hover:bg-slate-200 text-[#0F172A] font-bold text-xs rounded-2xl shadow-lg transition active:scale-98 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <BellRing className="w-4 h-4" />
               <span>{loading ? t.sending : t.callWaiterBtn}</span>

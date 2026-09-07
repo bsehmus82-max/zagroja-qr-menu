@@ -41,21 +41,21 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4 selection:bg-orange-500/30 selection:text-orange-200">
-      <div className="w-full max-w-sm bg-[#1E293B] border border-slate-800 rounded-3xl p-7 sm:p-8 shadow-2xl relative overflow-hidden">
-        {/* Top Decorative Line */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-amber-500" />
+    <div className="min-h-screen bg-[#0C1017] flex items-center justify-center p-4 selection:bg-white/20 selection:text-white font-medium text-slate-200">
+      <div className="w-full max-w-sm bg-[#111622] border border-[#1F293D] rounded-3xl p-7 sm:p-8 shadow-2xl relative overflow-hidden">
+        {/* Top Minimal White Highlight */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-white/20" />
 
         <div className="text-center mb-6 pt-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-400 border border-orange-500/20 mb-3 shadow-xs">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[#1C2433] text-white border border-[#2B384E] mb-3 shadow-sm">
             <Shield className="w-6 h-6" />
           </div>
-          <h1 className="text-lg font-black text-slate-100 tracking-tight">Merkez Yönetim Girişi</h1>
+          <h1 className="text-lg font-black text-white tracking-tight">Merkez Yönetim Girişi</h1>
           <p className="text-xs text-slate-400 mt-1">Platform Süper Admin Kontrol Paneli</p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-xs">
+          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-xs font-semibold">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -67,14 +67,14 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
               Yönetici Kullanıcı Adı
             </label>
             <div className="relative">
-              <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="admin, superadmin, bsehmus..."
-                className="w-full bg-[#0B0F17] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition font-medium"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition font-medium"
               />
             </div>
           </div>
@@ -84,19 +84,19 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
               Güvenlik Şifresi
             </label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-[#0B0F17] border border-slate-700/80 focus:border-orange-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-100 placeholder:text-slate-600 focus:outline-none transition"
+                className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none transition"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -106,7 +106,7 @@ export const SuperAdminLogin: React.FC<SuperAdminLoginProps> = ({ onSuccess }) =
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 bg-orange-500 hover:bg-orange-600 active:scale-98 text-white font-bold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-lg shadow-orange-500/25 disabled:opacity-50"
+            className="w-full mt-2 bg-white hover:bg-slate-200 active:scale-98 text-slate-900 font-extrabold py-3 rounded-xl transition flex items-center justify-center gap-2 text-xs shadow-sm disabled:opacity-50"
           >
             <span>{loading ? 'Doğrulanıyor...' : 'Yönetim Merkezine Giriş Yap'}</span>
             <ArrowRight className="w-3.5 h-3.5" />

@@ -159,23 +159,23 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1E293B] border border-slate-800 rounded-3xl w-full max-w-xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col">
+      <div className="bg-[#111622] border border-[#1F293D] rounded-3xl w-full max-w-xl p-6 shadow-2xl relative max-h-[92vh] flex flex-col font-medium text-slate-200">
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-4 shrink-0">
+        <div className="flex items-center justify-between pb-4 border-b border-[#1F293D] mb-4 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-400 flex items-center justify-center border border-orange-500/20 shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-white flex items-center justify-center border border-[#2B384E] shadow-sm">
               <RotateCw className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">Abonelik & Paket Yenileme</h2>
+              <h2 className="text-sm font-bold text-white">Abonelik & Paket Yenileme</h2>
               <p className="text-[11px] text-slate-400">
-                <span className="text-orange-400 font-semibold">{business.name}</span> işletmesi için süre ve tahsilat tanımlayın
+                <span className="text-white font-semibold">{business.name}</span> işletmesi için süre ve tahsilat tanımlayın
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-[#1C2433] transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -190,7 +190,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
 
         <form onSubmit={handleRenew} className="space-y-4 overflow-y-auto pr-1 flex-1">
           {/* Current Status Card */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-3 flex items-center justify-between">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3 flex items-center justify-between">
             <div>
               <span className="text-[10px] text-slate-400 block font-medium">Mevcut Bitiş Tarihi:</span>
               <span className={`text-xs font-mono font-bold ${isExpired ? 'text-rose-400' : 'text-slate-200'}`}>
@@ -200,7 +200,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
             </div>
             <div className="text-right">
               <span className="text-[10px] text-slate-400 block font-medium">Tanımlı Paket:</span>
-              <span className="text-xs font-bold text-orange-400">
+              <span className="text-xs font-bold text-white">
                 {business.plan_type === 'pro' ? 'Profesyonel' : business.plan_type === 'standard' ? 'Standart' : 'Lite'}
               </span>
             </div>
@@ -210,7 +210,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                <Sparkles className="w-3.5 h-3.5 text-slate-300" />
                 <span>Yenileme Paketini Seçin</span>
               </label>
 
@@ -219,8 +219,8 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                 onClick={() => setIsCustomMode(!isCustomMode)}
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border transition ${
                   isCustomMode 
-                    ? 'bg-orange-500 text-white border-orange-500' 
-                    : 'bg-[#0F172A] text-slate-400 border-slate-700 hover:text-slate-200'
+                    ? 'bg-white text-slate-900 border-white' 
+                    : 'bg-[#0C1017] text-slate-400 border-[#1F293D] hover:text-slate-200'
                 }`}
               >
                 {isCustomMode ? 'Hazır Paketler' : 'Özel Gün/Fiyat'}
@@ -238,8 +238,8 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                       onClick={() => handleSelectPreset(idx)}
                       className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between ${
                         isSelected
-                          ? 'bg-orange-500/15 border-orange-500 text-slate-100 ring-1 ring-orange-500'
-                          : 'bg-[#0F172A] border-slate-800 text-slate-300 hover:border-slate-700'
+                          ? 'bg-white/10 border-white text-white ring-1 ring-white shadow-sm'
+                          : 'bg-[#0C1017] border-[#1F293D] text-slate-300 hover:border-slate-600'
                       }`}
                     >
                       <div className="min-w-0 pr-1">
@@ -247,7 +247,7 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                         <div className="text-[10px] text-slate-400 font-mono">+{preset.days} Gün</div>
                       </div>
                       <span className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 ${
-                        isSelected ? 'bg-orange-500 text-white' : 'bg-slate-800 text-orange-400'
+                        isSelected ? 'bg-white text-slate-900' : 'bg-[#1C2433] text-slate-300'
                       }`}>
                         {preset.badge}
                       </span>
@@ -259,10 +259,10 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
           </div>
 
           {/* Details (Price, Days, Tables) */}
-          <div className="bg-[#0F172A] border border-slate-800 rounded-2xl p-3.5 space-y-3">
+          <div className="bg-[#0C1017] border border-[#1F293D] rounded-2xl p-3.5 space-y-3">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-300">
               <span className="flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5 text-orange-400" />
+                <Sliders className="w-3.5 h-3.5 text-slate-300" />
                 Tahsilat & Tanımlanacak Süre
               </span>
             </div>
@@ -278,13 +278,13 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                   step="10"
                   value={price}
                   onChange={(e) => setPrice(Number(e.target.value))}
-                  className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-emerald-400 font-bold focus:outline-none"
+                  className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-orange-400" />
+                  <Calendar className="w-3 h-3 text-slate-300" />
                   Eklenecek Süre (Gün)
                 </label>
                 <input
@@ -293,13 +293,13 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                   required
                   value={days}
                   onChange={(e) => setDays(Number(e.target.value))}
-                  className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                  className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
                 />
               </div>
 
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 mb-1 flex items-center gap-1">
-                  <Layers className="w-3 h-3 text-orange-400" />
+                  <Layers className="w-3 h-3 text-slate-300" />
                   Masa Sınırı
                 </label>
                 <input
@@ -308,25 +308,25 @@ export const RenewSubscriptionModal: React.FC<RenewSubscriptionModalProps> = ({
                   placeholder="Sınırsız"
                   value={tableLimit}
                   onChange={(e) => setTableLimit(e.target.value === '' ? '' : Number(e.target.value))}
-                  className="w-full bg-[#1E293B] border border-slate-700/80 focus:border-orange-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
+                  className="w-full bg-[#111622] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3 py-2 text-xs text-slate-100 font-bold focus:outline-none"
                 />
               </div>
             </div>
           </div>
 
           {/* Action Footer */}
-          <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5 shrink-0">
+          <div className="pt-2 border-t border-[#1F293D] flex items-center justify-end gap-2.5 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition"
+              className="px-4 py-2 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-xs font-medium text-slate-300 transition border border-[#2B384E]"
             >
               İptal
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/25 flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
+              className="px-5 py-2.5 rounded-xl bg-white hover:bg-slate-200 text-slate-900 text-xs font-extrabold shadow-sm flex items-center gap-1.5 transition disabled:opacity-50 active:scale-95"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>{loading ? 'Uzatılıyor...' : `+${days} Gün Tanımla & Aktif Et`}</span>

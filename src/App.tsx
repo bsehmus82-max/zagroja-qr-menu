@@ -9,10 +9,12 @@ import { BusinessDashboard } from './components/business/BusinessDashboard';
 import { CustomerMenu } from './components/customer/CustomerMenu';
 import { PairWaiter } from './components/waiter/PairWaiter';
 import { WaiterApp } from './components/waiter/WaiterApp';
+import { KitchenKds } from './components/kitchen/KitchenKds';
+import { NotFoundPage } from './components/common/NotFoundPage';
 
 export default function App() {
   const [currentRoute, setCurrentRoute] = useState<
-    'business' | 'superadmin' | 'customer' | 'waiter' | 'pair_waiter'
+    'business' | 'superadmin' | 'customer' | 'waiter' | 'pair_waiter' | 'kitchen' | 'not_found'
   >('business');
   
   // Super Admin state
@@ -31,7 +33,12 @@ export default function App() {
       localStorage.getItem('restiva_biz_session') ||
       sessionStorage.getItem('zagroja_business_data') || 
       localStorage.getItem('zagroja_business_data');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   });
 
   // Customer Menu state
@@ -129,9 +136,11 @@ export default function App() {
       setCurrentRoute('business');
     } else if (searchParams.get('mode') === 'superadmin' || searchParams.get('panel') === 'superadmin' || pathname.includes('/superadmin') || pathname.includes('/hq')) {
       setCurrentRoute('superadmin');
-    } else if (searchParams.get('mode') === 'waiter' || pathname.includes('/waiter') || pathname.includes('/garson')) {
+    } else if (searchParams.get('mode') === 'kitchen' || pathname.includes('/kitchen') || pathname.includes('/mutfak')) {
+      setCurrentRoute('kitchen');
+    } else if (searchParams.get('mode') === 'waiter' || searchParams.get('mode') === 'personel' || searchParams.get('mode') === 'staff' || pathname.includes('/waiter') || pathname.includes('/garson') || pathname.includes('/personel') || pathname.includes('/staff')) {
       setCurrentRoute('waiter');
-    } else if (pathname.includes('/pair-waiter') || (searchParams.get('token') && searchParams.get('biz'))) {
+    } else if (pathname.includes('/pair-waiter') || pathname.includes('/pair-staff') || (searchParams.get('token') && searchParams.get('biz'))) {
       setCurrentRoute('pair_waiter');
     } else if (pathname.startsWith('/m/') || searchParams.get('slug') || subdomainSlug) {
       let slug = '';
@@ -200,9 +209,29 @@ export default function App() {
     return <PairWaiter />;
   }
 
-  // 1. WAITER MOBILE POS ROUTE
+  // 1. PERSONNEL / WAITER MOBILE TERMINAL ROUTE
   if (currentRoute === 'waiter') {
     return <WaiterApp />;
+  }
+
+  // 1.5 KITCHEN KDS ROUTE
+  if (currentRoute === 'kitchen') {
+    if (activeBusiness) {
+      return <KitchenKds business={activeBusiness} />;
+    }
+    // If not logged in, prompt login
+    return (
+      <BusinessLogin
+        onSuccess={(biz) => {
+          sessionStorage.setItem('restiva_biz_id', biz.id);
+          sessionStorage.setItem('restiva_biz_session', JSON.stringify(biz));
+          localStorage.setItem('restiva_biz_id', biz.id);
+          localStorage.setItem('restiva_biz_session', JSON.stringify(biz));
+          setActiveBusiness(biz);
+          setCurrentRoute('kitchen');
+        }}
+      />
+    );
   }
 
   // 2. SUPER ADMIN PANEL ROUTE
@@ -236,28 +265,36 @@ export default function App() {
   if (currentRoute === 'customer') {
     if (customerLoading) {
       return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
-          <RefreshCw className="w-6 h-6 animate-spin text-orange-500 mb-3" />
-          <h2 className="font-bold text-xs text-slate-700">Menü Yükleniyor...</h2>
+        <div className="min-h-screen bg-[#0C1017] flex flex-col items-center justify-center p-4 text-center">
+          <RefreshCw className="w-6 h-6 animate-spin text-white mb-3" />
+          <h2 className="font-bold text-xs text-slate-300">Menü Yükleniyor...</h2>
         </div>
       );
     }
 
     if (customerError || !customerBusiness) {
       return (
-        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 mb-3">
-            <QrCode className="w-6 h-6" />
-          </div>
-          <h2 className="font-extrabold text-sm text-slate-800 mb-1">{customerError || 'Menü Bulunamadı'}</h2>
-          <p className="text-xs text-slate-400 max-w-xs">
-            Lütfen masanızdaki QR kodu tekrar okutunuz.
-          </p>
-        </div>
+        <NotFoundPage
+          message={customerError || 'Aradığınız işletme menüsü bulunamadı veya geçici olarak yayında değil.'}
+          onGoHome={() => {
+            window.location.href = '/';
+          }}
+        />
       );
     }
 
     return <CustomerMenu business={customerBusiness} initialTable={customerTable} />;
+  }
+
+  // 2.5 NOT FOUND / UNRECOGNIZED ROUTE
+  if (currentRoute === 'not_found') {
+    return (
+      <NotFoundPage
+        onGoHome={() => {
+          window.location.href = '/';
+        }}
+      />
+    );
   }
 
   // 3. DIRECT BUSINESS LOGIN / DASHBOARD (DEFAULT ROUTE)

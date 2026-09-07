@@ -1,13 +1,83 @@
 import { Business, Order, Table } from '../types';
 
 /**
- * 80mm / 58mm ESC/POS Thermal Receipt & Order Ticket Printing Utility
+ * Check and manage Web Auto-Print setting
  */
-export async function printKitchenTicket(business: Business, order: Order) {
-  // 1. Try local Windows Print Bridge Agent (http://localhost:9100/print)
+export function isWebAutoPrintEnabled(): boolean {
+  if (typeof window === 'undefined') return true;
+  const saved = localStorage.getItem('restiva_web_autoprint');
+  return saved !== 'false'; // Enabled by default
+}
+
+export function setWebAutoPrintEnabled(enabled: boolean): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('restiva_web_autoprint', enabled ? 'true' : 'false');
+  }
+}
+
+/**
+ * Print HTML directly using a seamless hidden iframe (No annoying popup blocker or blank windows!)
+ */
+function printHtmlSilently(htmlContent: string, title = 'Adisyon') {
+  if (typeof document === 'undefined') return;
+
+  const existingIframe = document.getElementById('restiva-print-frame');
+  if (existingIframe) {
+    existingIframe.remove();
+  }
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'restiva-print-frame';
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.style.visibility = 'hidden';
+  iframe.setAttribute('title', title);
+
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentWindow?.document;
+  if (!doc) return;
+
+  doc.open();
+  doc.write(htmlContent);
+  doc.close();
+
+  // Wait for content to render then trigger print
+  setTimeout(() => {
+    try {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+    } catch (e) {
+      console.warn('Iframe print failed, falling back:', e);
+    }
+  }, 150);
+
+  // Clean up iframe after printing dialog closes
+  setTimeout(() => {
+    try {
+      iframe.remove();
+    } catch {}
+  }, 10000);
+}
+
+/**
+ * 80mm / 58mm ESC/POS Thermal Receipt & Order Ticket Printing Utility
+ * Works automatically in Web browsers and desktop environments
+ */
+export async function printKitchenTicket(business: Business, order: Order, force = false) {
+  // Check if auto-print is disabled and not forced manually
+  if (!force && !isWebAutoPrintEnabled()) {
+    return;
+  }
+
+  // 1. Try local Windows Print Bridge Agent if running (http://localhost:9100/print)
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 700);
+    const timeoutId = setTimeout(() => controller.abort(), 600);
     const res = await fetch('http://localhost:9100/print', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -31,11 +101,8 @@ export async function printKitchenTicket(business: Business, order: Order) {
       return;
     }
   } catch {
-    // Local agent not running, fallback to standard browser popup print
+    // Local bridge agent not running, proceed to web hidden iframe printing
   }
-
-  const printWindow = window.open('', '_blank', 'width=350,height=600');
-  if (!printWindow) return;
 
   const dateStr = new Date(order.created_at).toLocaleString('tr-TR');
 
@@ -87,9 +154,31 @@ export async function printKitchenTicket(business: Business, order: Order) {
           <span>Tarih: ${dateStr}</span>
         </div>
         <div style="font-size: 11px; display: flex; justify-content: space-between;">
-          <span>Sipariş No: #${order.id.slice(0, 8)}</span>
-          <span>Kaynak: ${order.order_source === 'qr' ? 'QR Menü' : 'POS'}</span>
+          <span>Sipariş No: ${order.external_order_id || '#' + order.id.slice(0, 8)}</span>
+          <span>Kaynak: ${
+            order.order_source === 'qr'
+              ? 'QR Menü'
+              : order.order_source === 'pos'
+              ? 'Kasa POS'
+              : order.order_source === 'waiter'
+              ? 'Garson'
+              : order.order_source === 'trendyol'
+              ? 'Trendyol Yemek'
+              : order.order_source === 'yemeksepeti'
+              ? 'Yemeksepeti'
+              : order.order_source === 'getir'
+              ? 'GetirYemek'
+              : 'Migros Yemek'
+          }</span>
         </div>
+
+        ${order.platform_metadata ? `
+          <div class="divider"></div>
+          <div style="font-size: 12px; font-weight: bold;">MÜŞTERİ: ${order.platform_metadata.customer_name || ''}</div>
+          ${order.platform_metadata.customer_phone ? `<div style="font-size: 11px;">TEL: ${order.platform_metadata.customer_phone}</div>` : ''}
+          ${order.platform_metadata.delivery_address ? `<div style="font-size: 11px; font-weight: bold; margin-top: 2px;">ADRES: ${order.platform_metadata.delivery_address}</div>` : ''}
+          ${order.platform_metadata.courier_name ? `<div style="font-size: 10px; margin-top: 2px;">KURYE: ${order.platform_metadata.courier_name}</div>` : ''}
+        ` : ''}
         
         <div class="divider"></div>
         
@@ -114,19 +203,12 @@ export async function printKitchenTicket(business: Business, order: Order) {
         <div class="center" style="font-size: 11px; margin-top: 12px;">
           * Afiyet Olsun *
         </div>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          };
-        </script>
       </body>
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+  // Print via seamless hidden iframe
+  printHtmlSilently(html, `Adisyon - ${order.table_no}`);
 }
 
 /**
@@ -137,11 +219,9 @@ export function printZReport(
   orders: Order[],
   total: number,
   cash: number,
-  card: number
+  card: number,
+  other: number = 0
 ) {
-  const printWindow = window.open('', '_blank', 'width=350,height=600');
-  if (!printWindow) return;
-
   const dateStr = new Date().toLocaleString('tr-TR');
 
   const html = `
@@ -149,7 +229,7 @@ export function printZReport(
     <html>
       <head>
         <meta charset="utf-8">
-        <title>Gün Sonu Z-Raporu</title>
+        <title>Gün Sonu Kasa Raporu</title>
         <style>
           @page { margin: 0; size: 80mm auto; }
           body {
@@ -169,7 +249,7 @@ export function printZReport(
       </head>
       <body>
         <div class="center" style="font-size: 18px; font-weight: 900;">${business.name}</div>
-        <div class="center" style="font-size: 14px; font-weight: bold; margin-top: 4px;">GÜN SONU Z-RAPORU</div>
+        <div class="center" style="font-size: 14px; font-weight: bold; margin-top: 4px;">GÜN SONU KASA RAPORU</div>
         <div class="center" style="font-size: 11px;">Tarih: ${dateStr}</div>
         <div class="double-divider"></div>
         
@@ -188,6 +268,11 @@ export function printZReport(
           <span>Kredi Kartı / POS:</span>
           <span class="bold">${card.toFixed(2)} ₺</span>
         </div>
+
+        <div class="row">
+          <span>Diğer (IBAN / Havale):</span>
+          <span class="bold">${other.toFixed(2)} ₺</span>
+        </div>
         
         <div class="double-divider"></div>
         
@@ -195,28 +280,17 @@ export function printZReport(
           <span>GENEL TOPLAM:</span>
           <span>${total.toFixed(2)} ₺</span>
         </div>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          };
-        </script>
       </body>
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlSilently(html, 'Gün Sonu Kasa Raporu');
 }
 
 /**
  * Print Single Table QR Code
  */
 export function printSingleQrCard(business: Business, table: Table) {
-  const printWindow = window.open('', '_blank', 'width=400,height=500');
-  if (!printWindow) return;
-
   const tableUrl = `${window.location.origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
   const qrSvgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(tableUrl)}`;
 
@@ -246,28 +320,17 @@ export function printSingleQrCard(business: Business, table: Table) {
         <div class="table-no">${table.table_no}</div>
         <img src="${qrSvgUrl}" width="200" height="200" style="margin: 6px auto; border-radius: 12px;" />
         <div class="desc">Kameranızla QR Kodu Okutarak Menüyü İnceleyebilir ve Sipariş Verebilirsiniz.</div>
-        
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          };
-        </script>
       </body>
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlSilently(html, `Masa QR - ${table.table_no}`);
 }
 
 /**
  * Print Batch Table QR Cards (Full Page Grid)
  */
 export function printBatchQrCards(business: Business, tables: Table[]) {
-  const printWindow = window.open('', '_blank', 'width=800,height=900');
-  if (!printWindow) return;
-
   const cardsHtml = tables
     .map((table) => {
       const tableUrl = `${window.location.origin}/m/${business.slug}?table=${encodeURIComponent(table.table_no)}&token=${table.qr_token}`;
@@ -321,16 +384,9 @@ export function printBatchQrCards(business: Business, tables: Table[]) {
         <div class="grid">
           ${cardsHtml}
         </div>
-        <script>
-          window.onload = function() {
-            window.print();
-            setTimeout(function() { window.close(); }, 500);
-          };
-        </script>
       </body>
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+  printHtmlSilently(html, `${business.name} - Toplu Masa QR Kartları`);
 }

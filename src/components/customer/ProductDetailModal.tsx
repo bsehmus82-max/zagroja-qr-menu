@@ -51,24 +51,24 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
+      className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
     >
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in slide-in-from-bottom border-t sm:border border-slate-100 flex flex-col max-h-[90vh]">
+      <div className="bg-[#111622] text-slate-100 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in slide-in-from-bottom flex flex-col max-h-[90vh]">
         {/* Big Food Cover with Sol Üst Geri Butonu & Vignette */}
-        <div className="relative h-56 sm:h-64 w-full bg-slate-950 shrink-0">
+        <div className="relative h-56 sm:h-64 w-full bg-[#0C1017] shrink-0">
           <img
             src={photoUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover opacity-80"
           />
 
           {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#111622] via-[#111622]/30 to-black/60" />
 
           {/* Sol Üst Geri / Kapat Butonu */}
           <button
             onClick={onClose}
-            className="absolute top-3.5 left-3.5 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition active:scale-95 shadow-md z-10"
+            className="absolute top-3.5 left-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
             title="Geri"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -77,7 +77,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           {/* Sağ Üst Kapat Butonu */}
           <button
             onClick={onClose}
-            className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-black/50 hover:bg-black/80 text-white backdrop-blur-md border border-white/20 flex items-center justify-center transition active:scale-95 shadow-md z-10"
+            className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
             title="Kapat"
           >
             <X className="w-4 h-4" />
@@ -86,7 +86,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           {/* Category Tag on Image */}
           {translatedCatName && (
             <div className="absolute bottom-3 left-4 z-10">
-              <span className="bg-orange-500/90 backdrop-blur-md text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-xs">
+              <span className="bg-[#1C2433]/90 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
                 {translatedCatName}
               </span>
             </div>
@@ -95,7 +95,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
           {product.is_frozen && (
             <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-white gap-1 z-20">
               <Snowflake className="w-6 h-6 text-sky-400" />
-              <span className="font-black text-xs">{t.soldOut}</span>
+              <span className="font-bold text-xs">{t.soldOut}</span>
             </div>
           )}
         </div>
@@ -103,11 +103,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         {/* Content Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-4">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="text-base sm:text-lg font-black text-slate-900 leading-snug">
+            <h2 className="text-base sm:text-lg font-bold text-white leading-snug">
               {product.name}
             </h2>
             <div className="text-right shrink-0">
-              <span className="text-base sm:text-lg font-black text-orange-600">
+              <span className="text-base sm:text-lg font-bold text-slate-100">
                 {product.price.toFixed(2)} ₺
               </span>
             </div>
@@ -115,43 +115,43 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
 
           {/* Detailed Ingredients / Description */}
           {translatedDesc ? (
-            <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 text-xs text-slate-600 leading-relaxed font-medium">
+            <div className="bg-[#141A26] rounded-2xl p-3.5 text-xs text-slate-300 leading-relaxed font-normal">
               <p>{translatedDesc}</p>
             </div>
           ) : (
-            <p className="text-xs text-slate-400 italic">
+            <p className="text-xs text-slate-500 italic">
               {product.name} için lezzet açıklaması.
             </p>
           )}
 
           {/* Quantity Stepper & Price Calculation */}
           {!product.is_frozen && (
-            <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+            <div className="pt-2 flex items-center justify-between">
+              <div className="flex items-center gap-2 bg-[#141A26] p-1.5 rounded-2xl">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="w-7 h-7 rounded-xl bg-white shadow-xs flex items-center justify-center text-slate-800 font-bold hover:bg-slate-50 active:scale-95 transition"
+                  className="w-7 h-7 rounded-xl bg-[#1C2433] text-slate-200 font-bold hover:bg-[#253043] active:scale-95 transition flex items-center justify-center"
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
 
-                <span className="text-xs font-black text-slate-900 w-6 text-center">
+                <span className="text-xs font-bold text-slate-100 w-6 text-center">
                   {quantity}
                 </span>
 
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => q + 1)}
-                  className="w-7 h-7 rounded-xl bg-slate-900 shadow-xs flex items-center justify-center text-white font-bold hover:bg-slate-800 active:scale-95 transition"
+                  className="w-7 h-7 rounded-xl bg-white text-[#0F172A] font-bold hover:bg-slate-200 active:scale-95 transition flex items-center justify-center"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <div className="text-right">
-                <span className="text-[10px] text-slate-400 block font-bold">Toplam</span>
-                <span className="text-sm font-black text-slate-900">
+                <span className="text-[10px] text-slate-500 block font-medium">Toplam</span>
+                <span className="text-sm font-bold text-slate-100">
                   {(product.price * quantity).toFixed(2)} ₺
                 </span>
               </div>
@@ -160,14 +160,14 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
         </div>
 
         {/* Bottom CTA Button */}
-        <div className="p-4 bg-slate-50 border-t border-slate-100">
+        <div className="p-4 bg-[#0C1017]">
           <button
             onClick={handleAdd}
             disabled={product.is_frozen}
-            className={`w-full py-3.5 px-5 rounded-2xl font-black text-xs shadow-xl transition flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:pointer-events-none ${
+            className={`w-full py-3.5 px-5 rounded-2xl font-bold text-xs shadow-lg transition flex items-center justify-center gap-2 active:scale-98 disabled:opacity-40 disabled:pointer-events-none ${
               added
-                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                : 'bg-slate-900 hover:bg-orange-600 text-white shadow-slate-900/25'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-white hover:bg-slate-200 text-[#0F172A]'
             }`}
           >
             {added ? (
@@ -177,7 +177,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
               </>
             ) : (
               <>
-                <ShoppingBag className="w-4 h-4 text-orange-400" />
+                <ShoppingBag className="w-4 h-4 text-[#0F172A]" />
                 <span>
                   {t.addToCart} • {(product.price * quantity).toFixed(2)} ₺
                 </span>
