@@ -539,85 +539,85 @@ export function getProductSpecificImage(
 
   // 1. İÇECEKLER (Birebir Marka ve İçecek Tipi Eşleşmesi)
   if (hasWordToken(name, 'fanta') || hasWordToken(name, 'yedigun')) {
-    return 'https://images.unsplash.com/photo-1624517452488-04869289c4ca?w=600&q=80'; // Gerçek Soğuk Kutu Fanta
+    return '/images/food/fanta.jpg'; // Gerçek Soğuk Kutu Fanta
   }
   if (hasWordToken(name, 'sprite')) {
-    return 'https://images.unsplash.com/photo-1625772299848-391b6a87d7b3?w=600&q=80'; // Buzlu Kutu Sprite Limon Gazozu
+    return '/images/food/sprite.jpg'; // Buzlu Kutu Sprite Limon Gazozu
   }
   if (hasWordToken(name, 'gazoz') || hasWordToken(name, 'fruko') || hasWordToken(name, 'uludag')) {
-    return 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&q=80'; // Buzlu Nostaljik Cam Şişe Gazoz
+    return '/images/food/gazoz.jpg'; // Buzlu Nostaljik Cam Şişe Gazoz
   }
   if (hasWordToken(name, 'coca-cola') || hasWordToken(name, 'coca cola') || hasWordToken(name, 'cola') || hasWordToken(name, 'kola') || hasWordToken(name, 'pepsi')) {
-    return 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=600&q=80'; // Orijinal Kırmızı Kutu Coca-Cola
+    return '/images/food/coca-cola.jpg'; // Orijinal Kırmızı Kutu Coca-Cola
   }
   if (hasWordToken(name, 'salgam')) {
-    return 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&q=80'; // Buzlu Kırmızı Adana Şalgam Suyu
+    return '/images/food/salgam.jpg'; // Buzlu Kırmızı Adana Şalgam Suyu
   }
   if (hasWordToken(name, 'ayran')) {
-    return 'https://images.unsplash.com/photo-1572490122747-3968b75cc699?w=600&q=80'; // Bol Köpüklü Taze Yayık Ayranı
+    return '/images/food/ayran.jpg'; // Bol Köpüklü Taze Yayık Ayranı
   }
   if (hasWordToken(name, 'meyveli soda') || (hasWordToken(name, 'soda') && hasWordToken(name, 'meyveli'))) {
-    return 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=600&q=80'; // Meyveli Soğuk Maden Suyu
+    return '/images/food/soda.jpg'; // Meyveli Soğuk Maden Suyu
   }
   if (hasWordToken(name, 'sade') || hasWordToken(name, 'maden suyu') || hasWordToken(name, 'soda')) {
-    return 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&q=80'; // Limon Dilimli Doğal Maden Suyu
+    return '/images/food/soda.jpg'; // Limon Dilimli Doğal Maden Suyu
   }
   if (hasWordToken(name, 'su') || hasWordToken(name, 'kaynak suyu')) {
-    return 'https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=600&q=80'; // Doğal Kaynak Suyu
+    return '/images/food/su.jpg'; // Doğal Kaynak Suyu
   }
 
   // 2. MİDYE DOLMA (Tekli Adet vs Jumbo vs 20'li Limonlu Porsiyon Tabak)
   if (hasWordToken(name, 'midye')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80'; // 20 Adet Limon Dilimli Zengin Midye Dolma Porsiyon Tabağı
+      return '/images/food/midye-porsiyon.jpg'; // 20 Adet Limon Dilimli Zengin Midye Dolma Porsiyon Tabağı
     }
     if (hasWordToken(name, 'jumbo')) {
-      return 'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=600&q=80'; // Büyük Dolgun Jumbo Midye Dolma
+      return '/images/food/midye-jumbo.jpg'; // Büyük Dolgun Jumbo Midye Dolma
     }
-    return 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=600&q=80'; // Taze Limonlu Açılmış Midye Dolma (Tekli)
+    return '/images/food/midye-tekli.jpg'; // Taze Limonlu Açılmış Midye Dolma (Tekli)
   }
 
   // 3. BOMBASTİK (Köfte + Sucuk Karışık)
   if (hasWordToken(name, 'bombastik')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80'; // Tabakta Karışık Köfte & Sucuk Izgara Porsiyon Tabağı
+      return '/images/food/bombastik-porsiyon.jpg'; // Tabakta Karışık Köfte & Sucuk Izgara Porsiyon Tabağı
     }
-    return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80'; // Çıtır Ekmek Arası Bombastik Karışık Izgara
+    return '/images/food/bombastik-ekmek.jpg'; // Çıtır Ekmek Arası Bombastik Karışık Izgara
   }
 
   // 4. SUCUK (Ekmek Arası vs Tabakta Porsiyon)
   if (hasWordToken(name, 'sucuk')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80'; // Köz Sebzeli Tabakta Servis Edilen Kasap Sucuğu Porsiyon
+      return '/images/food/sucuk-porsiyon.jpg'; // Köz Sebzeli Tabakta Servis Edilen Kasap Sucuğu Porsiyon
     }
-    return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80'; // Çıtır Ekmek Arası Kızarmış Kasap Sucuğu
+    return '/images/food/sucuk-ekmek.jpg'; // Çıtır Ekmek Arası Kızarmış Kasap Sucuğu
   }
 
   // 5. KÖFTE (Ekmek Arası vs Tabakta Porsiyon)
   if (hasWordToken(name, 'kofte')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80'; // Köz Biber-Domatesli Tabakta Anne Köftesi Porsiyon Tabağı
+      return '/images/food/kofte-porsiyon.jpg'; // Köz Biber-Domatesli Tabakta Anne Köftesi Porsiyon Tabağı
     }
-    return 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=600&q=80'; // Çıtır Ekmek Arası Izgara Köfte
+    return '/images/food/kofte-ekmek.jpg'; // Çıtır Ekmek Arası Izgara Köfte
   }
 
   // 6. İZMİR USULÜ KOKOREÇ (İRİ KIYIM)
   if (hasWordToken(name, 'izmir') || hasWordToken(name, 'iri kiyim')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=600&q=80'; // Tabakta Sıcak Servis Edilen İri Kıyım İzmir Usulü Kokoreç
+      return '/images/food/kokorec-izmir-porsiyon.jpg'; // Tabakta Sıcak Servis Edilen İri Kıyım İzmir Usulü Kokoreç
     }
-    return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80'; // Çıtır Ekmek Arası İri Kıyım İzmir Usulü Kokoreç
+    return '/images/food/kokorec-izmir-ekmek.jpg'; // Çıtır Ekmek Arası İri Kıyım İzmir Usulü Kokoreç
   }
 
   // 7. KLASİK KOKOREÇ
   if (hasWordToken(name, 'kokorec')) {
     if (hasWordToken(name, 'porsiyon') || hasWordToken(name, 'tabak') || hasWordToken(name, 'tabakta')) {
-      return 'https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?w=600&q=80'; // Köz Biber ve Domates Eşliğinde Dilimli Porsiyon Kokoreç
+      return '/images/food/kokorec-porsiyon.jpg'; // Köz Biber ve Domates Eşliğinde Dilimli Porsiyon Kokoreç
     }
-    return 'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80'; // Köz Ateşinde Çıtır Ekmek Arası Kokoreç
+    return '/images/food/kokorec-ekmek.jpg'; // Köz Ateşinde Çıtır Ekmek Arası Kokoreç
   }
 
   // 8. Varsayılan Fallback
-  return categoryImage || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&q=80';
+  return categoryImage || '/images/food/kofte-ekmek.jpg';
 }
 
