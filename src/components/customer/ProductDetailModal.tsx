@@ -33,7 +33,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
   const photoUrl =
     product.image_url ||
     categoryImage ||
-    'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop&q=80';
+    '';
 
   const handleAdd = () => {
     if (product.is_frozen) return;
@@ -54,51 +54,67 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
       className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in"
     >
       <div className="bg-[#111622] text-slate-100 rounded-t-3xl sm:rounded-3xl w-full max-w-sm overflow-hidden shadow-2xl animate-in slide-in-from-bottom flex flex-col max-h-[90vh]">
-        {/* Big Food Cover with Sol Üst Geri Butonu & Vignette */}
-        <div className="relative h-56 sm:h-64 w-full bg-[#0C1017] shrink-0">
-          <img
-            src={photoUrl}
-            alt={product.name}
-            className="w-full h-full object-cover opacity-80"
-          />
+        {/* Food Cover (If photo exists) or Clean Compact Header */}
+        {photoUrl ? (
+          <div className="relative h-52 sm:h-60 w-full bg-[#0C1017] shrink-0">
+            <img
+              src={photoUrl}
+              alt={product.name}
+              className="w-full h-full object-cover opacity-80"
+            />
 
-          {/* Vignette Gradients */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111622] via-[#111622]/30 to-black/60" />
+            {/* Vignette Gradients */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#111622] via-[#111622]/30 to-black/60" />
 
-          {/* Sol Üst Geri / Kapat Butonu */}
-          <button
-            onClick={onClose}
-            className="absolute top-3.5 left-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
-            title="Geri"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
+            {/* Sol Üst Geri / Kapat Butonu */}
+            <button
+              onClick={onClose}
+              className="absolute top-3.5 left-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
+              title="Geri"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
 
-          {/* Sağ Üst Kapat Butonu */}
-          <button
-            onClick={onClose}
-            className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
-            title="Kapat"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            {/* Sağ Üst Kapat Butonu */}
+            <button
+              onClick={onClose}
+              className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-[#141A26]/80 hover:bg-[#1C2433] text-white backdrop-blur-md flex items-center justify-center transition active:scale-95 shadow-md z-10"
+              title="Kapat"
+            >
+              <X className="w-4 h-4" />
+            </button>
 
-          {/* Category Tag on Image */}
-          {translatedCatName && (
-            <div className="absolute bottom-3 left-4 z-10">
-              <span className="bg-[#1C2433]/90 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            {/* Category Tag on Image */}
+            {translatedCatName && (
+              <div className="absolute bottom-3 left-4 z-10">
+                <span className="bg-[#1C2433]/90 backdrop-blur-md text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+                  {translatedCatName}
+                </span>
+              </div>
+            )}
+
+            {product.is_frozen && (
+              <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-white gap-1 z-20">
+                <Snowflake className="w-6 h-6 text-sky-400" />
+                <span className="font-bold text-xs">{t.soldOut}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 bg-[#141A26] flex items-center justify-between">
+            {translatedCatName ? (
+              <span className="bg-[#1C2433] text-slate-200 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
                 {translatedCatName}
               </span>
-            </div>
-          )}
-
-          {product.is_frozen && (
-            <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-white gap-1 z-20">
-              <Snowflake className="w-6 h-6 text-sky-400" />
-              <span className="font-bold text-xs">{t.soldOut}</span>
-            </div>
-          )}
-        </div>
+            ) : <span />}
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-[#1C2433] hover:bg-[#253043] text-white flex items-center justify-center transition active:scale-95"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Content Body */}
         <div className="p-5 flex-1 overflow-y-auto space-y-4">

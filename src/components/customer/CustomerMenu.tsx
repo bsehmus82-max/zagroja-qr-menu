@@ -514,20 +514,25 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                       <div
                         key={cat.id}
                         onClick={() => setSelectedCatId(cat.id)}
-                        className="w-full h-32 sm:h-36 rounded-2xl overflow-hidden relative shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-[0.99] group bg-[#111622]"
+                        className="w-full h-28 sm:h-32 rounded-2xl overflow-hidden relative shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer active:scale-[0.99] group bg-[#111622]"
                       >
-                        {/* High Quality Responsive Category Background Image */}
-                        <img
-                          src={
-                            cat.image_url ||
-                            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&auto=format&fit=crop&q=80'
-                          }
-                          alt={translatedName}
-                          className="w-full h-full object-cover opacity-75 group-hover:scale-105 transition-transform duration-500"
-                        />
-
-                        {/* Rich Gradient Overlay for High Text Readability */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+                        {/* If category image exists, show image with vignette overlay; else show elegant typography background */}
+                        {cat.image_url ? (
+                          <>
+                            <img
+                              src={cat.image_url}
+                              alt={translatedName}
+                              className="w-full h-full object-cover opacity-70 group-hover:scale-105 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+                          </>
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-r from-[#141A26] via-[#111622] to-[#0C1017]">
+                            <div className="absolute right-4 bottom-2 text-4xl font-black text-white/[0.03] select-none uppercase">
+                              {currentBiz.name}
+                            </div>
+                          </div>
+                        )}
 
                         {/* Card Content: Left Category Title + Count, Right Arrow Circle */}
                         <div className="absolute inset-0 p-4 flex items-center justify-between z-10">
@@ -613,6 +618,7 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                     const translatedDesc = getTranslatedDescription(prod.description, lang);
                     const qtyInCart = getItemQtyInCart(prod.id);
                     const catImg = categories.find((c) => c.id === prod.category_id)?.image_url;
+                    const photoSrc = prod.image_url || catImg || '';
 
                     return (
                       <div
@@ -622,28 +628,26 @@ export const CustomerMenu: React.FC<CustomerMenuProps> = ({ business, initialTab
                           prod.is_frozen ? 'opacity-50' : ''
                         }`}
                       >
-                        {/* Food Thumbnail on Left (Strictly Constrained 80x80px with right vignette) */}
-                        <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-[#141A26]">
-                          <img
-                            src={
-                              prod.image_url ||
-                              catImg ||
-                              'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80'
-                            }
-                            alt={prod.name}
-                            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-                              prod.is_frozen ? 'grayscale' : ''
-                            }`}
-                          />
-                          {/* Right Vignette on Food Image */}
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/30" />
+                        {/* Food Thumbnail on Left (Only shown if a real photo exists) */}
+                        {photoSrc && (
+                          <div className="w-20 h-20 min-w-[80px] min-h-[80px] max-w-[80px] max-h-[80px] rounded-xl overflow-hidden shrink-0 relative bg-[#141A26]">
+                            <img
+                              src={photoSrc}
+                              alt={prod.name}
+                              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                                prod.is_frozen ? 'grayscale' : ''
+                              }`}
+                            />
+                            {/* Right Vignette on Food Image */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-black/30" />
 
-                          {prod.is_frozen && (
-                            <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold tracking-wider">
-                              {t.soldOut}
-                            </div>
-                          )}
-                        </div>
+                            {prod.is_frozen && (
+                              <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center text-white text-[9px] font-bold tracking-wider">
+                                {t.soldOut}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Info in Center: Product Name + Translated Description + Price */}
                         <div className="flex-1 min-w-0 pr-1">
