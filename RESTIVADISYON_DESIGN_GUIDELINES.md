@@ -328,6 +328,16 @@ Katiyen kutu, buton, kart, panel, form veya input kenarlarında belirgin/farklı
 - Ayrıştırma için yapay border çizgileri çizilmeyecek; geniş, tok, keskin ve kurumsal bloklar tercih edilecektir.
 - Birbiriyle doğrudan ilişkili yönetim alanları (örneğin Personeller ve Eşleşen Cihazlar) gereksiz tab / sekme karmaşasına bölünmeden tek ekranda, derli toplu ve geniş kartlar halinde sunulacaktır.
 
+10.2. İKONLARI KUTU / KART İÇİNE HAPSETME YASAĞI (NESTED ICON BOXES FORBIDDEN)
+
+Kartların, ayar satırlarının ve butonların içinde ikonları ayrıca `w-10 h-10 bg-[#1C2433] rounded-2xl` gibi yapay mini kutucuklara / kapsüllere hapsetmek KESİNLİKLE YASAKTIR.
+
+- İkon doğrudan başlığın veya metnin yanında (`w-4 h-4 text-slate-400 shrink-0`) sade ve kurumsal bir hiyerarşide yer almalıdır.
+- İç içe kutu kirliliği (`Card -> Box -> Badge -> Button`) arayüzü kalabalıklaştırır ve ciddiyetini bozar.
+- Ayar satırlarında sadece sol başta yalın ikon ve başlık, sağ başta ise doğrudan eylem butonu veya switch yer almalıdır.
+
+---
+
 11. KÖŞE YUVARLATMA — AŞIRI ROUNDED TASARIM YASAK
 
 RestivAdisyon'da her şeyi kapsül veya baloncuk haline getirmek yasaktır.
@@ -354,7 +364,7 @@ Bir UI elementinin yuvarlatılmış olması onu otomatik olarak daha modern yapm
 
 ---
 
-12. BUTON TASARIMI
+12. BUTON TASARIMI VE AŞIRI BEYAZLIK YASAĞI
 
 Butonlar:
 
@@ -365,6 +375,15 @@ Butonlar:
 - işlev odaklı
 
 olmalıdır.
+
+12.1. AŞIRI BEYAZ VE PARLAK BUTON YASAĞI (NO FLASHBANG BUTTONS)
+
+Koyu arayüz zemininde göz alan, kontrastı patlatan saf beyaz (`bg-white`) butonlar veya saf beyaz aktif switch'ler KULLANILMAYACAKTIR.
+
+- Tüm butonlar ve kontroller `#1C2433` zemin, hover durumunda `#253043`, metin rengi `#E2E8F0` / `#FFFFFF` veya kurumsal slate tonları ile tasarlanacaktır.
+- Switch ve toggle kontrollerinde aktif durumda saf beyaz yerine `#253043` zemin ve `bg-slate-200` gösterge kullanılacaktır.
+- Butonların altına "Windows 11 uyumlu", "64-bit Installer" gibi gereksiz marketing alt yazıları KESİNLİKLE yazılmayacaktır.
+- Ayar satırlarının yanına gereksiz yeşil/mavi durum rozetleri (`Aktif`, `Sıfır Onaylı` vb.) eklenmeyecektir.
 
 Butonlarda:
 

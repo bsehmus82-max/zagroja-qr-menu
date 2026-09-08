@@ -1154,8 +1154,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             <button
               type="submit"
               disabled={savingPass || !newPassword}
-              onMouseMove={handleSpotlightMove}
-              className="w-full py-2.5 bg-white/20 hover:bg-white/30 text-white font-extrabold rounded-xl text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 active:scale-95 border border-white/25 shadow-md spotlight-card spotlight-glow"
+              className="w-full py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold rounded-xl text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-40 active:scale-95 cursor-pointer"
             >
               <KeyRound className="w-3.5 h-3.5" />
               <span>{savingPass ? 'Kaydediliyor...' : 'Şifreyi Güncelle'}</span>
@@ -1169,18 +1168,16 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-[#1C2433] flex items-center justify-center text-slate-200 shrink-0">
-                <FileText className="w-5 h-5 text-slate-200" />
-              </div>
+              <FileText className="w-4 h-4 text-slate-400 shrink-0" />
               <div>
-                <h3 className="text-sm font-black text-white flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                   <span>Aylık Finans & Ciro Raporu ({prevMonthName})</span>
                   {isMonthlyWindowActive ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-white/10 text-slate-200 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> 5 Günlük İndirme Penceresi Aktif
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#1C2433] text-slate-300">
+                      İndirme Penceresi Aktif
                     </span>
                   ) : (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0C1017] text-slate-400">
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#0C1017] text-slate-500">
                       İndirme Penceresi Kapandı
                     </span>
                   )}
@@ -1195,7 +1192,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             </div>
 
             {isMonthlyWindowClosingSoon && (
-              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 pt-1 animate-pulse">
+              <p className="text-xs font-bold text-amber-400 flex items-center gap-1.5 pt-1">
                 <AlertTriangle className="w-4 h-4" />
                 Dikkat: Bu raporu indirmek için son {daysLeftInWindow} gününüz kaldı! (Ayın 6'sında defter arşive kaldırılır).
               </p>
@@ -1206,9 +1203,9 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
             <button
               onClick={handleDownloadMonthlyPdf}
               disabled={isGeneratingPdf}
-              className="px-5 py-3 bg-white hover:bg-slate-200 active:scale-95 text-slate-900 font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-sm transition shrink-0"
+              className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] active:scale-95 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shrink-0 cursor-pointer"
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-3.5 h-3.5" />
               <span>{isGeneratingPdf ? 'Hazırlanıyor...' : 'Aylık Raporu İndir (PDF)'}</span>
             </button>
           )}
@@ -1216,25 +1213,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* Otomatik Termal Fiş Yazdırma Ayarı */}
-      <div className="bg-[#111622] rounded-3xl p-5 sm:p-6 text-slate-200 shadow-lg space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-              <Printer className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm sm:text-base text-white flex items-center gap-2">
-                <span>Otomatik Termal Fiş Yazdırma</span>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                  isWebAutoPrint ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
-                }`}>
-                  {isWebAutoPrint ? 'Aktif (Otomatik)' : 'Kapalı'}
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Masadan yeni bir sipariş verildiğinde adisyon fişini termal yazıcıya otomatik gönderir.
-              </p>
-            </div>
+      <div className="bg-[#111622] rounded-3xl p-5 sm:p-6 text-slate-200 shadow-lg">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Printer className="w-4 h-4 text-slate-400 shrink-0" />
+            <h3 className="font-bold text-xs sm:text-sm text-white">
+              Otomatik Termal Fiş Yazdırma
+            </h3>
           </div>
 
           {/* Toggle Switch */}
@@ -1246,13 +1231,13 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               setWebAutoPrintEnabled(next);
               toast.success(next ? 'Otomatik termal fiş yazdırma açıldı.' : 'Otomatik termal fiş yazdırma kapatıldı.');
             }}
-            className={`w-14 h-8 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
-              isWebAutoPrint ? 'bg-white' : 'bg-[#1C2433]'
+            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors duration-200 shrink-0 ${
+              isWebAutoPrint ? 'bg-[#253043]' : 'bg-[#0C1017]'
             }`}
           >
             <div
-              className={`bg-[#0C1017] w-6 h-6 rounded-full shadow-md transform transition-transform duration-200 ${
-                isWebAutoPrint ? 'translate-x-6' : 'translate-x-0'
+              className={`w-4 h-4 rounded-full transition-transform duration-200 ${
+                isWebAutoPrint ? 'translate-x-6 bg-slate-200' : 'translate-x-0 bg-slate-600'
               }`}
             />
           </button>
@@ -1260,39 +1245,24 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* RESTIVADISYON WINDOWS MASAÜSTÜ UYGULAMASI (POS & SIFIR ONAYLI YAZDIRMA) */}
-      <div className="bg-[#111622] rounded-3xl p-5 sm:p-6 text-slate-200 shadow-lg space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-              <Laptop className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-black text-sm sm:text-base text-white flex items-center gap-2">
-                <span>RestivAdisyon Windows Masaüstü Uygulaması</span>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
-                  Sıfır Onaylı Yazdırma
-                </span>
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Kasa bilgisayarınızda web tarayıcısı onay penceresi beklemeden fişleri termal yazıcıdan tam otomatik basar.
-              </p>
-            </div>
+      <div className="bg-[#111622] rounded-3xl p-5 sm:p-6 text-slate-200 shadow-lg">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Laptop className="w-4 h-4 text-slate-400 shrink-0" />
+            <h3 className="font-bold text-xs sm:text-sm text-white">
+              RestivAdisyon Windows Masaüstü Uygulaması
+            </h3>
           </div>
 
-          <div className="flex flex-col items-stretch sm:items-end justify-center shrink-0">
-            <a
-              href="https://github.com/bsehmus82-max/zagroja-qr-menu/releases/latest/download/RestivAdisyon-Setup.exe"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-5 py-3 bg-white hover:bg-slate-200 active:scale-95 text-slate-900 font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-sm transition shrink-0 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Masaüstü Uygulamasını İndir (.exe)</span>
-            </a>
-            <span className="text-[10px] text-slate-500 mt-1.5 text-center sm:text-right">
-              Windows 10 / 11 uyumlu • 64-bit Installer
-            </span>
-          </div>
+          <a
+            href="https://github.com/bsehmus82-max/zagroja-qr-menu/releases/latest/download/RestivAdisyon-Setup.exe"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] active:scale-95 text-slate-200 font-bold rounded-xl text-xs flex items-center justify-center gap-2 transition shrink-0 cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Masaüstü Uygulamasını İndir (.exe)</span>
+          </a>
         </div>
       </div>
 
