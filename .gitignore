@@ -24,6 +24,8 @@ build
 desktop-app/payload
 *.exe
 *.spec
+RestivAdisyon-Kurulum*
+dist-electron
 
 # Logs
 logs
