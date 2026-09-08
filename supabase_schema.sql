@@ -1511,3 +1511,141 @@ GRANT EXECUTE ON FUNCTION public.create_customer_order TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.end_support_chat TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.cleanup_old_support_messages TO anon, authenticated;
 
+-- ==============================================================================
+-- 10. TÜM SON ÖZELLİKLER & EKSİK ALANLARIN TAMAMLAMA PAKETİ (CATCH-UP MIGRATION)
+-- ==============================================================================
+
+-- A. Businesses Tablosu Eksik Kolonları
+ALTER TABLE public.businesses 
+    ADD COLUMN IF NOT EXISTS theme_config JSONB DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS auto_send_to_kitchen_on_accept BOOLEAN DEFAULT true,
+    ADD COLUMN IF NOT EXISTS auto_print_kitchen_ticket_on_accept BOOLEAN DEFAULT false,
+    ADD COLUMN IF NOT EXISTS is_kitchen_enabled BOOLEAN DEFAULT true,
+    ADD COLUMN IF NOT EXISTS active_modules TEXT[] DEFAULT ARRAY['orders', 'tables', 'menu', 'waiters', 'kitchen', 'expenses', 'turnover', 'ai_copilot']::text[],
+    ADD COLUMN IF NOT EXISTS max_staff_count INT DEFAULT 10,
+    ADD COLUMN IF NOT EXISTS max_kitchen_screens INT DEFAULT 3,
+    ADD COLUMN IF NOT EXISTS pairing_secret TEXT DEFAULT gen_random_uuid()::text,
+    ADD COLUMN IF NOT EXISTS show_wifi BOOLEAN DEFAULT true;
+
+-- B. Orders Tablosu Eksik Kolonları (Garson & Yemek Platformları)
+ALTER TABLE public.orders
+    ADD COLUMN IF NOT EXISTS waiter_name TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS external_order_id TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS platform_metadata JSONB DEFAULT NULL;
+
+-- C. Waiters (Personeller) Tablosu Rol ve Yetki Kolonları
+ALTER TABLE public.waiters
+    ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'waiter',
+    ADD COLUMN IF NOT EXISTS pin_code TEXT DEFAULT '123456',
+    ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{"can_take_orders": true, "can_view_orders": true, "can_handle_calls": true, "can_access_pos": true, "can_access_kitchen": false, "can_manage_tables": true, "can_manage_menu": false, "is_full_access": false}'::jsonb;
+
+-- D. Waiter Devices (Cihaz Eşleşmeleri) Eksik Kolonları
+ALTER TABLE public.waiter_devices
+    ADD COLUMN IF NOT EXISTS staff_id UUID DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS staff_name TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS waiter_name TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending';
+
+-- E. Giderler & Harcama Takip Tablosu (EXPENSES)
+CREATE TABLE IF NOT EXISTS public.expenses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    category TEXT NOT NULL,
+    description TEXT NOT NULL,
+    amount NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    payment_method TEXT DEFAULT 'cash',
+    receipt_no TEXT DEFAULT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all for expenses" ON public.expenses;
+CREATE POLICY "Allow all for expenses" 
+ON public.expenses 
+FOR ALL 
+USING (true) 
+WITH CHECK (true);
+
+-- F. Yemek Platformları Master Havuz Tablosu
+CREATE TABLE IF NOT EXISTS public.system_platform_master_configs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    platform TEXT NOT NULL UNIQUE CHECK (platform IN ('trendyol', 'yemeksepeti', 'getir', 'migros', 'tiklagelsin', 'fuudy', 'vigo')),
+    master_api_key TEXT DEFAULT NULL,
+    master_api_secret TEXT DEFAULT NULL,
+    master_client_id TEXT DEFAULT NULL,
+    master_client_secret TEXT DEFAULT NULL,
+    app_id TEXT DEFAULT NULL,
+    webhook_base_url TEXT DEFAULT NULL,
+    is_enabled BOOLEAN DEFAULT true,
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.system_platform_master_configs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all for system_platform_master_configs" ON public.system_platform_master_configs;
+CREATE POLICY "Allow all for system_platform_master_configs" 
+ON public.system_platform_master_configs 
+FOR ALL 
+USING (true) 
+WITH CHECK (true);
+
+-- G. İşletme Yemek Platformları Entegrasyon Tablosu
+CREATE TABLE IF NOT EXISTS public.food_platforms_config (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    platform TEXT NOT NULL CHECK (platform IN ('trendyol', 'yemeksepeti', 'getir', 'migros', 'tiklagelsin', 'fuudy', 'vigo')),
+    is_active BOOLEAN DEFAULT false,
+    merchant_id TEXT DEFAULT NULL,
+    api_key TEXT DEFAULT NULL,
+    api_secret TEXT DEFAULT NULL,
+    client_id TEXT DEFAULT NULL,
+    client_secret TEXT DEFAULT NULL,
+    webhook_secret TEXT DEFAULT NULL,
+    auto_accept BOOLEAN DEFAULT false,
+    courier_type TEXT DEFAULT 'platform' CHECK (courier_type IN ('platform', 'restaurant')),
+    use_master_api BOOLEAN DEFAULT true,
+    last_sync_at TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE (business_id, platform)
+);
+
+ALTER TABLE public.food_platforms_config ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all for food_platforms_config" ON public.food_platforms_config;
+CREATE POLICY "Allow all for food_platforms_config" 
+ON public.food_platforms_config 
+FOR ALL 
+USING (true) 
+WITH CHECK (true);
+
+-- H. Realtime Yayınlarına Ekleme
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'expenses'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'food_platforms_config'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.food_platforms_config;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'system_platform_master_configs'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.system_platform_master_configs;
+    END IF;
+END $$;
+
+

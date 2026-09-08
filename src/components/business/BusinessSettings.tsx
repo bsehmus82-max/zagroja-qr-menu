@@ -1260,39 +1260,22 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
       </div>
 
       {/* RESTIVADISYON WINDOWS MASAÜSTÜ UYGULAMASI (POS & SIFIR ONAYLI YAZDIRMA) */}
-      <div className="bg-gradient-to-br from-[#111622] to-[#151D2C] border border-white/10 rounded-3xl p-5 sm:p-7 text-slate-200 shadow-xl space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center shrink-0 shadow-lg shadow-indigo-600/30">
-                <Laptop className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-                  <span>RestivAdisyon Windows Masaüstü Uygulaması</span>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                    Sıfır Onaylı Otomatik Yazdırma
-                  </span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Kasa bilgisayarınızda web tarayıcısı onay penceresi beklemeden, fişleri termal yazıcıdan %100 otomatik basar.
-                </p>
-              </div>
+      <div className="bg-[#111622] rounded-3xl p-5 sm:p-6 text-slate-200 shadow-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#1C2433] text-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+              <Laptop className="w-5 h-5" />
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-              <div className="bg-[#0C1017]/80 rounded-xl p-2.5 border border-white/5 flex items-center gap-2 text-[11px] text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Sıfır Onaylı (Silent) Fiş Basımı</span>
-              </div>
-              <div className="bg-[#0C1017]/80 rounded-xl p-2.5 border border-white/5 flex items-center gap-2 text-[11px] text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span>1024x768 & Tam Ekran POS Kasa</span>
-              </div>
-              <div className="bg-[#0C1017]/80 rounded-xl p-2.5 border border-white/5 flex items-center gap-2 text-[11px] text-slate-300">
-                <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
-                <span>Kolay Kurulum Sihirbazı</span>
-              </div>
+            <div>
+              <h3 className="font-black text-sm sm:text-base text-white flex items-center gap-2">
+                <span>RestivAdisyon Windows Masaüstü Uygulaması</span>
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400">
+                  Sıfır Onaylı Yazdırma
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Kasa bilgisayarınızda web tarayıcısı onay penceresi beklemeden fişleri termal yazıcıdan tam otomatik basar.
+              </p>
             </div>
           </div>
 
@@ -1301,7 +1284,7 @@ export const BusinessSettings: React.FC<BusinessSettingsProps> = ({ business, on
               href="https://github.com/bsehmus82-max/zagroja-qr-menu/releases/latest/download/RestivAdisyon-Setup.exe"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-6 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-95 text-white font-extrabold rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-indigo-600/30 transition border border-indigo-400/30 cursor-pointer"
+              className="px-5 py-3 bg-white hover:bg-slate-200 active:scale-95 text-slate-900 font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-sm transition shrink-0 cursor-pointer"
             >
               <Download className="w-4 h-4" />
               <span>Masaüstü Uygulamasını İndir (.exe)</span>
