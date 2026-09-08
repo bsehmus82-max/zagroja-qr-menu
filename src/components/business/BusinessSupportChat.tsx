@@ -415,7 +415,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
   const hasAgentReplied = messages.some((m) => m.sender === 'superadmin');
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4 font-medium text-slate-200">
+    <div className="w-full max-w-3xl space-y-4 font-medium text-slate-200">
       {/* 1. SİSTEM BİLDİRİMLERİ (Varsa) */}
       {isTrialExpiring && (
         <div className="bg-[#111622] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
@@ -459,23 +459,98 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         </div>
       )}
 
-      {/* 2. SORUN BİLDİR & CANLI DESTEK ANA PANELİ */}
-      <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[520px]">
-        {/* Header - Kullanıcı talimatı: Üst panele karışma o çok iyi */}
-        <div className="p-4 sm:p-5 bg-[#141A26] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-slate-400 shrink-0" />
-            <div>
-              <h3 className="font-bold text-xs sm:text-sm text-white">RestivAdisyon Müşteri Hizmetleri</h3>
-              <p className="text-[11px] text-slate-400">
-                {hasAgentReplied
-                  ? 'Aktif Destek Oturumu'
-                  : 'Teknik destek, bildirim ve yardım masası'}
-              </p>
-            </div>
+      {/* 2. SORUN BİLDİR VEYA CANLI SOHBET */}
+      {!hasActiveConversation ? (
+        /* Direkt, Yalın, Kartsız Sorun Bildirim Formu */
+        <form onSubmit={handleSubmitTicket} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5">
+              Konu Başlığı
+            </label>
+            <input
+              type="text"
+              required
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
+              className="w-full bg-[#111622] rounded-xl px-4 py-3 text-xs text-slate-100 font-bold focus:outline-none placeholder:text-slate-500"
+            />
           </div>
 
-          {hasActiveConversation && (
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5">
+              Detaylı Açıklama
+            </label>
+            <textarea
+              required
+              rows={6}
+              value={issueDescription}
+              onChange={(e) => setIssueDescription(e.target.value)}
+              placeholder="Lütfen karşılaştığınız teknik durumu veya sorunuzu detaylı olarak açıklayınız..."
+              className="w-full bg-[#111622] rounded-xl p-4 text-xs text-slate-100 font-medium focus:outline-none resize-none placeholder:text-slate-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5">
+              Ekran Görüntüsü / Fotoğraf (İsteğe Bağlı)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/jpg"
+              onChange={handleTicketImageChange}
+              className="hidden"
+            />
+
+            {!imageUrl ? (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-[#111622] hover:bg-[#161E2E] rounded-xl p-4 flex items-center justify-center gap-2 cursor-pointer transition text-slate-400 hover:text-slate-200 active:scale-[0.99]"
+              >
+                <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                <span className="text-xs font-bold">
+                  {isCompressingImage ? 'Görsel işleniyor...' : 'Görsel / Ekran Görüntüsü Seç (.jpg, .png, .webp)'}
+                </span>
+              </div>
+            ) : (
+              <div className="relative inline-block mt-1">
+                <img
+                  src={imageUrl}
+                  alt="Seçilen Görsel"
+                  className="max-h-44 rounded-xl object-contain bg-[#111622] p-1 shadow-lg"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageUrl('');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="absolute -top-2 -right-2 p-1 bg-[#1C2433] hover:bg-rose-600 text-white rounded-full transition cursor-pointer shadow-md"
+                  title="Görseli Kaldır"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmittingTicket || isCompressingImage}
+            className="w-full py-3.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 cursor-pointer"
+          >
+            <Send className="w-4 h-4" />
+            <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : isCompressingImage ? 'Görsel Yükleniyor...' : 'Sorun Bildirimini Gönder'}</span>
+          </button>
+        </form>
+      ) : (
+        /* Canlı Destek Mesajlaşma Alanı */
+        <div className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-xs font-bold text-slate-400">
+              {hasAgentReplied ? 'Aktif Destek Oturumu' : 'Talebiniz iletildi, temsilci yanıtı bekleniyor...'}
+            </span>
             <button
               onClick={handleEndChat}
               disabled={isEndingChat}
@@ -485,105 +560,9 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Sohbeti Bitir</span>
             </button>
-          )}
-        </div>
-
-        {/* İçerik: Form veya Canlı Mesajlaşma */}
-        {!hasActiveConversation ? (
-          /* Düz, Kartsız, Yalın Sorun Bildirim Formu */
-          <div className="p-5 sm:p-6 w-full flex-1 flex flex-col justify-center">
-            <form onSubmit={handleSubmitTicket} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Konu Başlığı
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
-                  className="w-full bg-[#0C1017] rounded-xl px-4 py-3 text-xs text-slate-100 font-bold focus:outline-none placeholder:text-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Detaylı Açıklama
-                </label>
-                <textarea
-                  required
-                  rows={5}
-                  value={issueDescription}
-                  onChange={(e) => setIssueDescription(e.target.value)}
-                  placeholder="Lütfen karşılaştığınız teknik durumu veya sorunuzu detaylı olarak açıklayınız..."
-                  className="w-full bg-[#0C1017] rounded-xl p-4 text-xs text-slate-100 font-medium focus:outline-none resize-none placeholder:text-slate-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                  Ekran Görüntüsü / Fotoğraf (İsteğe Bağlı)
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp,image/jpg"
-                  onChange={handleTicketImageChange}
-                  className="hidden"
-                />
-
-                {!imageUrl ? (
-                  <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full bg-[#0C1017] hover:bg-[#141A26] rounded-xl p-3.5 flex items-center justify-center gap-2 cursor-pointer transition text-slate-400 hover:text-slate-200 active:scale-[0.99]"
-                  >
-                    <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span className="text-xs font-bold">
-                      {isCompressingImage ? 'Görsel işleniyor...' : 'Görsel / Ekran Görüntüsü Seç (.jpg, .png, .webp)'}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="relative inline-block mt-1">
-                    <img
-                      src={imageUrl}
-                      alt="Seçilen Görsel"
-                      className="max-h-40 rounded-xl object-contain bg-[#0C1017] p-1 shadow"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImageUrl('');
-                        if (fileInputRef.current) fileInputRef.current.value = '';
-                      }}
-                      className="absolute -top-2 -right-2 p-1 bg-[#1C2433] hover:bg-rose-600 text-white rounded-full transition cursor-pointer shadow-md"
-                      title="Görseli Kaldır"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmittingTicket || isCompressingImage}
-                className="w-full py-3 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 cursor-pointer"
-              >
-                <Send className="w-4 h-4" />
-                <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : isCompressingImage ? 'Görsel Yükleniyor...' : 'Sorun Bildirimini Gönder'}</span>
-              </button>
-            </form>
           </div>
-        ) : (
-          /* Canlı Destek Mesajlaşma Alanı */
-          <div className="flex-1 flex flex-col justify-between">
-            {!hasAgentReplied && (
-              <div className="p-3 bg-[#141A26] text-center text-xs text-slate-300 font-medium">
-                Sorun bildiriminiz RestivAdisyon Müşteri Hizmetleri'ne iletildi. Temsilcimiz yanıt yazdığında sohbet burada devam edecektir.
-              </div>
-            )}
 
+          <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[500px]">
             {/* Mesaj Listesi */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 bg-[#0C1017] max-h-[500px]">
               {messages.map((m) => {
@@ -693,8 +672,8 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
               </div>
             </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
