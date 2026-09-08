@@ -39,9 +39,23 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
   const [renewTargetBiz, setRenewTargetBiz] = useState<Business | null>(null);
   const [createdInfo, setCreatedInfo] = useState<{ business: Business; tempPass: string; days: number } | null>(null);
   
-  // Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'expiring' | 'expired' | 'suspended'>('all');
   const [planFilter, setPlanFilter] = useState<'all' | PlanType | 'paid'>('all');
+  const [unreadSupportCount, setUnreadSupportCount] = useState<number>(0);
+
+  const fetchUnreadSupport = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('id')
+        .eq('sender', 'business')
+        .eq('is_read', false);
+
+      if (!error && data) {
+        setUnreadSupportCount(data.length);
+      }
+    } catch {}
+  };
 
   const fetchBusinesses = async () => {
     setLoading(true);
@@ -64,6 +78,7 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
 
   useEffect(() => {
     fetchBusinesses();
+    fetchUnreadSupport();
 
     const channel = supabase
       .channel('sa_businesses_changes')
@@ -72,6 +87,13 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
         { event: '*', schema: 'public', table: 'businesses' },
         () => {
           fetchBusinesses();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'support_messages' },
+        () => {
+          fetchUnreadSupport();
         }
       )
       .subscribe();
@@ -214,7 +236,12 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
             }`}
           >
             <MessageSquare className="w-3.5 h-3.5" />
-            Canlı Destek
+            <span>Canlı Destek</span>
+            {unreadSupportCount > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black shrink-0 animate-pulse">
+                {unreadSupportCount}
+              </span>
+            )}
           </button>
         </div>
 

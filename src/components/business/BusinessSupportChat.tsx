@@ -143,7 +143,18 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       .eq('status', 'open')
       .order('created_at', { ascending: true });
 
-    if (data) setMessages(data as SupportMessage[]);
+    if (data) {
+      setMessages(data as SupportMessage[]);
+
+      // Mark unread messages from superadmin as read
+      const unreadIds = data.filter((m: any) => m.sender === 'superadmin' && !m.is_read).map((m: any) => m.id);
+      if (unreadIds.length > 0) {
+        await supabase
+          .from('support_messages')
+          .update({ is_read: true })
+          .in('id', unreadIds);
+      }
+    }
   };
 
   useEffect(() => {
@@ -162,7 +173,10 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         (payload) => {
           if (payload.eventType === 'INSERT') {
             const newMsg = payload.new as SupportMessage;
-            setMessages((prev) => [...prev, newMsg]);
+            setMessages((prev) => {
+              if (prev.some((m) => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
             if (newMsg.sender === 'superadmin') {
               sound.playMessageTone();
               toast.info('RestivAdisyon Müşteri Hizmetleri mesaj gönderdi.');
@@ -171,6 +185,12 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                 body: newMsg.message,
                 url: '/admin',
               });
+
+              // Mark as read immediately when viewed
+              supabase
+                .from('support_messages')
+                .update({ is_read: true })
+                .eq('id', newMsg.id);
             }
           } else if (payload.eventType === 'UPDATE') {
             const updated = payload.new as SupportMessage;
@@ -415,7 +435,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
   const hasAgentReplied = messages.some((m) => m.sender === 'superadmin');
 
   return (
-    <div className="w-full max-w-3xl space-y-4 font-medium text-slate-200">
+    <div className="w-full max-w-2xl mx-auto space-y-5 pt-2 sm:pt-6 font-medium text-slate-200">
       {/* 1. SİSTEM BİLDİRİMLERİ (Varsa) */}
       {isTrialExpiring && (
         <div className="bg-[#111622] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
@@ -461,7 +481,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
 
       {/* 2. SORUN BİLDİR VEYA CANLI SOHBET */}
       {!hasActiveConversation ? (
-        /* Direkt, Yalın, Kartsız Sorun Bildirim Formu */
+        /* Direkt, Ortalanmış, Kartsız Sorun Bildirim Formu */
         <form onSubmit={handleSubmitTicket} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-300 mb-1.5">
@@ -545,26 +565,37 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           </button>
         </form>
       ) : (
-        /* Canlı Destek Mesajlaşma Alanı */
-        <div className="space-y-3">
+        /* Canlı Destek Mesajlaşma & Yanıt Alanı */
+        <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <span className="text-xs font-bold text-slate-400">
-              {hasAgentReplied ? 'Aktif Destek Oturumu' : 'Talebiniz iletildi, temsilci yanıtı bekleniyor...'}
+              {hasAgentReplied ? 'Temsilci Yanıtladı • Canlı Destek' : 'Talebiniz İletildi • Yanıt Bekleniyor'}
             </span>
             <button
               onClick={handleEndChat}
               disabled={isEndingChat}
               className="px-3 py-1.5 bg-[#1C2433] hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-              title="Mevcut sohbeti sonlandırır"
+              title="Mevcut sohbeti sonlandırır ve yeni bildirim formu açar"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Sohbeti Bitir</span>
             </button>
           </div>
 
-          <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[500px]">
+          {!hasAgentReplied ? (
+            <div className="p-3.5 bg-[#111622] rounded-xl text-center text-xs text-slate-400 font-medium border border-white/5">
+              Sorun bildiriminiz RestivAdisyon Yönetim Masası'na iletildi. Temsilcimiz yanıt yazdığında mesajı burada anında görüntülenecektir.
+            </div>
+          ) : (
+            <div className="p-2.5 bg-emerald-500/10 text-emerald-400 rounded-xl text-center text-xs font-bold flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>Temsilcimiz yanıt verdi. Sorununuz çözülene kadar buradan mesajlaşmaya devam edebilirsiniz.</span>
+            </div>
+          )}
+
+          <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[480px]">
             {/* Mesaj Listesi */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 bg-[#0C1017] max-h-[500px]">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-[#0C1017] max-h-[480px]">
               {messages.map((m) => {
                 const isUser = m.sender === 'business';
                 return (
@@ -573,14 +604,16 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                     className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-[90%] sm:max-w-xl p-3.5 rounded-2xl text-xs leading-relaxed space-y-1.5 shadow-sm ${
+                      className={`max-w-[90%] sm:max-w-xl p-4 rounded-2xl text-xs leading-relaxed space-y-2 shadow-sm ${
                         isUser
                           ? 'bg-[#1C2433] text-slate-100 rounded-br-none'
-                          : 'bg-[#141A26] text-slate-200 rounded-bl-none'
+                          : 'bg-[#141A26] text-slate-200 rounded-bl-none border border-emerald-500/20'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-slate-400 pb-1">
-                        <span>{isUser ? 'Siz' : 'RestivAdisyon Temsilcisi'}</span>
+                      <div className="flex items-center justify-between gap-4 text-[10px] font-bold text-slate-400 pb-1 border-b border-white/5">
+                        <span className={isUser ? 'text-slate-300' : 'text-emerald-400 font-bold'}>
+                          {isUser ? 'Siz' : 'RestivAdisyon Müşteri Hizmetleri'}
+                        </span>
                         <span>
                           {new Date(m.created_at).toLocaleTimeString('tr-TR', {
                             hour: '2-digit',

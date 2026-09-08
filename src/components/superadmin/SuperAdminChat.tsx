@@ -16,7 +16,42 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [unreadMap, setUnreadMap] = useState<Record<string, number>>({});
+  const [latestMessageMap, setLatestMessageMap] = useState<Record<string, { message: string; created_at: string; sender: string; subject?: string }>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const fetchSupportSummary = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('support_messages')
+        .select('id, business_id, sender, is_read, message, subject, created_at, status')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        const uMap: Record<string, number> = {};
+        const lMap: Record<string, { message: string; created_at: string; sender: string; subject?: string }> = {};
+
+        data.forEach((m: any) => {
+          if (m.sender === 'business' && !m.is_read) {
+            uMap[m.business_id] = (uMap[m.business_id] || 0) + 1;
+          }
+          if (!lMap[m.business_id]) {
+            lMap[m.business_id] = {
+              message: m.message,
+              created_at: m.created_at,
+              sender: m.sender,
+              subject: m.subject,
+            };
+          }
+        });
+
+        setUnreadMap(uMap);
+        setLatestMessageMap(lMap);
+      }
+    } catch (err) {
+      console.warn('Superadmin fetch support summary error:', err);
+    }
+  };
 
   const fetchMessages = async (bizId: string) => {
     if (!bizId) return;
@@ -38,6 +73,8 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
           .eq('business_id', bizId)
           .eq('sender', 'business')
           .eq('is_read', false);
+
+        setUnreadMap((prev) => ({ ...prev, [bizId]: 0 }));
       }
     } catch (err) {
       console.warn('Superadmin chat fetch error:', err);
@@ -46,29 +83,42 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
     }
   };
 
+  // Global listener for ALL support messages across any business
+  useEffect(() => {
+    fetchSupportSummary();
+
+    const channel = supabase
+      .channel('sa_all_support_listener')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'support_messages',
+        },
+        (payload) => {
+          fetchSupportSummary();
+          if (payload.eventType === 'INSERT') {
+            const newMsg = payload.new as SupportMessage;
+            if (newMsg.business_id === selectedBizId) {
+              setMessages((prev) => {
+                if (prev.some((m) => m.id === newMsg.id)) return prev;
+                return [...prev, newMsg];
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedBizId]);
+
   useEffect(() => {
     if (selectedBizId) {
       fetchMessages(selectedBizId);
-
-      const channel = supabase
-        .channel(`sa_support_${selectedBizId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'support_messages',
-            filter: `business_id=eq.${selectedBizId}`,
-          },
-          (payload) => {
-            setMessages((prev) => [...prev, payload.new as SupportMessage]);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
     }
   }, [selectedBizId]);
 
@@ -84,15 +134,24 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
     setNewMessage('');
 
     try {
-      await supabase.from('support_messages').insert([
+      const { data, error } = await supabase.from('support_messages').insert([
         {
           business_id: selectedBizId,
           sender: 'superadmin',
           message: text,
           status: 'open',
+          is_resolved: false,
           is_read: false,
         },
-      ]);
+      ]).select().single();
+
+      if (!error && data) {
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.id)) return prev;
+          return [...prev, data as SupportMessage];
+        });
+        fetchSupportSummary();
+      }
     } catch (err) {
       console.warn('Superadmin send message error:', err);
     }
@@ -102,6 +161,21 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
     b.username.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Sort businesses: unread tickets first, then most recently messaged, then alphabetic
+  const sortedBusinesses = [...filteredBusinesses].sort((a, b) => {
+    const unreadA = unreadMap[a.id] || 0;
+    const unreadB = unreadMap[b.id] || 0;
+    if (unreadA !== unreadB) return unreadB - unreadA;
+
+    const timeA = latestMessageMap[a.id]?.created_at || '';
+    const timeB = latestMessageMap[b.id]?.created_at || '';
+    if (timeA && timeB) return new Date(timeB).getTime() - new Date(timeA).getTime();
+    if (timeA) return -1;
+    if (timeB) return 1;
+
+    return a.name.localeCompare(b.name);
+  });
 
   const activeBusiness = businesses.find((b) => b.id === selectedBizId);
 
@@ -123,22 +197,37 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
         </div>
 
         <div className="flex-1 overflow-y-auto divide-y divide-[#1F293D]">
-          {filteredBusinesses.map((biz) => {
+          {sortedBusinesses.map((biz) => {
             const isSelected = biz.id === selectedBizId;
+            const unread = unreadMap[biz.id] || 0;
+            const latest = latestMessageMap[biz.id];
+
             return (
               <button
                 key={biz.id}
                 onClick={() => setSelectedBizId(biz.id)}
-                className={`w-full text-left p-3 transition flex items-center gap-3 ${
+                className={`w-full text-left p-3 transition flex items-center gap-3 relative ${
                   isSelected ? 'bg-white/10 border-l-2 border-white' : 'hover:bg-white/5'
                 }`}
               >
-                <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white font-bold text-xs flex items-center justify-center shrink-0 border border-[#2B384E]">
+                <div className="w-8 h-8 rounded-xl bg-[#1C2433] text-white font-bold text-xs flex items-center justify-center shrink-0 border border-[#2B384E] relative">
                   {biz.name.charAt(0)}
+                  {unread > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold text-slate-200 truncate">{biz.name}</div>
-                  <div className="text-[10px] text-slate-400 truncate">{biz.username}</div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs font-bold text-slate-200 truncate">{biz.name}</span>
+                    {unread > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-md bg-rose-500 text-white text-[9px] font-black shrink-0 animate-pulse">
+                        {unread} Yeni
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                    {latest?.subject ? `[${latest.subject}] ` : ''}{latest?.message || biz.username}
+                  </p>
                 </div>
               </button>
             );
