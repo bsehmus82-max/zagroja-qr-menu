@@ -1,5 +1,5 @@
 {
-  "name": "zagroja-qr-menu",
+  "name": "restivadisyon",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -14,6 +14,7 @@
   "build": {
     "appId": "com.restivadisyon.app",
     "productName": "RestivAdisyon",
+    "artifactName": "RestivAdisyon-Setup.${ext}",
     "directories": {
       "output": "C:/Users/bsehm/OneDrive/Masaüstü/RestivAdisyon-Kurulum"
     },
