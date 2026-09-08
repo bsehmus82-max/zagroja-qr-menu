@@ -19,7 +19,7 @@ function createWindow() {
     height: 800,
     minWidth: 1024,
     minHeight: 768,
-    title: 'RestivAdisyon POS',
+    title: 'RestivAdisyon',
     icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     autoHideMenuBar: true,
     backgroundColor: '#0C1017',
@@ -111,7 +111,7 @@ ipcMain.handle('print-receipt', async (event, options) => {
 
 app.whenReady().then(() => {
   if (process.platform === 'win32') {
-    app.setAppUserModelId('com.restivadisyon.pos');
+    app.setAppUserModelId('com.restivadisyon.app');
   }
   createWindow();
 

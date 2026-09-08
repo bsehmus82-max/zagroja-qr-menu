@@ -12,8 +12,8 @@
     "electron:build": "electron-builder"
   },
   "build": {
-    "appId": "com.restivadisyon.pos",
-    "productName": "RestivAdisyon POS",
+    "appId": "com.restivadisyon.app",
+    "productName": "RestivAdisyon",
     "directories": {
       "output": "C:/Users/bsehm/OneDrive/Masaüstü/RestivAdisyon-Kurulum"
     },
@@ -26,8 +26,11 @@
       "icon": "assets/icon.ico"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RestivAdisyon",
       "runAfterFinish": true
     }
   },
