@@ -189,13 +189,28 @@ export const SuperAdminChat: React.FC<SuperAdminChatProps> = ({ businesses }) =>
                   className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed space-y-1.5 ${
                       isMe
                         ? 'bg-[#1C2433] border border-[#2B384E] text-white rounded-br-none shadow-sm'
                         : 'bg-[#111622] border border-[#1F293D] text-slate-200 rounded-bl-none'
                     }`}
                   >
+                    {m.subject && (
+                      <div className="text-[11px] font-bold text-slate-300 pb-1 border-b border-white/10 mb-1">
+                        Konu: {m.subject}
+                      </div>
+                    )}
                     <p className="whitespace-pre-wrap">{m.message}</p>
+                    {m.image_url && (
+                      <div className="pt-1.5">
+                        <img
+                          src={m.image_url}
+                          alt="Ekran Görüntüsü"
+                          className="max-h-56 rounded-xl object-contain bg-black/30 p-1 cursor-pointer hover:opacity-90 transition"
+                          onClick={() => window.open(m.image_url, '_blank')}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-1 mt-1 text-[9px] text-slate-500">
                     <Clock className="w-2.5 h-2.5" />

@@ -3,7 +3,9 @@ import {
   Send, ShieldCheck, 
   AlertTriangle,
   CheckCircle2,
-  FileText, Download
+  FileText, Download,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import { Business, SupportMessage, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -18,18 +20,95 @@ interface BusinessSupportChatProps {
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
   const toast = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatFileInputRef = useRef<HTMLInputElement>(null);
 
   // Ticket Form States
   const [subject, setSubject] = useState('');
   const [issueDescription, setIssueDescription] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
   const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
 
   // Active Chat State
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
+  const [chatImageUrl, setChatImageUrl] = useState('');
+  const [isCompressingChatImage, setIsCompressingChatImage] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isEndingChat, setIsEndingChat] = useState(false);
+
+  const compressImageFile = (
+    file: File,
+    onSuccess: (base64: string) => void,
+    setLoading: (loading: boolean) => void
+  ) => {
+    if (!file.type.startsWith('image/')) {
+      toast.error('Lütfen geçerli bir görsel dosyası (.jpg, .png, .webp) seçiniz.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Görsel boyutu 10MB\'dan küçük olmalıdır.');
+      return;
+    }
+
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 1280;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+          onSuccess(compressedBase64);
+        }
+        setLoading(false);
+      };
+      img.onerror = () => {
+        toast.error('Görsel işlenirken bir sorun oluştu.');
+        setLoading(false);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.onerror = () => {
+      toast.error('Görsel okunamadı.');
+      setLoading(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleTicketImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressImageFile(file, (base64) => setImageUrl(base64), setIsCompressingImage);
+    }
+  };
+
+  const handleChatImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      compressImageFile(file, (base64) => setChatImageUrl(base64), setIsCompressingChatImage);
+    }
+  };
 
   // Monthly Report Check (Days 1 to 5)
   const now = new Date();
@@ -271,10 +350,13 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() && !chatImageUrl) return;
 
     const text = chatInput.trim();
+    const attachedImage = chatImageUrl;
     setChatInput('');
+    setChatImageUrl('');
+    if (chatFileInputRef.current) chatFileInputRef.current.value = '';
 
     try {
       setIsSendingMessage(true);
@@ -284,7 +366,8 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
           {
             business_id: business.id,
             sender: 'business',
-            message: text,
+            message: text || '(Görsel paylaşıldı)',
+            image_url: attachedImage || null,
             is_read: false,
             status: 'open',
             is_resolved: false,
@@ -377,8 +460,8 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       )}
 
       {/* 2. SORUN BİLDİR & CANLI DESTEK ANA PANELİ */}
-      <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[560px]">
-        {/* Header */}
+      <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[520px]">
+        {/* Header - Kullanıcı talimatı: Üst panele karışma o çok iyi */}
         <div className="p-4 sm:p-5 bg-[#141A26] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <ShieldCheck className="w-5 h-5 text-slate-400 shrink-0" />
@@ -407,18 +490,11 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
 
         {/* İçerik: Form veya Canlı Mesajlaşma */}
         {!hasActiveConversation ? (
-          /* Sorun Bildirim Formu */
-          <div className="p-6 sm:p-8 max-w-lg mx-auto w-full space-y-4 my-auto">
-            <div className="text-center space-y-1">
-              <h3 className="text-sm sm:text-base font-bold text-white">Yeni Sorun Bildirimi</h3>
-              <p className="text-xs text-slate-400">
-                Karşılaştığınız teknik durumu veya sorunuzu iletin. Temsilcimiz yanıtladığında canlı sohbet başlayacaktır.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubmitTicket} className="space-y-3 pt-2">
+          /* Düz, Kartsız, Yalın Sorun Bildirim Formu */
+          <div className="p-5 sm:p-6 w-full flex-1 flex flex-col justify-center">
+            <form onSubmit={handleSubmitTicket} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   Konu Başlığı
                 </label>
                 <input
@@ -427,44 +503,75 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
-                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-bold focus:outline-none"
+                  className="w-full bg-[#0C1017] rounded-xl px-4 py-3 text-xs text-slate-100 font-bold focus:outline-none placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
                   Detaylı Açıklama
                 </label>
                 <textarea
                   required
-                  rows={4}
+                  rows={5}
                   value={issueDescription}
                   onChange={(e) => setIssueDescription(e.target.value)}
-                  placeholder="Lütfen karşılaştığınız durumu detaylı olarak açıklayınız..."
-                  className="w-full bg-[#0C1017] rounded-xl p-3 text-xs text-slate-100 font-medium focus:outline-none resize-none"
+                  placeholder="Lütfen karşılaştığınız teknik durumu veya sorunuzu detaylı olarak açıklayınız..."
+                  className="w-full bg-[#0C1017] rounded-xl p-4 text-xs text-slate-100 font-medium focus:outline-none resize-none placeholder:text-slate-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Ekran Görüntüsü / Resim URL (İsteğe Bağlı)
+                <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                  Ekran Görüntüsü / Fotoğraf (İsteğe Bağlı)
                 </label>
                 <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://... (Görsel linki varsa yapıştırabilirsiniz)"
-                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  onChange={handleTicketImageChange}
+                  className="hidden"
                 />
+
+                {!imageUrl ? (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full bg-[#0C1017] hover:bg-[#141A26] rounded-xl p-3.5 flex items-center justify-center gap-2 cursor-pointer transition text-slate-400 hover:text-slate-200 active:scale-[0.99]"
+                  >
+                    <ImageIcon className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span className="text-xs font-bold">
+                      {isCompressingImage ? 'Görsel işleniyor...' : 'Görsel / Ekran Görüntüsü Seç (.jpg, .png, .webp)'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative inline-block mt-1">
+                    <img
+                      src={imageUrl}
+                      alt="Seçilen Görsel"
+                      className="max-h-40 rounded-xl object-contain bg-[#0C1017] p-1 shadow"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImageUrl('');
+                        if (fileInputRef.current) fileInputRef.current.value = '';
+                      }}
+                      className="absolute -top-2 -right-2 p-1 bg-[#1C2433] hover:bg-rose-600 text-white rounded-full transition cursor-pointer shadow-md"
+                      title="Görseli Kaldır"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={isSubmittingTicket}
+                disabled={isSubmittingTicket || isCompressingImage}
                 className="w-full py-3 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : 'Sorun Bildirimini Gönder'}</span>
+                <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : isCompressingImage ? 'Görsel Yükleniyor...' : 'Sorun Bildirimini Gönder'}</span>
               </button>
             </form>
           </div>
@@ -516,7 +623,8 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
                           <img
                             src={m.image_url}
                             alt="Ekran Görüntüsü"
-                            className="max-h-48 rounded-xl object-cover"
+                            className="max-h-56 rounded-xl object-contain bg-black/30 p-1 cursor-pointer hover:opacity-90 transition"
+                            onClick={() => window.open(m.image_url, '_blank')}
                           />
                         </div>
                       )}
@@ -528,22 +636,61 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-[#111622] flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Mesajınızı yazınız..."
-                className="flex-1 bg-[#0C1017] rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none font-medium placeholder:text-slate-500"
-              />
-              <button
-                type="submit"
-                disabled={!chatInput.trim() || isSendingMessage}
-                className="px-4 py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-40 active:scale-95 cursor-pointer shrink-0"
-              >
-                <Send className="w-4 h-4" />
-                <span className="hidden sm:inline">Gönder</span>
-              </button>
+            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-[#111622] flex flex-col gap-2">
+              {chatImageUrl && (
+                <div className="relative inline-block self-start">
+                  <img
+                    src={chatImageUrl}
+                    alt="Seçilen Görsel"
+                    className="max-h-20 rounded-lg object-contain bg-[#0C1017] p-1 shadow"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setChatImageUrl('');
+                      if (chatFileInputRef.current) chatFileInputRef.current.value = '';
+                    }}
+                    className="absolute -top-1.5 -right-1.5 p-0.5 bg-[#1C2433] hover:bg-rose-600 text-white rounded-full transition cursor-pointer shadow"
+                    title="Görseli Kaldır"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex gap-2 items-center">
+                <input
+                  ref={chatFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/jpg"
+                  onChange={handleChatImageChange}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => chatFileInputRef.current?.click()}
+                  className="p-2.5 bg-[#0C1017] hover:bg-[#1C2433] text-slate-400 hover:text-slate-200 rounded-xl transition cursor-pointer shrink-0"
+                  title="Görsel / Ekran Görüntüsü Ekle"
+                >
+                  <ImageIcon className="w-4 h-4" />
+                </button>
+
+                <input
+                  type="text"
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  placeholder="Mesajınızı yazınız..."
+                  className="flex-1 bg-[#0C1017] rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none font-medium placeholder:text-slate-500"
+                />
+                <button
+                  type="submit"
+                  disabled={(!chatInput.trim() && !chatImageUrl) || isSendingMessage || isCompressingChatImage}
+                  className="px-4 py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-40 active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Send className="w-4 h-4" />
+                  <span className="hidden sm:inline">Gönder</span>
+                </button>
+              </div>
             </form>
           </div>
         )}
