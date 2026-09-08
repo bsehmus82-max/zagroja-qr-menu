@@ -68,11 +68,23 @@ export interface NativeNotificationOptions {
   icon?: string;
 }
 
-/**
- * Dispatches a native OS / Device notification (auto-closes cleanly after 4.5s)
- */
 export async function sendNativeNotification(options: NativeNotificationOptions) {
-  if (isDesktopApp()) return; // Desktop app uses native Windows beep and thermal printer engine
+  // 1. Electron Desktop App Notification (Windows Toast)
+  if (typeof window !== 'undefined' && (window as any).electronAPI?.showNotification) {
+    try {
+      const isFocused = await (window as any).electronAPI.isWindowFocused?.();
+      // Show OS notification if window is minimized or not in focus
+      if (!isFocused) {
+        await (window as any).electronAPI.showNotification({
+          title: options.title,
+          body: options.body,
+        });
+      }
+    } catch (err) {
+      console.warn('Electron notification trigger failed:', err);
+    }
+    return;
+  }
 
   if (!isNotificationSupported()) return;
 

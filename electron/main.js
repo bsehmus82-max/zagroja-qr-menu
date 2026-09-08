@@ -109,6 +109,42 @@ ipcMain.handle('print-receipt', async (event, options) => {
   }
 });
 
+// IPC: Native Windows Notification
+ipcMain.handle('show-notification', async (event, options) => {
+  try {
+    const { Notification } = require('electron');
+    const { title = 'RestivAdisyon', body = '' } = options || {};
+
+    if (Notification.isSupported()) {
+      const notif = new Notification({
+        title,
+        body,
+        icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
+      });
+
+      notif.on('click', () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      });
+
+      notif.show();
+      return { success: true };
+    }
+    return { success: false, reason: 'Notification not supported' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+});
+
+// IPC: Check if Main Window is active and focused
+ipcMain.handle('is-window-focused', () => {
+  if (!mainWindow) return false;
+  return mainWindow.isFocused() && !mainWindow.isMinimized() && mainWindow.isVisible();
+});
+
 app.whenReady().then(() => {
   if (process.platform === 'win32') {
     app.setAppUserModelId('com.restivadisyon.app');

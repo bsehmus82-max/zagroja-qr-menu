@@ -1,18 +1,35 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from 'lucide-react';
+import { 
+  CheckCircle2, AlertCircle, Info, AlertTriangle, 
+  X, ClipboardList, ArrowRight, UtensilsCrossed 
+} from 'lucide-react';
+import { Order } from '../types';
 
-export type ToastType = 'success' | 'error' | 'info' | 'warning';
+export type ToastType = 'success' | 'error' | 'info' | 'warning' | 'order';
+
+export interface OrderToastPayload {
+  orderId: string;
+  tableNo: string;
+  totalAmount: number;
+  paymentMethod?: string;
+  items: Array<{ name: string; quantity: number; notes?: string; price?: number }>;
+  customerNotes?: string;
+}
 
 interface Toast {
   id: string;
   message: string;
   type: ToastType;
-  duration: number; // 10000 ms (10 seconds)
+  duration: number; // 10000 ms default
   createdAt: number;
+  orderPayload?: OrderToastPayload;
+  onAction?: () => void;
+  actionLabel?: string;
 }
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType, duration?: number) => void;
+  showOrderToast: (order: Order, onGoToOrders?: () => void) => void;
   success: (message: string) => void;
   error: (message: string) => void;
   info: (message: string) => void;
@@ -33,7 +50,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => {
       const next = prev.filter((t) => t.id !== id);
-      // Reset active refs if removing the active toast
       if (activeToastRef.current === id) {
         activeToastRef.current = next.length > 0 ? next[0].id : null;
         activeStartTimeRef.current = Date.now();
@@ -46,7 +62,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     (message: string, type: ToastType = 'info', duration: number = 10000) => {
       const now = Date.now();
       
-      // Debounce identical duplicate messages within 2.5 seconds to prevent spam
+      // Debounce identical duplicate messages within 2.5 seconds
       const lastSeen = recentMessagesRef.current.get(message);
       if (lastSeen && now - lastSeen < 2500) {
         return;
@@ -59,10 +75,42 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     []
   );
 
-  // 10-Second Sequential Countdown Queue
-  // The first (topmost) notification is the ONLY active one counting down for 10 seconds.
-  // When a new notification arrives, the top notification's timer DOES NOT restart.
-  // When the top notification finishes or is closed, the next notification moves to top and starts its 10 seconds.
+  const showOrderToast = useCallback((order: Order, onGoToOrders?: () => void) => {
+    const now = Date.now();
+    const id = `order_toast_${order.id || now}`;
+    
+    // Prevent duplicate popup for exact same order id
+    setToasts((prev) => {
+      if (prev.some((t) => t.id === id)) return prev;
+      return [
+        ...prev,
+        {
+          id,
+          message: `${order.table_no} için yeni sipariş`,
+          type: 'order',
+          duration: 12000,
+          createdAt: now,
+          orderPayload: {
+            orderId: order.id,
+            tableNo: order.table_no,
+            totalAmount: order.total_amount,
+            paymentMethod: order.payment_method,
+            items: order.items.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              notes: i.notes,
+              price: i.price,
+            })),
+            customerNotes: order.customer_notes,
+          },
+          onAction: onGoToOrders,
+          actionLabel: 'Siparişi Gör',
+        },
+      ];
+    });
+  }, []);
+
+  // 10-Second Sequential Countdown Queue (First item is topmost/active)
   const activeToast = toasts.length > 0 ? toasts[0] : null;
   const activeToastId = activeToast ? activeToast.id : null;
 
@@ -73,7 +121,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return;
     }
 
-    // If this is a new active toast, initialize its start time
     if (activeToastRef.current !== activeToastId) {
       activeToastRef.current = activeToastId;
       activeStartTimeRef.current = Date.now();
@@ -102,33 +149,111 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const warning = useCallback((msg: string) => showToast(msg, 'warning', 10000), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, info, warning }}>
+    <ToastContext.Provider value={{ showToast, showOrderToast, success, error, info, warning }}>
       {children}
 
-      {/* Floating Notification Queue Container (Top-Right, 10s per item, First is Topmost) */}
-      <div className="fixed top-4 right-4 z-[99999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-3 sm:px-0">
+      {/* Floating Notifications Container: Sağ Altta (Bottom-Right), Alt Alta Sıralı, Çizgisiz & MD Uyumlu */}
+      <div className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-2.5 max-w-sm sm:max-w-md w-full pointer-events-none px-3 sm:px-0">
         {toasts.map((toast, index) => {
           const isActive = index === 0;
+          const isOrder = toast.type === 'order';
           const isSuccess = toast.type === 'success';
           const isError = toast.type === 'error';
           const isWarning = toast.type === 'warning';
 
+          // 1. DETAYLI GENİŞ SİPARİŞ POP-UP BİLDİRİMİ
+          if (isOrder && toast.orderPayload) {
+            const op = toast.orderPayload;
+            return (
+              <div
+                key={toast.id}
+                className={`pointer-events-auto relative overflow-hidden p-4 rounded-2xl shadow-2xl bg-[#111622] text-slate-100 transition-all duration-300 transform ${
+                  isActive ? 'scale-100 opacity-100' : 'scale-98 opacity-85'
+                }`}
+              >
+                {/* 10s Countdown Progress Bar */}
+                {isActive && (
+                  <div
+                    className="absolute bottom-0 left-0 h-0.5 bg-emerald-400/40 transition-all duration-75"
+                    style={{ width: `${activeProgress}%` }}
+                  />
+                )}
+
+                {/* Header: Masa No & Tutar */}
+                <div className="flex items-center justify-between gap-2 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-[#1C2433] text-emerald-400 flex items-center justify-center shrink-0">
+                      <ClipboardList className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-sm text-white tracking-tight">
+                        {op.tableNo}
+                      </h4>
+                      <p className="text-[10px] text-slate-400">Yeni Sipariş Geldi</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-black text-sm text-emerald-400 bg-[#0C1017] px-2.5 py-1 rounded-xl">
+                      {op.totalAmount.toFixed(2)} ₺
+                    </span>
+                    <button
+                      onClick={() => removeToast(toast.id)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-[#1C2433] transition cursor-pointer"
+                      title="Kapat"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Items Summary Breakdown */}
+                <div className="bg-[#0C1017] rounded-xl p-2.5 space-y-1 max-h-32 overflow-y-auto mb-3 scrollbar-none">
+                  {op.items.map((it, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                      <span className="text-slate-200 font-bold truncate pr-2">
+                        {it.quantity}x {it.name}
+                      </span>
+                      {it.price && (
+                        <span className="text-slate-400 text-[11px] font-mono shrink-0">
+                          {(it.price * it.quantity).toFixed(2)} ₺
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {op.customerNotes && (
+                    <p className="text-[10px] text-amber-300 italic pt-1 border-t border-white/5">
+                      Müşteri Notu: {op.customerNotes}
+                    </p>
+                  )}
+                </div>
+
+                {/* Action Button */}
+                {toast.onAction && (
+                  <button
+                    onClick={() => {
+                      toast.onAction?.();
+                      removeToast(toast.id);
+                    }}
+                    className="w-full py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                  >
+                    <span>Siparişi Görüntüle</span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-300" />
+                  </button>
+                )}
+              </div>
+            );
+          }
+
+          // 2. GENEL STANDART BİLDİRİMLER (Garson Çağrısı, Sistem, Destek vb.)
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto relative overflow-hidden p-3.5 rounded-2xl shadow-2xl border backdrop-blur-xl flex items-start gap-3 transition-all duration-300 transform ${
-                isActive ? 'scale-100 opacity-100 shadow-lg' : 'scale-98 opacity-80'
-              } ${
-                isSuccess
-                  ? 'bg-[#0C1512]/95 border-emerald-500/30 text-slate-100 shadow-black/60'
-                  : isError
-                  ? 'bg-[#180D10]/95 border-rose-500/30 text-slate-100 shadow-black/60'
-                  : isWarning
-                  ? 'bg-[#18140D]/95 border-amber-500/30 text-slate-100 shadow-black/60'
-                  : 'bg-[#111622]/95 border-[#1F293D] text-slate-100 shadow-black/60'
+              className={`pointer-events-auto relative overflow-hidden p-3.5 rounded-2xl shadow-2xl bg-[#111622] text-slate-100 flex items-start gap-3 transition-all duration-300 transform ${
+                isActive ? 'scale-100 opacity-100' : 'scale-98 opacity-85'
               }`}
             >
-              {/* Animated 10s Progress Bar on Active Notification */}
+              {/* 10s Countdown Progress Bar */}
               {isActive && (
                 <div
                   className="absolute bottom-0 left-0 h-0.5 bg-white/20 transition-all duration-75"
@@ -154,7 +279,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
               <button
                 onClick={() => removeToast(toast.id)}
-                className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg transition hover:bg-white/10"
+                className="shrink-0 text-slate-400 hover:text-white p-1 rounded-lg transition hover:bg-[#1C2433] cursor-pointer"
                 title="Kapat"
               >
                 <X className="w-3.5 h-3.5" />
@@ -174,3 +299,4 @@ export const useToast = () => {
   }
   return context;
 };
+

@@ -7,4 +7,6 @@ const { contextBridge, ipcRenderer } = require('electron');
  */
 contextBridge.exposeInMainWorld('electronAPI', {
   printReceipt: (options) => ipcRenderer.invoke('print-receipt', options),
+  showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+  isWindowFocused: () => ipcRenderer.invoke('is-window-focused'),
 });

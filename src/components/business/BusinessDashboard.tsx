@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BarChart3, UtensilsCrossed, ChefHat, Calculator, ClipboardList,
   TrendingUp, Settings, LogOut, ExternalLink, QrCode,
@@ -45,6 +45,11 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
   >(() => {
     return (localStorage.getItem('biz_active_tab') as any) || 'overview';
   });
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
   const [unreadSupportCount, setUnreadSupportCount] = useState<number>(0);
   const [pendingCallsCount, setPendingCallsCount] = useState<number>(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,6 +74,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
 
   const handleTabChange = (tab: typeof activeTab) => {
     setActiveTab(tab);
+    activeTabRef.current = tab;
     localStorage.setItem('biz_active_tab', tab);
     setIsMobileMenuOpen(false);
   };
@@ -135,11 +141,15 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
           // Automatic Web & Thermal Ticket Printing
           printKitchenTicket(business, newOrder);
           
-          toast.info(`${newOrder.table_no} için yeni sipariş geldi (${newOrder.total_amount.toFixed(2)} ₺)`);
-          sendNativeNotification({
-            title: `Yeni Sipariş: ${newOrder.table_no}`,
-            body: `${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} (${newOrder.total_amount.toFixed(2)} ₺)`,
-          });
+          // Show popup toast and desktop notification ONLY if NOT already looking at orders or kitchen screens!
+          if (activeTabRef.current !== 'orders' && activeTabRef.current !== 'kitchen') {
+            toast.showOrderToast(newOrder, () => handleTabChange('orders'));
+            sendNativeNotification({
+              title: `Yeni Sipariş: ${newOrder.table_no}`,
+              body: `${newOrder.items.map(i => `${i.quantity}x ${i.name}`).join(', ')} (${newOrder.total_amount.toFixed(2)} ₺)`,
+              url: '/admin',
+            });
+          }
         }
       )
       .on(
