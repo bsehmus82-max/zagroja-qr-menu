@@ -373,7 +373,7 @@ export const BusinessDashboard: React.FC<BusinessDashboardProps> = ({
       case 'expenses': return 'Gider & Masraf Yönetimi';
       case 'turnover': return 'Gün Sonu & Kasa Analizi';
       case 'settings': return 'İşletme ve Panel Ayarları';
-      case 'support': return 'Sorun Bildir & Bildirimler';
+      case 'support': return 'Sorun Bildir & Destek';
       default: return '';
     }
   };

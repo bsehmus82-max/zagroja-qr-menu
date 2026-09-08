@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Send, ShieldCheck, RefreshCw, CheckCheck, 
-  AlertTriangle, Image as ImageIcon,
-  ExternalLink, ChevronRight, Headphones, CheckCircle2,
-  FileText, Download, Globe
+  Send, ShieldCheck, 
+  AlertTriangle,
+  CheckCircle2,
+  FileText, Download
 } from 'lucide-react';
-import { Business, SupportMessage, Order, PlatformType } from '../../types';
+import { Business, SupportMessage, Order } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
 import { sendNativeNotification } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
-import { PLATFORM_INFO } from '../../lib/foodPlatforms';
 
 interface BusinessSupportChatProps {
   business: Business;
@@ -19,20 +18,6 @@ interface BusinessSupportChatProps {
 export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ business }) => {
   const toast = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-  };
-
-  const [activeView, setActiveView] = useState<'ticket' | 'platform_request'>('ticket');
-
-  // Platform Request Form States
-  const [reqPlatform, setReqPlatform] = useState<PlatformType>('trendyol');
-  const [reqMerchantId, setReqMerchantId] = useState('');
-  const [reqNotes, setReqNotes] = useState('');
-  const [isSubmittingPlatformReq, setIsSubmittingPlatformReq] = useState(false);
 
   // Ticket Form States
   const [subject, setSubject] = useState('');
@@ -101,7 +86,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
             setMessages((prev) => [...prev, newMsg]);
             if (newMsg.sender === 'superadmin') {
               sound.playMessageTone();
-              toast.info('Restiva Müşteri Hizmetleri mesaj gönderdi.');
+              toast.info('RestivAdisyon Müşteri Hizmetleri mesaj gönderdi.');
               sendNativeNotification({
                 title: 'Destek Yanıtı',
                 body: newMsg.message,
@@ -229,7 +214,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         </table>
 
         <div class="footer">
-          Bu belge Restiva Adisyon Bulut Platformu tarafından üretilmiş resmi aylık ciro özetidir.
+          Bu belge RestivAdisyon Bulut Platformu tarafından üretilmiş resmi aylık ciro özetidir.
         </div>
 
         <script>
@@ -276,55 +261,11 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       setSubject('');
       setIssueDescription('');
       setImageUrl('');
-      toast.success('Sorun bildiriminiz Restiva Müşteri Hizmetleri\'ne iletildi.');
+      toast.success('Sorun bildiriminiz RestivAdisyon Müşteri Hizmetleri\'ne iletildi.');
     } catch (err: any) {
       toast.error('Talep iletilemedi: ' + err.message);
     } finally {
       setIsSubmittingTicket(false);
-    }
-  };
-
-  const handleSubmitPlatformRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reqMerchantId.trim()) {
-      toast.error('Lütfen Satıcı / Restoran / Şube ID numaranızı giriniz.');
-      return;
-    }
-
-    setIsSubmittingPlatformReq(true);
-    try {
-      const platformName = PLATFORM_INFO[reqPlatform]?.name || reqPlatform;
-      const fullSubject = `[Platform Entegrasyon Talebi] ${platformName} (ID: ${reqMerchantId.trim()})`;
-      const fullMessage = `İşletmemize "${platformName}" yemek platformunun bağlanmasını talep ediyoruz.\n\nSatıcı / Restoran ID: ${reqMerchantId.trim()}\nİşletme Notu: ${reqNotes.trim() || 'Hemen bağlanmasını rica ederiz.'}`;
-
-      const { data, error } = await supabase
-        .from('support_messages')
-        .insert([{
-          business_id: business.id,
-          sender: 'business',
-          subject: fullSubject,
-          message: fullMessage,
-          is_read: false,
-          status: 'open',
-          is_resolved: false,
-        }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setMessages((prev) => [...prev, data as SupportMessage]);
-        sound.playMessageTone();
-        toast.success(`${platformName} entegrasyon talebiniz sistem yöneticisine başarıyla iletildi!`);
-        setReqMerchantId('');
-        setReqNotes('');
-        setActiveView('ticket');
-      }
-    } catch (err: any) {
-      toast.error('Talep iletilemedi: ' + err.message);
-    } finally {
-      setIsSubmittingPlatformReq(false);
     }
   };
 
@@ -391,357 +332,222 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
   const hasAgentReplied = messages.some((m) => m.sender === 'superadmin');
 
   return (
-    <div className="max-w-5xl mx-auto space-y-5 font-medium text-slate-200">
-      {/* 1. SİSTEM BİLDİRİMLERİ KUTUSU */}
-      <div className="space-y-2.5">
-        {/* Trial Warning Alert */}
-        {isTrialExpiring && (
-          <div className="bg-[#161E2E] border border-[#2B384E] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-white">Deneme Süresi Uyarısı</h4>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  {diffDays === 0
-                    ? 'Deneme süreniz bugün sona ermektedir. Kesintisiz erişim için lütfen aboneliğinizi yenileyiniz.'
-                    : `Deneme sürenizin bitmesine ${diffDays} gün kaldı. Sisteminizin kapanmaması için aboneliğinizi yenileyiniz.`}
-                </p>
-              </div>
+    <div className="max-w-4xl mx-auto space-y-4 font-medium text-slate-200">
+      {/* 1. SİSTEM BİLDİRİMLERİ (Varsa) */}
+      {isTrialExpiring && (
+        <div className="bg-[#111622] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+            <div>
+              <h4 className="text-xs font-bold text-white">Deneme Süresi Uyarısı</h4>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {diffDays === 0
+                  ? 'Deneme süreniz bugün sona ermektedir. Kesintisiz erişim için lütfen aboneliğinizi yenileyiniz.'
+                  : `Deneme sürenizin bitmesine ${diffDays} gün kaldı. Sisteminizin kapanmaması için aboneliğinizi yenileyiniz.`}
+              </p>
             </div>
-            <span className="text-xs font-black bg-white/15 text-white px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0 border border-white/20">
-              Kalan: {diffDays} Gün
-            </span>
           </div>
-        )}
-
-        {/* Monthly Accounting PDF Report Notice */}
-        {isMonthlyPdfReady && (
-          <div className="bg-[#161E2E] border border-[#2B384E] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-white">
-                  {prevMonthName} Aylık Ciro Raporu Hazır
-                </h4>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Ayın 1-5'i arasında geçen ayın tüm satış, nakit ve kredi kartı dökümünü resmi muhasebe PDF formatında indirebilirsiniz.
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleDownloadMonthlyPdf}
-              className="px-4 py-2 bg-white hover:bg-slate-200 text-slate-900 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition shrink-0 self-start sm:self-auto active:scale-95"
-            >
-              <Download className="w-4 h-4" />
-              <span>Aylık PDF İndir</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 2. ANA SEKMELER: SORUN BİLDİR & DESTEK / YEMEK PLATFORMU BAĞLAMA */}
-      <div className="flex items-center gap-2 bg-[#111622] p-1.5 rounded-2xl border border-[#1F293D] shadow-sm">
-        <button
-          onClick={() => setActiveView('ticket')}
-          className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 relative ${
-            activeView === 'ticket'
-              ? 'bg-white/15 text-white border border-white/20 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
-          }`}
-        >
-          <Headphones className="w-4 h-4 text-slate-300" />
-          <span>Sorun Bildir & Destek</span>
-          {hasActiveConversation && (
-            <span className="w-2 h-2 rounded-full bg-white animate-pulse absolute right-4 top-3" />
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveView('platform_request')}
-          className={`flex-1 py-2.5 rounded-xl font-extrabold text-xs transition flex items-center justify-center gap-2 ${
-            activeView === 'platform_request'
-              ? 'bg-white/15 text-white border border-white/20 shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1C2433]'
-          }`}
-        >
-          <Globe className="w-4 h-4 text-amber-400" />
-          <span className="hidden sm:inline">Yemek Platformu Bağlama</span>
-          <span className="sm:hidden">Platform Bağla</span>
-        </button>
-      </div>
-
-      {/* 3. VIEW: SORUN BİLDİR & CANLI DESTEK */}
-      {activeView === 'ticket' && (
-        <div className="bg-[#111622] border border-[#1F293D] rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[600px]">
-          {/* Header */}
-          <div className="p-4 sm:p-5 border-b border-[#1F293D] bg-[#0C1017] flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center font-bold shrink-0 border border-white/20">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-sm text-white">Restiva Müşteri Hizmetleri</h3>
-                <p className="text-xs text-slate-400">
-                  {hasAgentReplied
-                    ? 'Aktif Destek Oturumu'
-                    : 'Doğrudan teknik destek ve sorun bildirimi'}
-                </p>
-              </div>
-            </div>
-
-            {hasActiveConversation && (
-              <button
-                onClick={handleEndChat}
-                disabled={isEndingChat}
-                className="px-3.5 py-1.5 bg-[#1C2433] hover:bg-rose-500/20 border border-[#2B384E] text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50"
-                title="Mevcut sohbeti sonlandırır"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Sohbeti Bitir</span>
-              </button>
-            )}
-          </div>
-
-          {/* Form or Active Messages */}
-          {!hasActiveConversation ? (
-            /* Ticket Creation Form */
-            <div className="p-6 max-w-xl mx-auto w-full space-y-4 my-auto">
-              <div className="text-center space-y-1">
-                <h3 className="text-base font-black text-white">Yeni Sorun Bildirimi</h3>
-                <p className="text-xs text-slate-400">
-                  Yaşadığınız teknik sorunu veya sorunuzu özetleyiniz. Temsilcimiz yanıtladığında sohbet başlayacaktır.
-                </p>
-              </div>
-
-              <form onSubmit={handleSubmitTicket} className="space-y-3.5 pt-2">
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                    Konu Başlığı
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
-                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                    Detaylı Açıklama
-                  </label>
-                  <textarea
-                    required
-                    rows={4}
-                    value={issueDescription}
-                    onChange={(e) => setIssueDescription(e.target.value)}
-                    placeholder="Lütfen karşılaştığınız durumu detaylı olarak açıklayınız..."
-                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl p-3 text-xs text-slate-100 font-medium focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">
-                    Ekran Görüntüsü / Resim URL (İsteğe Bağlı)
-                  </label>
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://... (Görsel linki varsa yapıştırabilirsiniz)"
-                    className="w-full bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmittingTicket}
-                  className="w-full py-3 bg-white hover:bg-slate-200 text-slate-900 font-extrabold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
-                >
-                  <Send className="w-4 h-4" />
-                  <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : 'Sorun Bildirimini Gönder'}</span>
-                </button>
-              </form>
-            </div>
-          ) : (
-            /* Active Live Chat Thread */
-            <div className="flex-1 flex flex-col justify-between">
-              {/* Waiting Agent Notice if no reply yet */}
-              {!hasAgentReplied && (
-                <div className="p-3.5 bg-[#161E2E] border-b border-[#2B384E] text-center text-xs text-slate-300 font-medium">
-                  Sorun bildiriminiz Restiva Müşteri Hizmetleri'ne iletildi. Müşteri temsilcimiz yanıt yazdığı anda sohbet burada devam edecektir.
-                </div>
-              )}
-
-              {/* Messages Body */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 bg-[#0C1017] max-h-[500px]">
-                {messages.map((m) => {
-                  const isUser = m.sender === 'business';
-                  return (
-                    <div
-                      key={m.id}
-                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
-                    >
-                      <div
-                        className={`max-w-[90%] sm:max-w-xl p-4 rounded-2xl text-xs leading-relaxed space-y-2 ${
-                          isUser
-                            ? 'bg-[#1C2433] text-slate-100 border border-[#2B384E] rounded-br-none shadow-sm'
-                            : 'bg-[#111622] border border-[#1F293D] text-slate-200 rounded-bl-none shadow-sm'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-1 text-[10px] font-black">
-                          <span>{isUser ? 'Siz' : 'Restiva Müşteri Hizmetleri'}</span>
-                          <span className="text-slate-400">
-                            {new Date(m.created_at).toLocaleTimeString('tr-TR', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-
-                        {m.subject && (
-                          <div className="text-[11px] font-extrabold text-white">
-                            Konu: {m.subject}
-                          </div>
-                        )}
-
-                        <div className="whitespace-pre-wrap">{m.message}</div>
-
-                        {m.image_url && (
-                          <div className="pt-1.5">
-                            <img
-                              src={m.image_url}
-                              alt="Ekran Görüntüsü"
-                              className="max-h-48 rounded-xl object-cover border border-[#1F293D]"
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Chat Input */}
-              <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-[#1F293D] bg-[#111622] flex gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Mesajınızı yazınız..."
-                  className="flex-1 bg-[#0C1017] border border-[#1F293D] focus:border-slate-500 rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none font-medium placeholder:text-slate-500"
-                />
-                <button
-                  type="submit"
-                  disabled={!chatInput.trim() || isSendingMessage}
-                  className="px-5 py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-40 active:scale-95"
-                >
-                  <Send className="w-4 h-4" />
-                  <span className="hidden sm:inline">Gönder</span>
-                </button>
-              </form>
-            </div>
-          )}
+          <span className="text-xs font-bold bg-[#1C2433] text-slate-300 px-3 py-1.5 rounded-xl self-start sm:self-auto shrink-0">
+            Kalan: {diffDays} Gün
+          </span>
         </div>
       )}
 
-      {/* 5. VIEW: YEMEK PLATFORMU ENTEGRASYON TALEBİ */}
-      {activeView === 'platform_request' && (
-        <div className="bg-[#111622] border border-[#1F293D] rounded-2xl p-5 sm:p-7 shadow-sm space-y-6 max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 pb-4 border-b border-white/[0.06]">
-            <div className="w-12 h-12 rounded-xl bg-white/10 text-white flex items-center justify-center border border-white/20 shrink-0">
-              <Globe className="w-6 h-6" />
-            </div>
+      {isMonthlyPdfReady && (
+        <div className="bg-[#111622] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <FileText className="w-5 h-5 text-slate-400 shrink-0" />
             <div>
-              <h3 className="text-base font-black text-white">Yemek Platformu Entegrasyon Talebi</h3>
+              <h4 className="text-xs font-bold text-white">
+                {prevMonthName} Aylık Ciro Raporu Hazır
+              </h4>
               <p className="text-xs text-slate-400 mt-0.5">
-                Yemeksepeti, Trendyol, Getir, Tıkla Gelsin vb. hesaplarınızı adisyona bağlatmak için restoran bilgilerinizi iletin. Sistem yöneticiniz kurulumu yaptığında anında bildirim alacaksınız.
+                Ayın 1-5'i arasında geçen ayın tüm satış, nakit ve kredi kartı dökümünü resmi muhasebe PDF formatında indirebilirsiniz.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleDownloadMonthlyPdf}
+            className="px-4 py-2 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shrink-0 self-start sm:self-auto active:scale-95 cursor-pointer"
+          >
+            <Download className="w-4 h-4" />
+            <span>Aylık PDF İndir</span>
+          </button>
+        </div>
+      )}
+
+      {/* 2. SORUN BİLDİR & CANLI DESTEK ANA PANELİ */}
+      <div className="bg-[#111622] rounded-2xl shadow-lg overflow-hidden flex flex-col min-h-[560px]">
+        {/* Header */}
+        <div className="p-4 sm:p-5 bg-[#141A26] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-slate-400 shrink-0" />
+            <div>
+              <h3 className="font-bold text-xs sm:text-sm text-white">RestivAdisyon Müşteri Hizmetleri</h3>
+              <p className="text-[11px] text-slate-400">
+                {hasAgentReplied
+                  ? 'Aktif Destek Oturumu'
+                  : 'Teknik destek, bildirim ve yardım masası'}
               </p>
             </div>
           </div>
 
-          <form onSubmit={handleSubmitPlatformRequest} className="space-y-4">
-            {/* Platform Selector Pills */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-2">
-                Bağlanmasını İstediğiniz Platformu Seçin:
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(Object.keys(PLATFORM_INFO) as PlatformType[]).map((plt) => {
-                  const info = PLATFORM_INFO[plt];
-                  const isSelected = reqPlatform === plt;
-                  return (
-                    <button
-                      type="button"
-                      key={plt}
-                      onClick={() => setReqPlatform(plt)}
-                      className={`p-3 rounded-2xl text-xs font-bold transition flex items-center gap-2 border text-left ${
-                        isSelected
-                          ? 'bg-white/20 text-white border-white/30 shadow-md'
-                          : 'bg-[#0C1017] text-slate-400 hover:text-white hover:bg-[#182030] border-white/[0.04]'
-                      }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${isSelected ? 'bg-amber-400' : 'bg-slate-600'}`} />
-                      <span className="truncate">{info.name}</span>
-                    </button>
-                  );
-                })}
+          {hasActiveConversation && (
+            <button
+              onClick={handleEndChat}
+              disabled={isEndingChat}
+              className="px-3 py-1.5 bg-[#1C2433] hover:bg-rose-500/20 text-slate-300 hover:text-rose-400 text-xs font-bold rounded-xl transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+              title="Mevcut sohbeti sonlandırır"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Sohbeti Bitir</span>
+            </button>
+          )}
+        </div>
+
+        {/* İçerik: Form veya Canlı Mesajlaşma */}
+        {!hasActiveConversation ? (
+          /* Sorun Bildirim Formu */
+          <div className="p-6 sm:p-8 max-w-lg mx-auto w-full space-y-4 my-auto">
+            <div className="text-center space-y-1">
+              <h3 className="text-sm sm:text-base font-bold text-white">Yeni Sorun Bildirimi</h3>
+              <p className="text-xs text-slate-400">
+                Karşılaştığınız teknik durumu veya sorunuzu iletin. Temsilcimiz yanıtladığında canlı sohbet başlayacaktır.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmitTicket} className="space-y-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Konu Başlığı
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Örn: Yazıcı fiş yazdırmıyor / Garson terminali eşleşmedi..."
+                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-bold focus:outline-none"
+                />
               </div>
-            </div>
 
-            {/* Merchant ID Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                {PLATFORM_INFO[reqPlatform].name} Satıcı / Restoran / Şube ID Numaranız:
-              </label>
-              <input
-                type="text"
-                value={reqMerchantId}
-                onChange={(e) => setReqMerchantId(e.target.value)}
-                placeholder="Örn: 10425 veya TG_IST_082"
-                className="w-full bg-[#0C1017] rounded-xl px-4 py-3 text-xs text-white font-mono font-bold focus:outline-none placeholder:text-slate-600 border border-white/[0.06]"
-                required
-              />
-              <span className="text-[10px] text-slate-400 mt-1 block">
-                {PLATFORM_INFO[reqPlatform].portalName} üzerindeki satıcı veya mağaza numaranızdır.
-              </span>
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Detaylı Açıklama
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  placeholder="Lütfen karşılaştığınız durumu detaylı olarak açıklayınız..."
+                  className="w-full bg-[#0C1017] rounded-xl p-3 text-xs text-slate-100 font-medium focus:outline-none resize-none"
+                />
+              </div>
 
-            {/* Notes Input */}
-            <div>
-              <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                Ek Not veya Talep Detayı (İsteğe Bağlı):
-              </label>
-              <textarea
-                value={reqNotes}
-                onChange={(e) => setReqNotes(e.target.value)}
-                rows={3}
-                placeholder="Örn: Kadıköy şubemizi bağlamak istiyoruz, kurye modelimiz platform kuryesidir."
-                className="w-full bg-[#0C1017] rounded-xl p-3 text-xs text-slate-200 focus:outline-none resize-none placeholder:text-slate-600 border border-white/[0.06]"
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Ekran Görüntüsü / Resim URL (İsteğe Bağlı)
+                </label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://... (Görsel linki varsa yapıştırabilirsiniz)"
+                  className="w-full bg-[#0C1017] rounded-xl px-3.5 py-2.5 text-xs text-slate-100 font-medium focus:outline-none"
+                />
+              </div>
 
-            {/* Submit Button */}
-            <div className="pt-2">
               <button
                 type="submit"
-                disabled={isSubmittingPlatformReq}
-                className="w-full py-3 bg-white/20 hover:bg-white/30 text-white font-extrabold text-xs rounded-2xl transition flex items-center justify-center gap-2 shadow-md border border-white/25 active:scale-95 disabled:opacity-50"
+                disabled={isSubmittingTicket}
+                className="w-full py-3 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 cursor-pointer"
               >
-                {isSubmittingPlatformReq ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 text-amber-400" />}
-                <span>{isSubmittingPlatformReq ? 'Talep İletiliyor...' : 'Entegrasyon Talebini İlet'}</span>
+                <Send className="w-4 h-4" />
+                <span>{isSubmittingTicket ? 'Talebiniz İletiliyor...' : 'Sorun Bildirimini Gönder'}</span>
               </button>
+            </form>
+          </div>
+        ) : (
+          /* Canlı Destek Mesajlaşma Alanı */
+          <div className="flex-1 flex flex-col justify-between">
+            {!hasAgentReplied && (
+              <div className="p-3 bg-[#141A26] text-center text-xs text-slate-300 font-medium">
+                Sorun bildiriminiz RestivAdisyon Müşteri Hizmetleri'ne iletildi. Temsilcimiz yanıt yazdığında sohbet burada devam edecektir.
+              </div>
+            )}
+
+            {/* Mesaj Listesi */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3 bg-[#0C1017] max-h-[500px]">
+              {messages.map((m) => {
+                const isUser = m.sender === 'business';
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+                  >
+                    <div
+                      className={`max-w-[90%] sm:max-w-xl p-3.5 rounded-2xl text-xs leading-relaxed space-y-1.5 shadow-sm ${
+                        isUser
+                          ? 'bg-[#1C2433] text-slate-100 rounded-br-none'
+                          : 'bg-[#141A26] text-slate-200 rounded-bl-none'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3 text-[10px] font-bold text-slate-400 pb-1">
+                        <span>{isUser ? 'Siz' : 'RestivAdisyon Temsilcisi'}</span>
+                        <span>
+                          {new Date(m.created_at).toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+
+                      {m.subject && (
+                        <div className="text-xs font-bold text-white">
+                          Konu: {m.subject}
+                        </div>
+                      )}
+
+                      <div className="whitespace-pre-wrap">{m.message}</div>
+
+                      {m.image_url && (
+                        <div className="pt-1.5">
+                          <img
+                            src={m.image_url}
+                            alt="Ekran Görüntüsü"
+                            className="max-h-48 rounded-xl object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
             </div>
-          </form>
-        </div>
-      )}
+
+            {/* Chat Input */}
+            <form onSubmit={handleSendMessage} className="p-3 sm:p-4 bg-[#111622] flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Mesajınızı yazınız..."
+                className="flex-1 bg-[#0C1017] rounded-xl px-4 py-2.5 text-xs text-slate-100 focus:outline-none font-medium placeholder:text-slate-500"
+              />
+              <button
+                type="submit"
+                disabled={!chatInput.trim() || isSendingMessage}
+                className="px-4 py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 font-bold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-40 active:scale-95 cursor-pointer shrink-0"
+              >
+                <Send className="w-4 h-4" />
+                <span className="hidden sm:inline">Gönder</span>
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
