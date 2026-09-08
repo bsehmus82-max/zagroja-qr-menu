@@ -15,10 +15,46 @@ export function setWebAutoPrintEnabled(enabled: boolean): void {
   }
 }
 
+declare global {
+  interface Window {
+    electronAPI?: {
+      printReceipt: (options: {
+        html?: string;
+        title?: string;
+        deviceName?: string;
+        silent?: boolean;
+      }) => Promise<{ success: boolean; failureReason?: string }>;
+    };
+  }
+}
+
 /**
- * Print HTML directly using a seamless hidden iframe (No annoying popup blocker or blank windows!)
+ * Print HTML directly using Electron Silent Print (Zero-confirmation) or seamless hidden iframe for Web
  */
 function printHtmlSilently(htmlContent: string, title = 'Adisyon') {
+  if (typeof window !== 'undefined') {
+    // 1. Electron POS Shell (Native Zero-confirmation Silent Print)
+    if (window.electronAPI?.printReceipt) {
+      window.electronAPI
+        .printReceipt({ html: htmlContent, title, silent: true })
+        .then((result) => {
+          if (!result.success) {
+            console.warn('Electron silent print notice:', result.failureReason);
+          }
+        })
+        .catch((err) => {
+          console.warn('Electron silent print failed, falling back to web iframe:', err);
+          fallbackWebIframePrint(htmlContent, title);
+        });
+      return;
+    }
+  }
+
+  // 2. Standard Web Browser Fallback (Hidden Iframe)
+  fallbackWebIframePrint(htmlContent, title);
+}
+
+function fallbackWebIframePrint(htmlContent: string, title: string) {
   if (typeof document === 'undefined') return;
 
   const existingIframe = document.getElementById('restiva-print-frame');

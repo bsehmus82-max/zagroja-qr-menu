@@ -3,14 +3,37 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "electron-builder",
     "desktop:app": "python desktop-app/restiva_pos_app.py",
     "desktop:build": "python -m PyInstaller --noconfirm --onefile --windowed --name RestivaPOS desktop-app/restiva_pos_app.py",
     "tauri:dev": "cargo tauri dev",
     "tauri:build": "cargo tauri build"
+  },
+  "build": {
+    "appId": "com.restivadisyon.pos",
+    "productName": "RestivAdisyon POS",
+    "directories": {
+      "output": "${env.USERPROFILE}/Desktop/RestivAdisyon-Kurulum"
+    },
+    "files": [
+      "electron/**/*",
+      "assets/icon.*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
+    }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -31,9 +54,13 @@
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^10.0.5",
+    "electron": "^44.2.0",
+    "electron-builder": "^26.15.3",
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.7.3",
-    "vite": "^6.2.1"
+    "vite": "^6.2.1",
+    "wait-on": "^9.1.0"
   }
 }
