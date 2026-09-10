@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
 import { sendNativeNotification } from '../../lib/notifications';
 import { useToast } from '../../context/ToastContext';
+import { checkRateLimit, recordAction, sanitizeInput } from '../../lib/security';
 
 interface BusinessSupportChatProps {
   business: Business;
@@ -332,18 +333,31 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
 
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!subject.trim() || !issueDescription.trim()) {
+    const cleanSubject = sanitizeInput(subject, 150);
+    const cleanDesc = sanitizeInput(issueDescription, 2000);
+
+    if (!cleanSubject || !cleanDesc) {
       toast.error('Lütfen konu başlığı ve açıklama giriniz.');
+      return;
+    }
+
+    const rateKey = `ticket_${business.id}`;
+    const { allowed, remainingSec } = checkRateLimit(rateKey, 20000);
+    if (!allowed) {
+      toast.warning(`Lütfen yeni bir destek talebi açmadan önce ${remainingSec} saniye bekleyiniz.`);
       return;
     }
 
     try {
       setIsSubmittingTicket(true);
+      const ticketCode = 'TKT-' + Math.floor(100000 + Math.random() * 900000);
+      const finalSubject = `[#${ticketCode}] ${cleanSubject}`;
+
       const payload = {
         business_id: business.id,
         sender: 'business',
-        subject: subject.trim(),
-        message: issueDescription.trim(),
+        subject: finalSubject,
+        message: cleanDesc,
         image_url: imageUrl.trim() || null,
         is_read: false,
         status: 'open',
@@ -353,6 +367,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       const { data, error } = await supabase.from('support_messages').insert([payload]).select().single();
       if (error) throw error;
 
+      recordAction(rateKey);
       if (data) {
         setMessages([data as SupportMessage]);
       }
@@ -360,7 +375,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
       setSubject('');
       setIssueDescription('');
       setImageUrl('');
-      toast.success('Sorun bildiriminiz RestivAdisyon Müşteri Hizmetleri\'ne iletildi.');
+      toast.success(`Destek talebiniz oluşturuldu (Kod: #${ticketCode}).`);
     } catch (err: any) {
       toast.error('Talep iletilemedi: ' + err.message);
     } finally {
@@ -372,7 +387,11 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
     e.preventDefault();
     if (!chatInput.trim() && !chatImageUrl) return;
 
-    const text = chatInput.trim();
+    const rateKey = `support_chat_${business.id}`;
+    const { allowed } = checkRateLimit(rateKey, 1500);
+    if (!allowed) return;
+
+    const text = sanitizeInput(chatInput, 1000);
     const attachedImage = chatImageUrl;
     setChatInput('');
     setChatImageUrl('');
@@ -397,6 +416,7 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         .single();
 
       if (error) throw error;
+      recordAction(rateKey);
       if (data) {
         setMessages((prev) => [...prev, data as SupportMessage]);
       }
@@ -568,9 +588,16 @@ export const BusinessSupportChat: React.FC<BusinessSupportChatProps> = ({ busine
         /* Canlı Destek Mesajlaşma & Yanıt Alanı */
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-400">
-              {hasAgentReplied ? 'Temsilci Yanıtladı • Canlı Destek' : 'Talebiniz İletildi • Yanıt Bekleniyor'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400">
+                {hasAgentReplied ? 'Temsilci Yanıtladı • Canlı Destek' : 'Talebiniz İletildi • Yanıt Bekleniyor'}
+              </span>
+              {messages[0]?.subject && (
+                <span className="text-[10px] font-mono font-black text-slate-200 bg-[#1C2433] px-2.5 py-1 rounded-lg shadow-xs">
+                  {messages[0].subject.match(/\[#TKT-\d+\]/)?.[0] || `#${messages[0].id.slice(0, 8).toUpperCase()}`}
+                </span>
+              )}
+            </div>
             <button
               onClick={handleEndChat}
               disabled={isEndingChat}

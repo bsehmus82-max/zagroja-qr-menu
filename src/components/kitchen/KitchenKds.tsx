@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChefHat, Check, RefreshCw, Clock, AlertCircle } from 'lucide-react';
+import { ChefHat, Check, RefreshCw, Clock, AlertCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Business, Order } from '../../types';
 import { sound } from '../../lib/audio';
@@ -97,6 +97,24 @@ export const KitchenKds: React.FC<KitchenKdsProps> = ({ business }) => {
     }
   };
 
+  // Cancel Order from Kitchen
+  const handleCancelKitchenOrder = async (orderId: string, tableNo: string) => {
+    if (!window.confirm(`${tableNo} siparişini iptal etmek istediğinize emin misiniz?`)) return;
+
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      toast.success(`${tableNo} siparişi mutfaktan iptal edildi.`);
+    } catch (err: any) {
+      toast.error('İptal işlemi başarısız: ' + err.message);
+    }
+  };
+
   const getElapsedMinutes = (createdAt: string) => {
     const diffMs = Date.now() - new Date(createdAt).getTime();
     return Math.floor(diffMs / 60000);
@@ -181,12 +199,22 @@ export const KitchenKds: React.FC<KitchenKdsProps> = ({ business }) => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleStartPreparing(order.id, order.table_no)}
-                    className="w-full py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-xs"
-                  >
-                    Hazırlamaya Başla
-                  </button>
+                  <div className="grid grid-cols-3 gap-1.5 pt-1">
+                    <button
+                      onClick={() => handleStartPreparing(order.id, order.table_no)}
+                      className="col-span-2 py-2.5 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-xl transition active:scale-95 cursor-pointer shadow-xs"
+                    >
+                      Hazırlamaya Başla
+                    </button>
+                    <button
+                      onClick={() => handleCancelKitchenOrder(order.id, order.table_no)}
+                      className="py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs rounded-xl transition active:scale-95 flex items-center justify-center gap-1"
+                      title="Siparişi İptal Et"
+                    >
+                      <X className="w-3.5 h-3.5 text-rose-400" />
+                      <span>İptal</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -220,20 +248,20 @@ export const KitchenKds: React.FC<KitchenKdsProps> = ({ business }) => {
                   className="bg-[#0C1017] rounded-xl p-3.5 flex flex-col justify-between space-y-3 shadow-xs"
                 >
                   <div className="space-y-2">
+                    {/* Header */}
                     <div className="flex items-center justify-between">
-                      <span className="font-extrabold text-sm text-white">
+                      <span className="font-black text-xs text-white">
                         {order.table_no}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-500" />
+                      <span className="text-[10px] font-bold text-slate-400">
                         {elapsed} dk
                       </span>
                     </div>
 
+                    {/* Customer Notes if Any */}
                     {order.customer_notes && (
-                      <div className="p-2 rounded-lg bg-[#141A26] text-slate-300 text-[11px] flex items-start gap-1">
-                        <AlertCircle className="w-3 h-3 shrink-0 mt-0.5 text-slate-400" />
-                        <span>Not: {order.customer_notes}</span>
+                      <div className="p-1.5 rounded-lg bg-[#141A26] text-[10px] text-amber-300 font-medium">
+                        <strong>Not:</strong> {order.customer_notes}
                       </div>
                     )}
 
@@ -277,13 +305,23 @@ export const KitchenKds: React.FC<KitchenKdsProps> = ({ business }) => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleMarkReady(order.id, order.table_no)}
-                    className="w-full py-2 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Sipariş Hazır</span>
-                  </button>
+                  <div className="grid grid-cols-3 gap-1.5 pt-1">
+                    <button
+                      onClick={() => handleMarkReady(order.id, order.table_no)}
+                      className="col-span-2 py-2 bg-white hover:bg-slate-200 text-slate-900 font-bold text-xs rounded-lg transition active:scale-95 cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Sipariş Hazır</span>
+                    </button>
+                    <button
+                      onClick={() => handleCancelKitchenOrder(order.id, order.table_no)}
+                      className="py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold text-xs rounded-lg transition active:scale-95 flex items-center justify-center gap-1"
+                      title="Siparişi İptal Et"
+                    >
+                      <X className="w-3.5 h-3.5 text-rose-400" />
+                      <span>İptal</span>
+                    </button>
+                  </div>
                 </div>
               );
             })}

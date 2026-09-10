@@ -2,15 +2,31 @@ RESTIVADISYON
 
 DESIGN CONSTITUTION & NON-NEGOTIABLE UI RULES
 
-«STATUS: CRITICAL / MANDATORY
+«STATUS: CRITICAL / MANDATORY — CANLIDA AKTİF MÜŞTERİLERİMİZ VAR
 
-Bu belge RestivAdisyon'un tüm kullanıcı arayüzleri, bileşenleri, sayfaları, modalları, panelleri, butonları, kartları, formları, navigasyonları ve görsel etkileşimleri için bağlayıcı tasarım anayasasıdır.
+Bu belge RestivAdisyon'un tüm kullanıcı arayüzleri, bileşenleri, sayfaları, modalları, panelleri, butonları, kartları, formları, navigasyonları, mimarisi ve görsel etkileşimleri için bağlayıcı tasarım ve çalışma anayasasıdır.
+
+Bu dosya bizim TEMEL TAŞIMIZ, MİMARİMİZ VE KİMLİĞİMİZDİR.
+HER İŞLEME BAŞLAMADAN ÖNCE BU DOSYANIN OKUNMASI KESİN VE NET BİR KURALDIR.
 
 Bu kurallar birer "öneri" değildir.
+Antigravity herhangi bir frontend, backend veya UI/UX değişikliği yaparken bu dosyadaki kurallara her zaman ve her seferinde uymak ZORUNDADIR.»
 
-Antigravity herhangi bir frontend veya UI/UX değişikliği yaparken bu dosyadaki kurallara her zaaman ve her seferinde uymak ZORUNDADIR.»
+---
 
-Her değişiklikte her işlemde bu dosya okunması şaarttır.
+0. CANLIDA AKTİF MÜŞTERİLER VE ÇALIŞMA PRENSİBİ (PRODUCTION WORKFLOW)
+
+1. RestivAdisyon artık sadece bir demo değil; canlıda (production) aktif olarak çalışan, sipariş alan ve operasyon yürüten gerçek işletmelerin/müşterilerin kullandığı profesyonel bir sistemdir.
+2. Canlıdaki bir işletmenin operasyonunun (kasa, mutfak, adisyon, yazdırma, sipariş akışı) aksamaması hayati önem taşır. Bu sebeple iş ciddiyeti en üst seviyededir.
+3. KESİN ÇALIŞMA DÖNGÜSÜ:
+   - Kullanıcı "kod yaz / işlem yap" demediği sürece kesinlikle kod yazmaya başlanmaz, önce talep ve mimari tartışılır.
+   - Tüm geliştirmeler ve düzeltmeler önce YERELDE (Localhost:5173 / Local Electron) yapılır.
+   - Antigravity kodları ve build durumunu (`npm run build`, lint, type check) tarar ve doğrular.
+   - Kullanıcı yerelde test eder ve onay verir.
+   - Kullanıcı açık onay vermeden canlıya (production/master) hiçbir kod veya sürüm aktarılamaz.
+4. Bu dosya her işlemin başlangıcında okunur, revize edilen kurallar anayasa hükmündedir.
+5. KOD GÜVENLİĞİ VE YEDEKLEME KURALI: Kodlar ve kritik dosyalar sadece tek bir yerel cihazda tutulamaz; cihaz arızası, çalınma, donanım kaybı risklerine karşı her kritik aşamada ve onaylanan her sürümde uzak depolara (GitHub Remote / Bulut Yedekleme) güvenle yedeklenmelidir.
+6. LOGO VE GÖRSEL KURALI (MUTLAK KURAL): Kullanıcı (Şehmus) açıkça talimat vermediği sürece katiyen yeni bir logo üretilemez, tasarlanamaz, eklenemez veya var olan logo değiştirilemez. Yalnızca projede ve canlı sistemde halihazırda bulunan orijinal/resmi logolar kullanılabilir.
 
 ---
 

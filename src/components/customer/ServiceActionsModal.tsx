@@ -6,6 +6,7 @@ import {
 import { Business } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { Language, translations } from '../../lib/translations';
+import { checkRateLimit, recordAction, sanitizeInput } from '../../lib/security';
 
 interface ServiceActionsModalProps {
   business: Business;
@@ -30,6 +31,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [wifiCopied, setWifiCopied] = useState(false);
+  const [cooldownMsg, setCooldownMsg] = useState<string | null>(null);
 
   if (!isOpen || !type) return null;
 
@@ -41,10 +43,26 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
   ];
 
   const handleSendRequest = async () => {
+    if (loading) return;
+
+    const rateLimitKey = `service_${business.id}_${tableNo || 'general'}_${type}`;
+    const { allowed, remainingSec } = checkRateLimit(rateLimitKey, 30000);
+
+    if (!allowed) {
+      setCooldownMsg(
+        lang === 'tr'
+          ? `Lütfen tekrar talep göndermeden önce ${remainingSec} saniye bekleyiniz.`
+          : `Please wait ${remainingSec}s before sending another request.`
+      );
+      setTimeout(() => setCooldownMsg(null), 4000);
+      return;
+    }
+
     setLoading(true);
+    setCooldownMsg(null);
     try {
       let requestType: 'waiter' | 'bill_cash' | 'bill_card' = 'waiter';
-      let noteText = selectedReason;
+      let noteText = sanitizeInput(selectedReason, 150);
 
       if (type === 'bill') {
         requestType = billMethod === 'pos' ? 'bill_card' : 'bill_cash';
@@ -56,7 +74,7 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
       const { error: insertErr } = await supabase.from('service_requests').insert([
         {
           business_id: business.id,
-          table_no: tableNo || 'Genel Masa',
+          table_no: sanitizeInput(tableNo, 50) || 'Genel Masa',
           request_type: requestType,
           status: 'pending',
           notes: noteText,
@@ -68,13 +86,14 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
         await supabase.from('service_requests').insert([
           {
             business_id: business.id,
-            table_no: tableNo || 'Genel Masa',
+            table_no: sanitizeInput(tableNo, 50) || 'Genel Masa',
             request_type: requestType,
             status: 'pending',
           },
         ]);
       }
 
+      recordAction(rateLimitKey);
       setSubmitted(true);
       setTimeout(() => {
         setSubmitted(false);
@@ -132,6 +151,13 @@ export const ServiceActionsModal: React.FC<ServiceActionsModalProps> = ({
             <X className="w-4 h-4" />
           </button>
         </div>
+
+        {cooldownMsg && (
+          <div className="mb-3.5 p-3 bg-amber-500/10 text-amber-300 text-xs rounded-xl flex items-center gap-2 animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>{cooldownMsg}</span>
+          </div>
+        )}
 
         {submitted ? (
           <div className="py-8 text-center space-y-2 animate-in zoom-in-95">

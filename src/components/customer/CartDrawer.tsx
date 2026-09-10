@@ -6,6 +6,8 @@ import { supabase } from '../../lib/supabase';
 import { useToast } from '../../context/ToastContext';
 import { Language, translations } from '../../lib/translations';
 
+import { checkRateLimit, recordAction, sanitizeInput, isDuplicatePayload } from '../../lib/security';
+
 interface CartDrawerProps {
   business: Business;
   tableNo: string;
@@ -40,18 +42,32 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   );
 
   const handleSendOrder = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || sending) return;
+
+    const rateLimitKey = `order_${business.id}_${tableNo || 'general'}`;
+    const { allowed, remainingSec } = checkRateLimit(rateLimitKey, 15000);
+
+    if (!allowed) {
+      toast.warning(
+        lang === 'tr'
+          ? `Lütfen yeni bir sipariş vermeden önce ${remainingSec} saniye bekleyiniz.`
+          : `Please wait ${remainingSec} seconds before submitting a new order.`
+      );
+      return;
+    }
+
+    if (isDuplicatePayload(rateLimitKey, cart, 4000)) {
+      toast.warning(
+        lang === 'tr'
+          ? 'Siparişiniz işleniyor, lütfen arka arkaya basmayınız.'
+          : 'Your order is processing, please do not submit repeatedly.'
+      );
+      return;
+    }
 
     setSending(true);
     try {
-      const orderItems = cart.map((item) => ({
-        product_id: item.product.id,
-        name: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        notes: item.notes || '',
-      }));
-
+      const sanitizedNotes = sanitizeInput(customerNotes, 300);
       const sessionToken = localStorage.getItem('user_session_token') || `ses_${Date.now()}_${Math.random()}`;
       localStorage.setItem('user_session_token', sessionToken);
 
@@ -62,9 +78,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         p_items: cart.map((item) => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          notes: item.notes || '',
+          notes: sanitizeInput(item.notes, 150),
         })),
-        p_customer_notes: customerNotes.trim(),
+        p_customer_notes: sanitizedNotes,
         p_order_source: 'qr',
         p_session_token: sessionToken,
       };
@@ -84,12 +100,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             name: item.product.name,
             quantity: item.quantity,
             price: item.product.price,
-            notes: item.notes || '',
+            notes: sanitizeInput(item.notes, 150),
           })),
           total_amount: totalAmount,
           status: 'pending',
           payment_method: 'unpaid',
-          customer_notes: customerNotes.trim(),
+          customer_notes: sanitizedNotes,
         };
 
         const fallbackRes = await supabase
@@ -103,6 +119,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       }
 
       if (!error && data) {
+        recordAction(rateLimitKey);
         const orderData = data as Order;
         const existing = JSON.parse(localStorage.getItem('my_active_orders') || '[]');
         localStorage.setItem('my_active_orders', JSON.stringify([orderData.id, ...existing]));

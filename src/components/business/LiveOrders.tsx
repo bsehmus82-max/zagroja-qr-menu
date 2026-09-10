@@ -29,6 +29,10 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   const [closingOrder, setClosingOrder] = useState<Order | null>(null);
   const [isClosingPayment, setIsClosingPayment] = useState(false);
 
+  // Cancel Order Modal State
+  const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
   const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
@@ -225,6 +229,46 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
       toast.error('Hesap kapatılırken hata oluştu: ' + err.message);
     } finally {
       setIsClosingPayment(false);
+    }
+  };
+
+  const handleConfirmCancelOrder = async (orderId: string) => {
+    setIsCancelling(true);
+    try {
+      const targetOrder = orders.find((o) => o.id === orderId);
+      if (!targetOrder) return;
+
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      if (orderErr) throw orderErr;
+
+      // Free table if no other active orders remain for this table
+      if (targetOrder.table_no && targetOrder.table_no !== 'Kasa Satışı') {
+        const otherActiveOrders = orders.filter(
+          (o) => o.id !== orderId && o.table_no === targetOrder.table_no && (o.status === 'pending' || o.status === 'preparing')
+        );
+        if (otherActiveOrders.length === 0) {
+          await supabase
+            .from('tables')
+            .update({ is_occupied: false })
+            .eq('business_id', business.id)
+            .eq('table_no', targetOrder.table_no);
+        }
+      }
+
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+      toast.success(`${targetOrder.table_no} siparişi iptal edildi.`);
+      setCancellingOrder(null);
+    } catch (err: any) {
+      toast.error('Sipariş iptal edilirken hata oluştu: ' + err.message);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -628,20 +672,83 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                         : 'Hesabı Kapat'}
                     </button>
 
-                    <button
-                      onClick={() => printKitchenTicket(business, order, true)}
-                      onMouseMove={handleSpotlightMove}
-                      className="py-2.5 bg-[#141A26] hover:bg-[#1C2433] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 col-span-2 active:scale-95 spotlight-card spotlight-glow"
-                      title="Termal Fiş Yazdır (Web & POS)"
-                    >
-                      <Printer className="w-3.5 h-3.5" />
-                      <span>Termal Fiş Yazdır</span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-1.5 col-span-2 pt-0.5">
+                      <button
+                        onClick={() => printKitchenTicket(business, order, true)}
+                        onMouseMove={handleSpotlightMove}
+                        className="py-2.5 bg-[#141A26] hover:bg-[#1C2433] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 spotlight-card spotlight-glow"
+                        title="Termal Fiş Yazdır (Web & POS)"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Fiş Yazdır</span>
+                      </button>
+
+                      <button
+                        onClick={() => setCancellingOrder(order)}
+                        onMouseMove={handleSpotlightMove}
+                        className="py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 spotlight-card spotlight-glow"
+                        title="Siparişi İptal Et"
+                      >
+                        <X className="w-3.5 h-3.5 text-rose-400" />
+                        <span>İptal Et</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* SİPARİŞİ İPTAL ET POP-UP / MODAL */}
+      {cancellingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#111622] rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-slate-200">
+            <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
+              <h3 className="text-base font-black text-white flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                <span>Siparişi İptal Et</span>
+              </h3>
+              <button
+                onClick={() => setCancellingOrder(null)}
+                className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-[#0C1017] rounded-xl p-3.5 space-y-1.5 text-xs">
+              <div className="flex justify-between font-bold">
+                <span className="text-slate-400">Masa / Adisyon:</span>
+                <span className="text-white font-extrabold">{cancellingOrder.table_no}</span>
+              </div>
+              <div className="flex justify-between font-bold">
+                <span className="text-slate-400">Toplam Tutar:</span>
+                <span className="text-rose-300 font-extrabold">{cancellingOrder.total_amount.toFixed(2)} ₺</span>
+              </div>
+              <div className="pt-2 text-[11px] text-slate-400">
+                Bu siparişi iptal etmek istediğinize emin misiniz? Sipariş listeden kaldırılacak ve masa hesabı sıfırlanacaktır.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <button
+                onClick={() => setCancellingOrder(null)}
+                disabled={isCancelling}
+                className="py-3 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={() => handleConfirmCancelOrder(cancellingOrder.id)}
+                disabled={isCancelling}
+                className="py-3 bg-rose-600 hover:bg-rose-500 text-white font-black text-xs rounded-xl shadow-lg transition active:scale-95 disabled:opacity-50"
+              >
+                {isCancelling ? 'İptal Ediliyor...' : 'İptali Onayla'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
