@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ChefHat, Printer, CheckCircle2, Clock, 
   Hand, Banknote, RefreshCw, Volume2, CreditCard, Landmark,
-  Plus, ShoppingBag, Check, X, BellRing
+  Plus, ShoppingBag, Check, X, BellRing, Pencil, Trash2, Search, Minus
 } from 'lucide-react';
-import { Business, Order, ServiceRequest } from '../../types';
+import { Business, Order, ServiceRequest, Product, OrderItem } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { sound } from '../../lib/audio';
 import { printKitchenTicket, isWebAutoPrintEnabled, setWebAutoPrintEnabled } from '../../lib/thermalPrinter';
@@ -25,6 +25,8 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   const [isSoundActive, setIsSoundActive] = useState(true);
   const [isAutoPrintActive, setIsAutoPrintActive] = useState(() => isWebAutoPrintEnabled());
 
+  const isFirstLoadRef = useRef(true);
+
   // Close Order / Payment Modal State
   const [closingOrder, setClosingOrder] = useState<Order | null>(null);
   const [isClosingPayment, setIsClosingPayment] = useState(false);
@@ -33,6 +35,12 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   const [cancellingOrder, setCancellingOrder] = useState<Order | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // Edit Order Modal State
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [menuProducts, setMenuProducts] = useState<Product[]>([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+
   const handleSpotlightMove = (e: React.MouseEvent<HTMLElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
@@ -40,7 +48,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
   };
 
   const loadData = async (isSilent = false) => {
-    if (!isSilent && orders.length === 0) {
+    if (!isSilent && isFirstLoadRef.current && orders.length === 0) {
       setLoading(true);
     }
     try {
@@ -62,7 +70,114 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
       if (ordersRes.data) setOrders(ordersRes.data as Order[]);
       if (requestsRes.data) setServiceRequests(requestsRes.data as ServiceRequest[]);
     } finally {
+      isFirstLoadRef.current = false;
       setLoading(false);
+    }
+  };
+
+  const fetchMenuProducts = async () => {
+    try {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .eq('business_id', business.id)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+      if (data) {
+        setMenuProducts(data as Product[]);
+      }
+    } catch (e) {
+      console.error('Error fetching menu products for order edit:', e);
+    }
+  };
+
+  const handleOpenEditModal = (order: Order) => {
+    setEditingOrder(JSON.parse(JSON.stringify(order)));
+    setProductSearch('');
+    fetchMenuProducts();
+  };
+
+  const handleUpdateItemQuantity = (index: number, delta: number) => {
+    if (!editingOrder) return;
+    const newItems = [...editingOrder.items];
+    const current = newItems[index];
+    const newQty = current.quantity + delta;
+    if (newQty <= 0) {
+      newItems.splice(index, 1);
+    } else {
+      newItems[index] = { ...current, quantity: newQty };
+    }
+    const newTotal = newItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+    setEditingOrder({
+      ...editingOrder,
+      items: newItems,
+      total_amount: newTotal,
+    });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (!editingOrder) return;
+    const newItems = editingOrder.items.filter((_, idx) => idx !== index);
+    const newTotal = newItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+    setEditingOrder({
+      ...editingOrder,
+      items: newItems,
+      total_amount: newTotal,
+    });
+  };
+
+  const handleAddProductToOrder = (prod: Product) => {
+    if (!editingOrder) return;
+    const newItems = [...editingOrder.items];
+    const existingIdx = newItems.findIndex(i => i.product_id === prod.id || i.name === prod.name);
+    if (existingIdx >= 0) {
+      newItems[existingIdx] = {
+        ...newItems[existingIdx],
+        quantity: newItems[existingIdx].quantity + 1,
+      };
+    } else {
+      newItems.push({
+        product_id: prod.id,
+        name: prod.name,
+        quantity: 1,
+        price: prod.price,
+      });
+    }
+    const newTotal = newItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
+    setEditingOrder({
+      ...editingOrder,
+      items: newItems,
+      total_amount: newTotal,
+    });
+  };
+
+  const handleSaveOrderEdit = async () => {
+    if (!editingOrder) return;
+    if (editingOrder.items.length === 0) {
+      toast.error('Siparişte en az bir ürün bulunmalıdır. Tümünü silmek için İptal Et butonunu kullanabilirsiniz.');
+      return;
+    }
+    setIsSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          items: editingOrder.items,
+          total_amount: editingOrder.total_amount,
+          customer_notes: editingOrder.customer_notes || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editingOrder.id);
+
+      if (error) throw error;
+
+      setOrders(prev => prev.map(o => o.id === editingOrder.id ? { ...o, items: editingOrder.items, total_amount: editingOrder.total_amount, customer_notes: editingOrder.customer_notes } : o));
+      toast.success('Sipariş içeriği başarıyla güncellendi.');
+      setEditingOrder(null);
+    } catch (err: any) {
+      toast.error('Sipariş güncellenirken hata oluştu: ' + err.message);
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -152,7 +267,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
       .subscribe();
 
     const handleSync = () => {
-      loadData();
+      loadData(true);
     };
 
     window.addEventListener('focus', handleSync);
@@ -468,10 +583,10 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                   className="bg-[#111622] rounded-2xl p-4 shadow-lg space-y-3 transition spotlight-card spotlight-glow"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-sm text-slate-100 bg-[#1C2433] px-3 py-1 rounded-xl">
+                    <span className="font-black text-sm text-white">
                       {req.table_no}
                     </span>
-                    <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg flex items-center gap-1 bg-[#1C2433] text-slate-300">
+                    <span className="text-xs font-bold flex items-center gap-1 text-slate-300">
                       {isWaiter && <BellRing className="w-3 h-3 text-slate-300" />}
                       {isCard && <CreditCard className="w-3 h-3 text-slate-300" />}
                       {!isWaiter && !isCard && <Banknote className="w-3 h-3 text-slate-300" />}
@@ -538,8 +653,8 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
               >
                 <div>
                   <div className="flex items-center justify-between pb-2.5">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-black text-sm text-slate-100 bg-[#1C2433] px-2.5 py-1 rounded-xl">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-sm text-white">
                         {order.table_no}
                       </span>
                       {order.order_source === 'waiter' && (
@@ -574,9 +689,18 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       )}
                     </div>
 
-                    <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-lg bg-[#1C2433] text-slate-200 shrink-0">
-                      {isPending ? 'Bekliyor' : order.status === 'served' ? 'Kuryede / Hazır' : 'Hazırlanıyor'}
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-xs font-bold text-slate-300">
+                        {isPending ? 'Bekliyor' : order.status === 'served' ? 'Kuryede / Hazır' : 'Hazırlanıyor'}
+                      </span>
+                      <button
+                        onClick={() => handleOpenEditModal(order)}
+                        className="p-1 text-slate-400 hover:text-white transition rounded-md hover:bg-white/5 active:scale-95"
+                        title="Siparişi Düzenle (Ürün Ekle / Çıkar)"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   {/* Translucent Separator */}
@@ -611,7 +735,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                     {order.items.map((item, idx) => (
                       <div key={idx} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="font-black text-white bg-white/10 w-5 h-5 rounded-md flex items-center justify-center text-[10px] shrink-0">
+                          <span className="font-bold text-xs text-slate-400 shrink-0 min-w-[18px]">
                             {item.quantity}x
                           </span>
                           <span className="font-bold text-slate-200 truncate">{item.name}</span>
@@ -646,7 +770,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       <button
                         onClick={() => updateOrderStatus(order.id, 'preparing')}
                         onMouseMove={handleSpotlightMove}
-                        className="py-2.5 bg-[#222E42] hover:bg-[#2C3B54] text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 spotlight-card spotlight-glow"
+                        className="py-2.5 bg-[#1C2433] hover:bg-[#253043] text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95"
                       >
                         Siparişi Onayla
                       </button>
@@ -654,7 +778,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       <button
                         onClick={() => updateOrderStatus(order.id, 'served')}
                         onMouseMove={handleSpotlightMove}
-                        className="py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white font-bold text-xs rounded-xl transition active:scale-95"
+                        className="py-2.5 bg-[#1C2433] hover:bg-[#253043] text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95"
                       >
                         Hazırlandı
                       </button>
@@ -663,7 +787,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                     <button
                       onClick={() => setClosingOrder(order)}
                       onMouseMove={handleSpotlightMove}
-                      className={`py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-100 hover:text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 spotlight-card spotlight-glow ${
+                      className={`py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 hover:text-white font-bold text-xs rounded-xl shadow-sm transition active:scale-95 ${
                         !isPending && order.status !== 'preparing' ? 'col-span-1' : ''
                       }`}
                     >
@@ -676,7 +800,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       <button
                         onClick={() => printKitchenTicket(business, order, true)}
                         onMouseMove={handleSpotlightMove}
-                        className="py-2.5 bg-[#141A26] hover:bg-[#1C2433] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 spotlight-card spotlight-glow"
+                        className="py-2.5 bg-[#1C2433] hover:bg-[#253043] text-slate-200 hover:text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
                         title="Termal Fiş Yazdır (Web & POS)"
                       >
                         <Printer className="w-3.5 h-3.5" />
@@ -686,7 +810,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
                       <button
                         onClick={() => setCancellingOrder(order)}
                         onMouseMove={handleSpotlightMove}
-                        className="py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 spotlight-card spotlight-glow"
+                        className="py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 hover:text-rose-200 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 shadow-sm"
                         title="Siparişi İptal Et"
                       >
                         <X className="w-3.5 h-3.5 text-rose-400" />
@@ -698,6 +822,184 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* SİPARİŞİ DÜZENLE POP-UP / MODAL */}
+      {editingOrder && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[#111622] rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-slate-200 max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/[0.06] shrink-0">
+              <div>
+                <h3 className="text-base font-black text-white">
+                  Siparişi Düzenle — {editingOrder.table_no}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Sipariş içeriğine ürün ekleyebilir, adetleri değiştirebilir veya silebilirsiniz.
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingOrder(null)}
+                className="p-1 text-slate-400 hover:text-white transition active:scale-95"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body: Scrollable */}
+            <div className="space-y-4 overflow-y-auto flex-1 pr-1">
+              {/* Items List */}
+              <div className="space-y-2">
+                <span className="text-[11px] font-bold text-slate-400 uppercase block">
+                  Mevcut Sipariş Kalemleri ({editingOrder.items.length})
+                </span>
+                
+                {editingOrder.items.length === 0 ? (
+                  <div className="p-4 bg-[#0C1017] rounded-xl text-center text-xs text-slate-400">
+                    Siparişte ürün kalmadı. Lütfen menüden ürün ekleyin veya siparişi iptal edin.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {editingOrder.items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="bg-[#0C1017] p-3 rounded-xl flex items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="font-bold text-white block truncate">{item.name}</span>
+                          <span className="text-[11px] text-slate-400">{item.price.toFixed(2)} ₺ / adet</span>
+                        </div>
+
+                        {/* Quantity Stepper */}
+                        <div className="flex items-center gap-1.5 bg-[#1C2433] rounded-lg p-1">
+                          <button
+                            onClick={() => handleUpdateItemQuantity(idx, -1)}
+                            className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition"
+                            title="Azalt"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-6 text-center font-black text-xs text-white">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleUpdateItemQuantity(idx, 1)}
+                            className="w-6 h-6 rounded flex items-center justify-center text-slate-300 hover:text-white hover:bg-white/10 transition"
+                            title="Artır"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+
+                        {/* Line Total */}
+                        <span className="font-extrabold text-white min-w-[65px] text-right">
+                          {(item.price * item.quantity).toFixed(2)} ₺
+                        </span>
+
+                        {/* Remove Item */}
+                        <button
+                          onClick={() => handleRemoveItem(idx)}
+                          className="p-1.5 text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition"
+                          title="Ürünü Kaldır"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Add Product from Menu */}
+              <div className="space-y-2 pt-2 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase">
+                    Menüden Ürün Ekle
+                  </span>
+                </div>
+
+                <div className="relative">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Ürün adı ile ara..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="w-full bg-[#0C1017] text-white text-xs rounded-xl pl-9 pr-3 py-2.5 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  />
+                </div>
+
+                <div className="max-h-36 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-1.5 pr-1">
+                  {menuProducts
+                    .filter((p) =>
+                      productSearch.trim() === ''
+                        ? true
+                        : p.name.toLowerCase().includes(productSearch.toLowerCase())
+                    )
+                    .slice(0, 10)
+                    .map((prod) => (
+                      <button
+                        key={prod.id}
+                        onClick={() => handleAddProductToOrder(prod)}
+                        className="bg-[#0C1017] hover:bg-[#1C2433] p-2.5 rounded-xl flex items-center justify-between text-left transition group"
+                      >
+                        <div className="min-w-0 pr-2">
+                          <p className="font-bold text-xs text-white truncate">{prod.name}</p>
+                          <p className="text-[10px] text-slate-400 font-medium">{prod.price.toFixed(2)} ₺</p>
+                        </div>
+                        <span className="p-1 rounded-lg bg-white/5 group-hover:bg-white/10 text-slate-300 group-hover:text-white shrink-0">
+                          <Plus className="w-3.5 h-3.5" />
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* Customer Note */}
+              <div className="space-y-1.5 pt-2 border-t border-white/[0.06]">
+                <span className="text-[11px] font-bold text-slate-400 uppercase block">
+                  Masa / Sipariş Notu
+                </span>
+                <input
+                  type="text"
+                  placeholder="Not ekle (Örn: Acısız olsun, ekstra peçete...)"
+                  value={editingOrder.customer_notes || ''}
+                  onChange={(e) =>
+                    setEditingOrder({ ...editingOrder, customer_notes: e.target.value })
+                  }
+                  className="w-full bg-[#0C1017] text-white text-xs rounded-xl px-3 py-2.5 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                />
+              </div>
+            </div>
+
+            {/* Total & Action Buttons */}
+            <div className="space-y-3 pt-2 border-t border-white/[0.06] shrink-0">
+              <div className="flex items-center justify-between p-3 bg-[#0C1017] rounded-xl">
+                <span className="font-extrabold text-xs text-slate-400 uppercase">Güncel Toplam:</span>
+                <span className="font-black text-lg text-white">
+                  {editingOrder.total_amount.toFixed(2)} ₺
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setEditingOrder(null)}
+                  disabled={isSavingEdit}
+                  className="py-3 bg-[#1C2433] hover:bg-[#253043] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  onClick={handleSaveOrderEdit}
+                  disabled={isSavingEdit}
+                  className="py-3 bg-white hover:bg-slate-200 text-slate-900 font-black text-xs rounded-xl shadow-lg transition active:scale-95 disabled:opacity-50"
+                >
+                  {isSavingEdit ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
