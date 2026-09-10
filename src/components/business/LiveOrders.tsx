@@ -706,13 +706,12 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-[#111622] rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200 text-slate-200">
             <div className="flex items-center justify-between pb-2 border-b border-white/[0.06]">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
-                <span>Siparişi İptal Et</span>
+              <h3 className="text-base font-black text-white">
+                Siparişi İptal Et
               </h3>
               <button
                 onClick={() => setCancellingOrder(null)}
-                className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95"
+                className="p-1 text-slate-400 hover:text-white transition active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -768,7 +767,7 @@ export const LiveOrders: React.FC<LiveOrdersProps> = ({ business, onNavigatePos 
               </div>
               <button
                 onClick={() => setClosingOrder(null)}
-                className="w-8 h-8 rounded-xl bg-[#1C2433] hover:bg-[#253043] text-slate-400 hover:text-white flex items-center justify-center transition active:scale-95"
+                className="p-1 text-slate-400 hover:text-white transition active:scale-95"
               >
                 <X className="w-4 h-4" />
               </button>
